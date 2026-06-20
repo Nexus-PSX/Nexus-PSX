@@ -1676,6 +1676,114 @@
     border-color: var(--accent3);
   }
 
+  /* ===== SECTOR MULTI-SELECT DROPDOWN ===== */
+  .msel { position: relative; display: inline-block; }
+  .msel-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.15s;
+    white-space: nowrap;
+  }
+  .msel-btn:hover { border-color: var(--accent3); }
+  .msel-btn.active { border-color: var(--accent); }
+  .msel-btn .msel-caret { font-size: 9px; color: var(--text2); transition: transform 0.15s; }
+  .msel-btn.open .msel-caret { transform: rotate(180deg); }
+  .msel-count {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    line-height: 1.4;
+  }
+  .msel-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 260px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 998;
+    overflow: hidden;
+  }
+  .msel-panel.open { display: block; }
+  .msel-search {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .msel-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .msel-action-btn {
+    background: none;
+    border: none;
+    color: var(--accent3);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+  .msel-action-btn:hover { text-decoration: underline; }
+  .msel-list { max-height: 260px; overflow-y: auto; }
+  .msel-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .msel-item:last-child { border-bottom: none; }
+  .msel-item:hover { background: var(--surface3); }
+  .msel-item input[type="checkbox"] {
+    width: 14px; height: 14px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .msel-item .msel-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msel-empty { padding: 14px 10px; font-size: 12px; color: var(--text2); text-align: center; }
+  [data-theme="tradingview"] .msel-btn { background: #2a2e39; border-color: #363a45; color: #d1d4dc; }
+  [data-theme="tradingview"] .msel-panel { background: #2a2e39; border-color: #363a45; }
+  [data-theme="tradingview"] .msel-search, [data-theme="tradingview"] .msel-actions { background: #1e222d; border-color: #363a45; }
+  [data-theme="tradingview"] .msel-item { color: #d1d4dc; border-color: #363a45; }
+  [data-theme="tradingview"] .msel-item:hover { background: #363a45; }
+  [data-theme="cream"] .msel-btn { background: #ede8df; border-color: #d4ccbc; color: #2c2416; }
+  [data-theme="cream"] .msel-panel { background: #ede8df; border-color: #d4ccbc; }
+  [data-theme="cream"] .msel-search, [data-theme="cream"] .msel-actions { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .msel-item { color: #2c2416; border-color: #e2dbd0; }
+  [data-theme="cream"] .msel-item:hover { background: rgba(61,140,92,0.10); }
+  @media (max-width: 768px) {
+    .msel-panel { width: 240px; }
+  }
+
   /* Score breakdown bar animation */
   .breakdown-bar {
     transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -3084,15 +3192,47 @@
         <div class="table-title">All Companies — Stock Screener</div>
         <div class="table-filters" style="gap: 8px; flex-wrap: wrap; align-items: center;">
           <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="width: 200px;">
-          <select class="filter-select" id="screenerSector" onchange="filterScreener()"><option value="">All Sectors</option><option value="AUTOMOBILE ASSEMBLER">AUTOMOBILE ASSEMBLER</option><option value="AUTOMOBILE PARTS &amp; ACCESSORIES">AUTOMOBILE PARTS &amp; ACCESSORIES</option><option value="Agricultural commodities/Milling">Agricultural commodities/Milling</option><option value="CABLE &amp; ELECTRICAL GOODS">CABLE &amp; ELECTRICAL GOODS</option><option value="CEMENT">CEMENT</option><option value="CHEMICAL">CHEMICAL</option><option value="CLOSE - END MUTUAL FUND">CLOSE - END MUTUAL FUND</option><option value="COMMERCIAL BANKS">COMMERCIAL BANKS</option><option value="ENGINEERING">ENGINEERING</option><option value="ETF">ETF</option><option value="Electric utilities">Electric utilities</option><option value="FERTILIZER">FERTILIZER</option><option value="FOOD &amp; PERSONAL CARE PRODUCTS">FOOD &amp; PERSONAL CARE PRODUCTS</option><option value="GLASS &amp; CERAMICS">GLASS &amp; CERAMICS</option><option value="INSURANCE">INSURANCE</option><option value="INV. BANKS / INV. COS. / SECURITIES COS.">INV. BANKS / INV. COS. / SECURITIES COS.</option><option value="JUTE">JUTE</option><option value="LEASING COMPANIES">LEASING COMPANIES</option><option value="LEATHER &amp; TANNERIES">LEATHER &amp; TANNERIES</option><option value="MISCELLANEOUS">MISCELLANEOUS</option><option value="MODARABAS">MODARABAS</option><option value="OIL &amp; GAS EXPLORATION COMPANIES">OIL &amp; GAS EXPLORATION COMPANIES</option><option value="OIL &amp; GAS MARKETING COMPANIES">OIL &amp; GAS MARKETING COMPANIES</option><option value="PAPER, BOARD &amp; PACKAGING">PAPER, BOARD &amp; PACKAGING</option><option value="PHARMACEUTICALS">PHARMACEUTICALS</option><option value="POWER GENERATION &amp; DISTRIBUTION">POWER GENERATION &amp; DISTRIBUTION</option><option value="PROPERTY">PROPERTY</option><option value="REAL ESTATE INVESTMENT TRUST">REAL ESTATE INVESTMENT TRUST</option><option value="REFINERY">REFINERY</option><option value="SUGAR &amp; ALLIED INDUSTRIES">SUGAR &amp; ALLIED INDUSTRIES</option><option value="SYNTHETIC &amp; RAYON">SYNTHETIC &amp; RAYON</option><option value="TECHNOLOGY &amp; COMMUNICATION">TECHNOLOGY &amp; COMMUNICATION</option><option value="TEXTILE COMPOSITE">TEXTILE COMPOSITE</option><option value="TEXTILE SPINNING">TEXTILE SPINNING</option><option value="TEXTILE WEAVING">TEXTILE WEAVING</option><option value="TOBACCO">TOBACCO</option><option value="TRANSPORT">TRANSPORT</option><option value="Textiles">Textiles</option><option value="VANASPATI &amp; ALLIED INDUSTRIES">VANASPATI &amp; ALLIED INDUSTRIES</option><option value="WOOLLEN">WOOLLEN</option></select>
-          <select class="filter-select" id="screenerIndex" onchange="filterScreener()"><option value="">All Indices</option><option value="JS Momentum Factor">JS Momentum Factor</option><option value="KMI 30">KMI 30</option><option value="KSE 100">KSE 100</option><option value="KSE 30">KSE 30</option><option value="KSE All Share">KSE All Share</option><option value="Meezan Pakistan">Meezan Pakistan</option><option value="NBP Pakistan Growth">NBP Pakistan Growth</option><option value="NIT Pakistan Gateway">NIT Pakistan Gateway</option><option value="PSX Banking">PSX Banking</option><option value="PSX DIVIDEND 20">PSX DIVIDEND 20</option><option value="PSX Oil &amp; Gas Tradable">PSX Oil &amp; Gas Tradable</option><option value="PSX-KMI All Share">PSX-KMI All Share</option><option value="STOXX Emerging Markets 1500">STOXX Emerging Markets 1500</option><option value="UBL Pakistan Enterprise">UBL Pakistan Enterprise</option></select>
-          <select class="filter-select" id="screenerScore" onchange="filterScreener()">
-            <option value="">All Scores ⭐</option>
-            <option value="80">Score ≥ 80</option>
-            <option value="50">Score ≥ 50</option>
-            <option value="40">Score ≥ 40</option>
-            <option value="20">Score ≥ 20</option>
-          </select>
+          <div class="msel" id="sectorMsel">
+            <button type="button" class="msel-btn" id="sectorMselBtn" onclick="mselTogglePanel('sector', event)">
+              <span id="sectorMselLabel">All Sectors</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="sectorMselPanel">
+              <input type="text" class="msel-search" id="sectorMselSearch" placeholder="Search sectors..." oninput="mselRenderList('sector')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('sector')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('sector')">Clear</button>
+              </div>
+              <div class="msel-list" id="sectorMselList"></div>
+            </div>
+          </div>
+          <div class="msel" id="indexMsel">
+            <button type="button" class="msel-btn" id="indexMselBtn" onclick="mselTogglePanel('index', event)">
+              <span id="indexMselLabel">All Indices</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="indexMselPanel">
+              <input type="text" class="msel-search" id="indexMselSearch" placeholder="Search indices..." oninput="mselRenderList('index')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('index')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('index')">Clear</button>
+              </div>
+              <div class="msel-list" id="indexMselList"></div>
+            </div>
+          </div>
+          <div class="msel" id="scoreMsel">
+            <button type="button" class="msel-btn" id="scoreMselBtn" onclick="mselTogglePanel('score', event)">
+              <span id="scoreMselLabel">All Scores ⭐</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="scoreMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('score')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('score')">Clear</button>
+              </div>
+              <div class="msel-list" id="scoreMselList"></div>
+            </div>
+          </div>
           <select class="filter-select" id="screenerSignal" onchange="filterScreener()">
             <option value="">Liquid Filter 💧</option>
             <option value="1">Liquid Stock (+)</option>
@@ -3103,16 +3243,20 @@
             <option value="1">🟢 High Phase (+1)</option>
             <option value="-1">⚪ Normal Phase (-1)</option>
           </select>
-          <select class="filter-select" id="screenerSignalStatus" onchange="filterScreener()">
-            <option value="">Signal Status 🔔</option>
-            <option value="Fresh buy signal">Fresh Buy Signal</option>
-            <option value="Fresh buy signal (cautious)">Fresh Buy Signal (Cautious)</option>
-            <option value="Hold trade">Hold Trade</option>
-            <option value="Take some profit">Take Some Profit</option>
-            <option value="Be cautious">Be Cautious</option>
-            <option value="Buy call closed">Buy call closed</option>
-            <option value="No trade">No Trade</option>
-          </select>
+          <div class="msel" id="statusMsel">
+            <button type="button" class="msel-btn" id="statusMselBtn" onclick="mselTogglePanel('status', event)">
+              <span id="statusMselLabel">Signal Status 🔔</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="statusMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('status')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('status')">Clear</button>
+              </div>
+              <div class="msel-list" id="statusMselList"></div>
+            </div>
+          </div>
+
           <button class="fin-toggle-btn" id="finToggleBtn" onclick="toggleFinancials()" title="Hide/show EPS, Revenue, Margins, CFO columns">📊 Show Financials</button>
           <button class="fin-toggle-btn" id="techToggleBtn" onclick="toggleTechnical()" title="Hide/show Signal Date, Signal Return%, Signal Status columns">📡 Show Technical</button>
           <button class="fin-toggle-btn" id="dailyToggleBtn" onclick="toggleDaily()" title="Show Price, Rel Vol, Volume and 1D % columns">📉 Show Daily Movement</button>
@@ -6934,28 +7078,12 @@ function init() {
     .map(d => ({ticker: String(d.Ticker), name: String(d.Name || ''), score: d['total improvement'] || 0}))
     .sort((a,b) => b.score - a.score);
 
-  // Populate sector filter
-  const sectors = [...new Set(SOURCE_DATA.filter(d=>d.Sector && d.Sector!=='0').map(d=>d.Sector))].sort();
-  const sectorSel = document.getElementById('screenerSector');
-  if (sectorSel) {
-    sectorSel.innerHTML = '<option value="">All Sectors</option>';
-    sectors.forEach(s => {
-      const o = document.createElement('option'); o.value = s; o.textContent = s;
-      sectorSel.appendChild(o);
-    });
-  }
-
-  // Populate index filter
-  const allIndices = new Set();
-  SOURCE_DATA.forEach(d => { if(d.Index) d.Index.split(',').forEach(i => allIndices.add(i.trim())); });
-  const indexSel = document.getElementById('screenerIndex');
-  if (indexSel) {
-    indexSel.innerHTML = '<option value="">All Indices</option>';
-    [...allIndices].filter(i=>i&&i!=='0').sort().forEach(i => {
-      const o = document.createElement('option'); o.value = i; o.textContent = i;
-      indexSel.appendChild(o);
-    });
-  }
+  // Populate sector & index filters (multi-select)
+  allSectors = [...new Set(SOURCE_DATA.filter(d=>d.Sector && d.Sector!=='0').map(d=>d.Sector))].sort();
+  const allIndicesSet = new Set();
+  SOURCE_DATA.forEach(d => { if(d.Index) String(d.Index).split(',').forEach(i => allIndicesSet.add(i.trim())); });
+  allIndicesList = [...allIndicesSet].filter(i=>i&&i!=='0').sort();
+  resetMselFilters();
 
   // Load first ticker
   if (allTickers.length > 0) loadTicker(allTickers[0].ticker);
@@ -7979,25 +8107,218 @@ function sortSectorTable(col) {
 // ===== SCREENER =====
 let currentTicker = null;
 let filteredScreener = [];
+let allSectors = [];
+let allIndicesList = [];
+
+const SCORE_OPTIONS = [
+  {value:'80', label:'Score ≥ 80'},
+  {value:'50', label:'Score ≥ 50'},
+  {value:'40', label:'Score ≥ 40'},
+  {value:'20', label:'Score ≥ 20'}
+];
+const STATUS_OPTIONS = [
+  {value:'Fresh buy signal', label:'Fresh Buy Signal'},
+  {value:'Fresh buy signal (cautious)', label:'Fresh Buy Signal (Cautious)'},
+  {value:'Hold trade', label:'Hold Trade'},
+  {value:'Take some profit', label:'Take Some Profit'},
+  {value:'Be cautious', label:'Be Cautious'},
+  {value:'Buy call closed', label:'Buy call closed'},
+  {value:'No trade', label:'No Trade'}
+];
+
+// Generic multi-select registry. Each entry: options() returns [{value,label}], selected: Set of values, ids + labels for the button.
+const mselRegistry = {
+  sector: {
+    options: () => allSectors.map(s => ({value:s, label:s})),
+    selected: new Set(),
+    searchable: true,
+    allLabel: 'All Sectors',
+    oneLabel: v => v,
+    manyLabel: n => `Sectors`,
+  },
+  index: {
+    options: () => allIndicesList.map(s => ({value:s, label:s})),
+    selected: new Set(),
+    searchable: true,
+    allLabel: 'All Indices',
+    oneLabel: v => v,
+    manyLabel: n => `Indices`,
+  },
+  score: {
+    options: () => SCORE_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'All Scores ⭐',
+    oneLabel: v => (SCORE_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `Scores`,
+  },
+  status: {
+    options: () => STATUS_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'Signal Status 🔔',
+    oneLabel: v => (STATUS_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `Statuses`,
+  }
+};
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function mselUpdateLabel(key) {
+  const cfg = mselRegistry[key];
+  const label = document.getElementById(key + 'MselLabel');
+  const btn = document.getElementById(key + 'MselBtn');
+  if (!label || !cfg) return;
+  const sel = cfg.selected;
+  if (sel.size === 0) {
+    label.innerHTML = cfg.allLabel;
+    btn.classList.remove('active');
+  } else if (sel.size === 1) {
+    label.innerHTML = escapeHtml(cfg.oneLabel([...sel][0]));
+    btn.classList.add('active');
+  } else {
+    label.innerHTML = `${cfg.manyLabel(sel.size)} <span class="msel-count">${sel.size}</span>`;
+    btn.classList.add('active');
+  }
+}
+
+function mselRenderList(key) {
+  const cfg = mselRegistry[key];
+  const list = document.getElementById(key + 'MselList');
+  if (!list || !cfg) return;
+  const searchEl = document.getElementById(key + 'MselSearch');
+  const q = (searchEl && searchEl.value || '').toLowerCase();
+  let opts = cfg.options();
+  if (q) opts = opts.filter(o => o.label.toLowerCase().includes(q));
+  if (opts.length === 0) {
+    list.innerHTML = '<div class="msel-empty">No matches found</div>';
+    return;
+  }
+  list.innerHTML = opts.map(o => {
+    const checked = cfg.selected.has(o.value) ? 'checked' : '';
+    const safeVal = escapeHtml(o.value).replace(/'/g, "\\'");
+    const safeLabel = escapeHtml(o.label);
+    return `<label class="msel-item"><input type="checkbox" ${checked} onchange="mselToggleItem('${key}', '${safeVal}', this.checked)"><span class="msel-label" title="${safeLabel}">${safeLabel}</span></label>`;
+  }).join('');
+}
+
+function mselToggleItem(key, value, checked) {
+  const cfg = mselRegistry[key];
+  if (!cfg) return;
+  if (checked) cfg.selected.add(value); else cfg.selected.delete(value);
+  mselUpdateLabel(key);
+  filterScreener();
+}
+
+function mselSelectAll(key) {
+  const cfg = mselRegistry[key];
+  if (!cfg) return;
+  const searchEl = document.getElementById(key + 'MselSearch');
+  const q = (searchEl && searchEl.value || '').toLowerCase();
+  let opts = cfg.options();
+  if (q) opts = opts.filter(o => o.label.toLowerCase().includes(q));
+  opts.forEach(o => cfg.selected.add(o.value));
+  mselRenderList(key);
+  mselUpdateLabel(key);
+  filterScreener();
+}
+
+function mselClear(key) {
+  const cfg = mselRegistry[key];
+  if (!cfg) return;
+  const searchEl = document.getElementById(key + 'MselSearch');
+  const q = (searchEl && searchEl.value || '').toLowerCase();
+  if (q) {
+    let opts = cfg.options().filter(o => o.label.toLowerCase().includes(q));
+    opts.forEach(o => cfg.selected.delete(o.value));
+  } else {
+    cfg.selected.clear();
+  }
+  mselRenderList(key);
+  mselUpdateLabel(key);
+  filterScreener();
+}
+
+function mselTogglePanel(key, e) {
+  e.stopPropagation();
+  const panel = document.getElementById(key + 'MselPanel');
+  const btn = document.getElementById(key + 'MselBtn');
+  if (!panel || !btn) return;
+  const opening = !panel.classList.contains('open');
+  // close all other panels first
+  Object.keys(mselRegistry).forEach(k => {
+    if (k !== key) {
+      document.getElementById(k + 'MselPanel')?.classList.remove('open');
+      document.getElementById(k + 'MselBtn')?.classList.remove('open');
+    }
+  });
+  panel.classList.toggle('open', opening);
+  btn.classList.toggle('open', opening);
+  if (opening) {
+    const search = document.getElementById(key + 'MselSearch');
+    if (search) search.value = '';
+    mselRenderList(key);
+    if (search) setTimeout(() => search.focus(), 0);
+  }
+}
+
+document.addEventListener('click', function(e) {
+  Object.keys(mselRegistry).forEach(key => {
+    const root = document.getElementById(key + 'Msel');
+    if (!root) return;
+    if (!root.contains(e.target)) {
+      document.getElementById(key + 'MselPanel')?.classList.remove('open');
+      document.getElementById(key + 'MselBtn')?.classList.remove('open');
+    }
+  });
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    Object.keys(mselRegistry).forEach(key => {
+      document.getElementById(key + 'MselPanel')?.classList.remove('open');
+      document.getElementById(key + 'MselBtn')?.classList.remove('open');
+    });
+  }
+});
+
+function resetMselFilters() {
+  Object.keys(mselRegistry).forEach(key => {
+    mselRegistry[key].selected.clear();
+    mselUpdateLabel(key);
+  });
+}
+
 function filterScreener() {
   const q = document.getElementById('screenerSearch').value.toLowerCase();
-  const sec = document.getElementById('screenerSector').value;
-  const idx = document.getElementById('screenerIndex').value;
-  const minScore = parseFloat(document.getElementById('screenerScore').value) || 0;
   const signal = document.getElementById('screenerSignal').value;
   const accumulation = document.getElementById('screenerAccumulation') ? document.getElementById('screenerAccumulation').value : '';
-  const signalStatusFilter = document.getElementById('screenerSignalStatus') ? document.getElementById('screenerSignalStatus').value : '';
+  const selSectors = mselRegistry.sector.selected;
+  const selIndices = mselRegistry.index.selected;
+  const selScores = mselRegistry.score.selected;
+  const selStatuses = mselRegistry.status.selected;
 
   filteredScreener = screenerData.filter(d => {
     if (q && !String(d.Ticker||'').toLowerCase().includes(q) && !String(d.Name||'').toLowerCase().includes(q)) return false;
-    if (sec && d.Sector !== sec) return false;
-    if (idx && !String(d.Index||'').includes(idx)) return false;
-    if (minScore && (d['total improvement']||0) < minScore) return false;
+    if (selSectors.size > 0 && !selSectors.has(d.Sector)) return false;
+    if (selIndices.size > 0) {
+      const dIdx = String(d.Index||'');
+      let matched = false;
+      for (const v of selIndices) { if (dIdx.includes(v)) { matched = true; break; } }
+      if (!matched) return false;
+    }
+    if (selScores.size > 0) {
+      const score = d['total improvement'] || 0;
+      let matched = false;
+      for (const v of selScores) { if (score >= Number(v)) { matched = true; break; } }
+      if (!matched) return false;
+    }
     if (signal === '1' && d['Liquid Stock'] !== 1) return false;
     if (signal === '-1' && d['Liquid Stock'] !== -1) return false;
     if (accumulation === '1' && Number(d['Accumulation']) !== 1) return false;
     if (accumulation === '-1' && Number(d['Accumulation']) !== -1) return false;
-    if (signalStatusFilter && d['Signal Status'] !== signalStatusFilter) return false;
+    if (selStatuses.size > 0 && !selStatuses.has(d['Signal Status'])) return false;
     return true;
   });
 
@@ -8702,20 +9023,11 @@ function reinitDashboard(filename) {
       return row;
     });
 
-  const sectorSel = document.getElementById('screenerSector');
-  if (sectorSel) {
-    sectorSel.innerHTML = '<option value="">All Sectors</option>';
-    const sectors = [...new Set(SOURCE_DATA.filter(d=>d.Sector && d.Sector!=='0').map(d=>d.Sector))].sort();
-    sectors.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sectorSel.appendChild(o); });
-  }
-
-  const indexSel = document.getElementById('screenerIndex');
-  if (indexSel) {
-    indexSel.innerHTML = '<option value="">All Indices</option>';
-    const allIdx = new Set();
-    SOURCE_DATA.forEach(d => { if(d.Index) String(d.Index).split(',').forEach(i => allIdx.add(i.trim())); });
-    [...allIdx].filter(i=>i&&i!=='0').sort().forEach(i => { const o = document.createElement('option'); o.value = i; o.textContent = i; indexSel.appendChild(o); });
-  }
+  allSectors = [...new Set(SOURCE_DATA.filter(d=>d.Sector && d.Sector!=='0').map(d=>d.Sector))].sort();
+  const allIdx = new Set();
+  SOURCE_DATA.forEach(d => { if(d.Index) String(d.Index).split(',').forEach(i => allIdx.add(i.trim())); });
+  allIndicesList = [...allIdx].filter(i=>i&&i!=='0').sort();
+  resetMselFilters();
 
   const ts = document.getElementById('tickerSearch');
   if (ts) ts.value = '';
