@@ -2051,6 +2051,7 @@
       </div>
     </div>
     <div class="auth-dropdown-sep"></div>
+    <button class="auth-dropdown-item" id="authAlertsBtn">🔔 Alerts</button>
     <button class="auth-dropdown-item" id="authManageBtn">⚙️ Manage account</button>
     <button class="auth-dropdown-item" id="authSignOutItem">↪️ Sign out</button>
   </div>
@@ -10496,6 +10497,7 @@ const _origToggleTechnical = toggleTechnical;
   const avatarLg = document.getElementById('authAvatarLg');
   const dropdownName = document.getElementById('authDropdownName');
   const dropdownEmail = document.getElementById('authDropdownEmail');
+  const alertsBtn = document.getElementById('authAlertsBtn');
   const manageBtn = document.getElementById('authManageBtn');
   const signOutItem = document.getElementById('authSignOutItem');
   const emailEl = document.getElementById('authEmail');
@@ -10567,6 +10569,12 @@ const _origToggleTechnical = toggleTechnical;
     if (!userMenu.contains(e.target)) dropdown.classList.add('hidden');
   });
   signOutItem.addEventListener('click', () => { dropdown.classList.add('hidden'); signOut(auth); });
+  alertsBtn.addEventListener('click', () => {
+    dropdown.classList.add('hidden');
+    // Placeholder for now — this is where "new initial buying" alert
+    // notifications will surface once that feature is built.
+    alert('Alerts are coming soon — this is where new initial-buying signal notifications will appear.');
+  });
   manageBtn.addEventListener('click', () => {
     dropdown.classList.add('hidden');
     // Placeholder for now — this is a natural place to surface subscription
