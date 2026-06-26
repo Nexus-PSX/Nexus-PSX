@@ -2027,7 +2027,7 @@
   }
   .auth-google-btn:hover { background: var(--surface2); }
   .auth-error { color: var(--danger); font-size: 13px; margin: 0 0 10px; min-height: 16px; }
-  #authUserMenu { position: fixed; top: 12px; right: max(14px, env(safe-area-inset-right)); z-index: 99998; display: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+  #authUserMenu { position: relative; z-index: 99998; display: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
   .auth-avatar-btn {
     width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
     background: var(--accent); color: #ffffff; font-size: 15px; font-weight: 700;
@@ -2125,21 +2125,6 @@
     </button>
   </div>
 </div>
-<div id="authUserMenu" class="auth-user-menu">
-  <button id="authAvatarBtn" class="auth-avatar-btn">?<span id="authAlertBadge" class="auth-alert-badge hidden">0</span></button>
-  <div id="authDropdown" class="auth-dropdown hidden">
-    <div class="auth-dropdown-header">
-      <div class="auth-avatar-lg" id="authAvatarLg">?</div>
-      <div class="auth-dropdown-info">
-        <div class="auth-dropdown-name" id="authDropdownName">&nbsp;</div>
-        <div class="auth-dropdown-email" id="authDropdownEmail">&nbsp;</div>
-      </div>
-    </div>
-    <div class="auth-dropdown-sep"></div>
-    <button class="auth-dropdown-item" id="authAlertsBtn"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Alerts</span><span id="authAlertsCount" class="auth-alerts-count hidden">0</span></button>
-    <button class="auth-dropdown-item" id="authSignOutItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sign out</span></button>
-  </div>
-</div>
 <div id="alertsPanel" class="alerts-panel hidden">
   <div class="alerts-panel-header">
     <span style="display:flex;align-items:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>New Buy Signals Today</span>
@@ -2184,6 +2169,21 @@
     <div id="uploadStatus" class="upload-status"></div>
     <button id="installAppBtn" class="install-btn" onclick="handleInstallClick()" title="Install PSX Dashboard to your device"><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span><span>Install App</span></button>
     <button id="themeToggleBtn" onclick="toggleTheme()" title="Cycle theme: Dark → Light → Bloomberg → TradingView → Cream" style="background: var(--surface2); border-color: var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; padding: 5px 11px; line-height: 1; color: var(--text2); transition: 0.2s; display: flex; align-items: center; gap: 6px;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text2)'"><span id="themeIcon">🌙</span><span id="themeLabel">LIGHT</span></button>
+    <div id="authUserMenu" class="auth-user-menu">
+      <button id="authAvatarBtn" class="auth-avatar-btn">?<span id="authAlertBadge" class="auth-alert-badge hidden">0</span></button>
+      <div id="authDropdown" class="auth-dropdown hidden">
+        <div class="auth-dropdown-header">
+          <div class="auth-avatar-lg" id="authAvatarLg">?</div>
+          <div class="auth-dropdown-info">
+            <div class="auth-dropdown-name" id="authDropdownName">&nbsp;</div>
+            <div class="auth-dropdown-email" id="authDropdownEmail">&nbsp;</div>
+          </div>
+        </div>
+        <div class="auth-dropdown-sep"></div>
+        <button class="auth-dropdown-item" id="authAlertsBtn"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Alerts</span><span id="authAlertsCount" class="auth-alerts-count hidden">0</span></button>
+        <button class="auth-dropdown-item" id="authSignOutItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sign out</span></button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -9666,6 +9666,19 @@ function handleExcelUpload(event) {
   reader.readAsBinaryString(file);
 }
 
+function updateDataBadges(timestampMs) {
+  const tickerCount = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0).length;
+  setEl('lastUpdated', `DATA: ${tickerCount} COMPANIES`);
+
+  const now = timestampMs ? new Date(timestampMs) : new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const months2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr = `${pad(now.getDate())} ${months2[now.getMonth()]} ${now.getFullYear()}`;
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const badge = document.getElementById('lastUploadedBadge');
+  if (badge) { badge.textContent = `🕐 Updated: ${dateStr} ${timeStr}`; badge.style.display = ''; }
+}
+
 function reinitDashboard(filename) {
   // Switch to company tab first so all DOM elements exist and are visible
   switchTab('company');
@@ -9676,16 +9689,7 @@ function reinitDashboard(filename) {
     .map(d => ({ticker: String(d.Ticker), name: String(d.Name || ''), score: d['total improvement'] || 0}))
     .sort((a,b) => b.score - a.score);
 
-  setEl('lastUpdated', `DATA: ${allTickers.length} COMPANIES`);
-
-  // Set last updated timestamp
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const dateStr = `${pad(now.getDate())} ${months[now.getMonth()]} ${now.getFullYear()}`;
-  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const badge = document.getElementById('lastUploadedBadge');
-  if (badge) { badge.textContent = `🕐 Updated: ${dateStr} ${timeStr}`; badge.style.display = ''; }
+  updateDataBadges();
 
   const match = (filename||'').match(/(\d{4})(\d{2})(\d{2})/);
   if (match) {
@@ -9841,7 +9845,7 @@ function saveDataJson() {
   // Push the resulting data.json to replace the one your live site fetches —
   // the HTML itself never needs to change for a routine data update.
   closeDataMenu();
-  const payload = JSON.stringify({ source: SOURCE_DATA, sector: SECTOR_DATA });
+  const payload = JSON.stringify({ source: SOURCE_DATA, sector: SECTOR_DATA, updatedAt: Date.now() });
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -9896,10 +9900,12 @@ fetch('./data.json')
     SECTOR_DATA.length = 0;
     (data.sector || []).forEach(s => SECTOR_DATA.push(s));
     init();
+    updateDataBadges(data.updatedAt);
   })
   .catch(err => {
     console.error('Failed to load data.json — dashboard will show with no data.', err);
     init();
+    updateDataBadges();
   });
 
 // ===== SHARE FUNCTIONALITY =====
