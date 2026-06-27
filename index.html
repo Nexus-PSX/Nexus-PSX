@@ -8467,7 +8467,8 @@ const EXTRA_OPTIONS = [
   {value:'mcap_lt_250m',   label:'Market Cap < 250 Million'}
 ];
 const OTHERS_OPTIONS = [
-  {value:'turnaround', label:'🔁 Turnaround Candidates'}
+  {value:'turnaround', label:'🔁 Turnaround Candidates'},
+  {value:'net_gt_op',  label:'📊 Net Inc > Op. Inc'}
 ];
 const LIQUID_OPTIONS = [
   {value:'1',  label:'🟢 Liquid Stock (+)'},
@@ -8759,6 +8760,7 @@ function filterScreener() {
   const matchesOthers = (d, v) => {
     switch (v) {
       case 'turnaround': return (parseFloat(d['Loss narrow'])||0) > 0;
+      case 'net_gt_op':  return (parseFloat(d['NI > OI'])||0) > 0;
       default: return false;
     }
   };
