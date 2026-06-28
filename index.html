@@ -2132,7 +2132,7 @@
 <div id="authOverlay">
   <div class="auth-card">
     <h1 id="authTitle">Sign in</h1>
-    <p class="auth-sub" id="authSub">Sign in to access the PSX dashboard</p>
+    <p class="auth-sub" id="authSub">Sign in to access Nexus PSX</p>
     <p class="auth-error" id="authError"></p>
     <input type="email" id="authEmail" placeholder="Email" autocomplete="email">
     <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
@@ -10801,7 +10801,7 @@ const _origToggleTechnical = toggleTechnical;
     errEl.textContent = '';
     if (mode === 'signin') {
       titleEl.textContent = 'Sign in';
-      subEl.textContent = 'Sign in to access the PSX dashboard';
+      subEl.textContent = 'Sign in to access Nexus PSX';
       submitBtn.textContent = 'Sign in';
       toggleBtn.textContent = "Need an account? Sign up";
     } else {
@@ -10820,7 +10820,11 @@ const _origToggleTechnical = toggleTechnical;
     if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
     if (code.includes('email-already-in-use')) return 'An account already exists for that email.';
     if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
-    return 'Something went wrong. Please try again.';
+    if (code.includes('unauthorized-domain')) return 'This domain is not yet authorized in Firebase (Authentication → Settings → Authorized domains). Add this domain there.';
+    if (code.includes('popup-blocked')) return 'Your browser blocked the sign-in popup. Allow popups for this site and try again.';
+    if (code.includes('operation-not-allowed')) return 'Google sign-in is not enabled for this project in Firebase (Authentication → Sign-in method).';
+    if (code.includes('network-request-failed')) return 'Network error — check your connection and try again.';
+    return 'Something went wrong (' + (code || 'unknown error') + '). Please try again.';
   }
 
   submitBtn.addEventListener('click', async () => {
