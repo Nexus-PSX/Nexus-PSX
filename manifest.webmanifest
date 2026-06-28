@@ -1,7 +1,7 @@
 {
-  "name": "PSX Dashboard",
-  "short_name": "PSX Dashboard",
-  "description": "Pakistan Stock Exchange weekly financial dashboard",
+  "name": "Nexus PSX",
+  "short_name": "Nexus PSX",
+  "description": "Nexus PSX — Where Value Meets Momentum. Pakistan Stock Exchange (PSX) financial dashboard.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
