@@ -901,7 +901,7 @@
     word-break: break-word;
   }
 
-  /* Score color */
+  /* Fin. Score color */
   .score-high { color: var(--success); }
   .score-mid { color: var(--warn); }
   .score-low { color: var(--danger); }
@@ -1053,8 +1053,7 @@
     .modal { min-width: unset; width: 92vw; padding: 20px 16px; }
     .modal-stats { grid-template-columns: 1fr 1fr; }
 
-    /* Hide less important columns on mobile screener */
-    .screener-hide-mobile { display: none; }
+    /* Stock Screener: all columns shown on mobile too (table scrolls horizontally instead) */
     /* Sector table: all columns now shown on mobile too (table scrolls horizontally instead) */
     /* Constrain sector name on mobile */
     .sector-name-cell { min-width: 110px; max-width: 140px; font-size: 12px; }
@@ -1700,7 +1699,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
 
-  /* Score box glow */
+  /* Fin. Score box glow */
   .score-box {
     position: relative;
     overflow: hidden;
@@ -1859,7 +1858,7 @@
     .msel-panel { width: 240px; }
   }
 
-  /* Score breakdown bar animation */
+  /* Fin. Score breakdown bar animation */
   .breakdown-bar {
     transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
@@ -2240,7 +2239,7 @@
             </button>
             <!-- Share dropdown -->
             <div id="shareMenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--accent3);border-radius:10px;padding:8px;z-index:600;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,0.55);">
-              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);padding:4px 8px 8px;border-bottom:1px solid var(--border);margin-bottom:6px;" id="shareMenuTitle">Share <span style="color:var(--accent3)">NBP</span> · Score <span style="color:var(--warn)">40</span></div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);padding:4px 8px 8px;border-bottom:1px solid var(--border);margin-bottom:6px;" id="shareMenuTitle">Share <span style="color:var(--accent3)">NBP</span> · Financial Score <span style="color:var(--warn)">40</span></div>
               <button onclick="shareScreenshot()" class="share-menu-item" id="screenshotBtn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 Save Screenshot
@@ -2281,7 +2280,7 @@
           <div class="info-value mono" id="ciPrice">203.51</div>
         </div>
         <div class="score-box">
-          <div class="score-label">Total Score</div>
+          <div class="score-label">Financial Score</div>
           <div class="score-value score-mid" id="ciScore">40</div>
           <div class="score-hint" id="ciScoreHint">🟡 Moderate</div>
         </div>
@@ -2339,7 +2338,7 @@
     <div id="chartsAndKpi">
     <div class="charts-grid">
       <div class="chart-card">
-        <div class="chart-title">EPS Trend (Quarterly) <span id="chartEPSLabel"><span style="color:#4d94ff">NBP</span> • <span style="color:#ff4757;font-weight:700">Score 40</span></span></div>
+        <div class="chart-title">EPS Trend (Quarterly) <span id="chartEPSLabel"><span style="color:#4d94ff">NBP</span> • <span style="color:#ff4757;font-weight:700">Financial Score 40</span></span></div>
         <div class="chart-wrap"><canvas id="chartEPS" style="box-sizing: border-box; display: block; height: 300px; width: 726px;" width="762" height="314"></canvas></div>
       </div>
       <div class="chart-card">
@@ -2351,7 +2350,7 @@
         <div class="chart-wrap"><canvas id="chartMargins" style="box-sizing: border-box; display: block; height: 300px; width: 726px;" width="762" height="314"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">KPI Summary vs Sector <span id="chartKpiLabel"><span id="kpiTickerBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent3)">NBP</span><span id="kpiScoreBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-left:6px">• <span style="color:var(--warn);font-weight:700">Score 40</span></span></span></div>
+        <div class="chart-title">KPI Summary vs Sector <span id="chartKpiLabel"><span id="kpiTickerBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent3)">NBP</span><span id="kpiScoreBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-left:6px">• <span style="color:var(--warn);font-weight:700">Financial Score 40</span></span></span></div>
         <div style="overflow-y:auto; overflow-x:auto; max-height: 360px; margin-top: 4px; position: relative; border-radius: 6px; border: 1px solid var(--border);">
           <table class="kpi-table">
             <thead>
@@ -2414,10 +2413,10 @@
     </div>
     </div><!-- end #chartsAndKpi -->
 
-    <!-- Total Score Peer Comparison Chart -->
+    <!-- Financial Score Peer Comparison Chart -->
     <div class="chart-card" id="peerScoreCard" style="margin-bottom:16px;">
       <div class="chart-title">
-        Total Score — Sector Peer Comparison
+        Financial Score — Sector Peer Comparison
         <span id="peerScoreLabel" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2)">19 companies · COMMERCIAL BANKS</span>
       </div>
       <div class="chart-wrap" style="height: 494px;"><canvas id="chartPeerScore" style="box-sizing: border-box; display: block; height: 494px; width: 1510px;" width="1585" height="518"></canvas></div>
@@ -2438,7 +2437,7 @@
   <div id="tab-sector" class="tab-content">
     <div class="charts-grid" style="grid-template-columns: 1fr;">
       <div class="chart-card">
-        <div class="chart-title">Top Sectors by Total Score (Avg)</div>
+        <div class="chart-title">Top Sectors by Financial Score (Avg)</div>
         <div class="chart-wrap" style="height: 320px;"><canvas id="chartSectors" style="box-sizing: border-box; display: block; height: 320px; width: 1510px;" width="1585" height="335"></canvas></div>
       </div>
     </div>
@@ -2463,7 +2462,7 @@
               <th onclick="sortSectorTable(7)" class="sector-hide-mobile">CFO (mn)</th>
               <th onclick="sortSectorTable(8)" class="sector-hide-mobile">Div Yield</th>
               <th onclick="sortSectorTable(9)" class="sector-hide-mobile sort-desc">P/E Ratio</th>
-              <th onclick="sortSectorTable(10)" class="">Score</th>
+              <th onclick="sortSectorTable(10)" class="">Financial Score</th>
               <th onclick="sortSectorTable(11)" title="Average Relative Volume vs Average" class="">Rel Vol</th>
               <th onclick="sortSectorTable(12)" title="Average Discount Ratio" class="">Disc Ratio</th>
               <th onclick="sortSectorTable(13)" title="1-Day Price Change" class="sector-hide-mobile">1D %</th>
@@ -3493,7 +3492,7 @@
           <div class="msel" id="scoreMsel">
             <button type="button" class="msel-btn" id="scoreMselBtn" onclick="mselTogglePanel('score', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-              <span id="scoreMselLabel">Scores</span>
+              <span id="scoreMselLabel">Fin. Scores</span>
               <span class="msel-caret">▼</span>
             </button>
             <div class="msel-panel" id="scoreMselPanel">
@@ -3616,7 +3615,7 @@
               <th class="screener-fin-col" onclick="sortScreener(11)">Div Yield</th>
               <th class="screener-fin-col sort-desc" onclick="sortScreener(12)">P/E Ratio</th>
               <th class="screener-fin-col" onclick="sortScreener(13)" title="Market Capitalization (PKR)">Market Cap</th>
-              <th onclick="sortScreener(14)" class="">Total Score</th>
+              <th onclick="sortScreener(14)" class="">Financial Score</th>
               <th onclick="sortScreener(15)" class="screener-tech-col">Signal Date</th>
               <th onclick="sortScreener(16)" class="screener-tech-col">Signal Price</th>
               <th onclick="sortScreener(17)" class="screener-tech-col">Signal Return%</th>
@@ -6364,7 +6363,7 @@
             <th onclick="sortWatchlist(0,'guest')" style="cursor:pointer;user-select:none;">Ticker</th>
             <th onclick="sortWatchlist(1,'guest')" style="cursor:pointer;user-select:none;">Name</th>
             <th onclick="sortWatchlist(2,'guest')" class="screener-hide-mobile" style="cursor:pointer;user-select:none;">Sector</th>
-            <th onclick="sortWatchlist(3,'guest')" style="cursor:pointer;user-select:none;" class="">Score</th>
+            <th onclick="sortWatchlist(3,'guest')" style="cursor:pointer;user-select:none;" class="">Fin. Score</th>
             <th onclick="sortWatchlist(4,'guest')" style="cursor:pointer;user-select:none;">Signal Date</th>
             <th onclick="sortWatchlist(5,'guest')" style="cursor:pointer;user-select:none;">Signal Price</th>
             <th onclick="sortWatchlist(6,'guest')" style="cursor:pointer;user-select:none;">Signal Status</th>
@@ -6547,7 +6546,7 @@
             <th onclick="sortWatchlist(0,'github')" style="cursor:pointer;user-select:none;">Ticker</th>
             <th onclick="sortWatchlist(1,'github')" style="cursor:pointer;user-select:none;">Name</th>
             <th onclick="sortWatchlist(2,'github')" class="screener-hide-mobile" style="cursor:pointer;user-select:none;">Sector</th>
-            <th onclick="sortWatchlist(3,'github')" style="cursor:pointer;user-select:none;">Score</th>
+            <th onclick="sortWatchlist(3,'github')" style="cursor:pointer;user-select:none;">Fin. Score</th>
             <th onclick="sortWatchlist(4,'github')" style="cursor:pointer;user-select:none;">Signal Date</th>
             <th onclick="sortWatchlist(5,'github')" style="cursor:pointer;user-select:none;">Signal Price</th>
             <th onclick="sortWatchlist(6,'github')" style="cursor:pointer;user-select:none;">Signal Status</th>
@@ -6634,7 +6633,7 @@
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('dayGain','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('dayGain','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('dayGain','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayGain',0)">Day % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayGain',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayGain',2)">Score <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayGain',0)">Day % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayGain',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayGain',2)">Fin. Score <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('DWSM');">DWSM</td>
@@ -6694,7 +6693,7 @@
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('dayLoss','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('dayLoss','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('dayLoss','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayLoss',0)">Day % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayLoss',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayLoss',2)">Score <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayLoss',0)">Day % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayLoss',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('dayLoss',2)">Fin. Score <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('TPL');">TPL</td>
@@ -6755,7 +6754,7 @@
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('weekGain','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('weekGain','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('weekGain','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekGain',0)">Week % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekGain',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekGain',2)">Score <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekGain',0)">Week % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekGain',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekGain',2)">Fin. Score <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('FFLM');">FFLM</td>
@@ -6815,7 +6814,7 @@
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('weekLoss','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('weekLoss','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('weekLoss','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekLoss',0)">Week % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekLoss',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekLoss',2)">Score <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekLoss',0)">Week % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekLoss',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('weekLoss',2)">Fin. Score <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('GSPM');">GSPM</td>
@@ -6936,7 +6935,7 @@
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('disc','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('disc','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('disc','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('disc',0)">Disc % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('disc',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('disc',2)">Score <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('disc',0)">Disc % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('disc',1)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('disc',2)">Fin. Score <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('AHCL');">AHCL</td>
@@ -6991,13 +6990,13 @@
     </div></div>
     <div class="top-grid-2" style="margin-bottom:16px;">
     <div class="top-table-card">
-      <div class="top-table-head"><span class="th-icon">🏅</span>Top per Sector — Score &gt; 80</div>
+      <div class="top-table-head"><span class="th-icon">🏅</span>Top per Sector — Fin. Score &gt; 80</div>
       <div style="overflow-x:auto;" id="wrap-score"><table class="top-mini-table" id="score" style="width:100%;border-collapse:collapse;">
     <thead><tr>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('score','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('score','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('score','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:left;" onclick="sortTopTable('score',0)">Sector <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('score',1)">Score <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('score',2)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('score',3)">YTD % <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:left;" onclick="sortTopTable('score',0)">Sector <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('score',1)">Fin. Score <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('score',2)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('score',3)">YTD % <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('MACFL');">MACFL</td>
@@ -7167,7 +7166,7 @@
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('ytd','rank')"># <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('ytd','ticker')">Ticker <span style="opacity:.3">⇅</span></th>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);" onclick="sortTopTable('ytd','name')">Name <span style="opacity:.3">⇅</span></th>
-      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:left;" onclick="sortTopTable('ytd',0)">Sector <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('ytd',1)">YTD % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('ytd',2)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('ytd',3)">Score <span style="opacity:.3">⇅</span></th>
+      <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:left;" onclick="sortTopTable('ytd',0)">Sector <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('ytd',1)">YTD % <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('ytd',2)">Price <span style="opacity:.3">⇅</span></th><th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:right;" onclick="sortTopTable('ytd',3)">Fin. Score <span style="opacity:.3">⇅</span></th>
     </tr></thead><tbody><tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">1</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('ITANZ');">ITANZ</td>
@@ -7733,7 +7732,7 @@ function loadTicker(ticker) {
     });
   }
 
-  // Score Breakdown (hidden but still computed safely)
+  // Fin. Score Breakdown (hidden but still computed safely)
   const grid = document.getElementById('breakdownGrid');
   if (grid) grid.innerHTML = '';
 
@@ -8157,7 +8156,7 @@ function buildPeerScoreChart(ticker, sector) {
     data: {
       labels: peers.map(p => p.ticker),
       datasets: [{
-        label: 'Total Score',
+        label: 'Financial Score',
         data: peers.map(p => p.score),
         backgroundColor: bgColors,
         borderColor: borderColors,
@@ -8176,7 +8175,7 @@ function buildPeerScoreChart(ticker, sector) {
         tooltip: {
           ...sharedTooltip(),
           callbacks: {
-            label: ctx => ` Score: ${ctx.parsed.x.toFixed(1)}`,
+            label: ctx => ` Financial Score: ${ctx.parsed.x.toFixed(1)}`,
             title: ctx => {
               const p = peers[ctx[0].dataIndex];
               return `${p.ticker}  ${p.name.length > 32 ? p.name.substring(0,30)+'…' : p.name}`;
@@ -8327,7 +8326,7 @@ function buildSectorChart() {
     data: {
       labels: sorted.map(s => s.sector.length > 30 ? s.sector.substring(0,28)+'…' : s.sector),
       datasets: [{
-        label: 'Total Score',
+        label: 'Financial Score',
         data: sorted.map(s => s.totalScore),
         backgroundColor: bgColors,
         borderColor: brdColors,
@@ -8346,7 +8345,7 @@ function buildSectorChart() {
         tooltip: {
           ...sharedTooltip(),
           callbacks: {
-            label: ctx => ` Score: ${ctx.parsed.x.toFixed(1)}`
+            label: ctx => ` Financial Score: ${ctx.parsed.x.toFixed(1)}`
           }
         }
       },
@@ -8447,11 +8446,11 @@ let allIndicesList = [];
 let allTickersList = [];
 
 const SCORE_OPTIONS = [
-  {value:'80,Infinity',   label:'Scores > 80'},
-  {value:'50,80',         label:'Scores > 50 to 80'},
-  {value:'40,50',         label:'Scores > 40 to 50'},
-  {value:'20,40',         label:'Scores > 20 to 40'},
-  {value:'-Infinity,20',  label:'Scores < 20'}
+  {value:'80,Infinity',   label:'Fin. Scores > 80'},
+  {value:'50,80',         label:'Fin. Scores > 50 to 80'},
+  {value:'40,50',         label:'Fin. Scores > 40 to 50'},
+  {value:'20,40',         label:'Fin. Scores > 20 to 40'},
+  {value:'-Infinity,20',  label:'Fin. Scores < 20'}
 ];
 const STATUS_OPTIONS = [
   {value:'2', label:'Continuation Buy Signal'},
@@ -8512,9 +8511,9 @@ const mselRegistry = {
     options: () => SCORE_OPTIONS,
     selected: new Set(),
     searchable: false,
-    allLabel: 'Scores',
+    allLabel: 'Fin. Scores',
     oneLabel: v => (SCORE_OPTIONS.find(o=>o.value===v)||{}).label || v,
-    manyLabel: n => `Scores`,
+    manyLabel: n => `Fin. Scores`,
   },
   status: {
     options: () => STATUS_OPTIONS,
@@ -9978,7 +9977,7 @@ function toggleShareMenu() {
   const { ticker, score } = getShareText();
   const sc = parseFloat(score) >= 70 ? 'var(--success)' : parseFloat(score) >= 40 ? 'var(--warn)' : 'var(--danger)';
   document.getElementById('shareMenuTitle').innerHTML =
-    `Share <span style="color:var(--accent3)">${ticker}</span> · Score <span style="color:${sc}">${score}</span>`;
+    `Share <span style="color:var(--accent3)">${ticker}</span> · Financial Score <span style="color:${sc}">${score}</span>`;
   menu.style.display = 'block';
 
   // Close on outside click
@@ -9994,7 +9993,7 @@ function toggleShareMenu() {
 
 function buildShareMessage() {
   const { ticker, score, name, sector, period, hint } = getShareText();
-  return `📊 ${ticker} — ${name}\n🏭 ${sector}\n📅 Period: ${period}\n⭐ Score: ${score} ${hint}\n\nFull analysis: ${PORTAL_URL}`;
+  return `📊 ${ticker} — ${name}\n🏭 ${sector}\n📅 Period: ${period}\n⭐ Financial Score: ${score} ${hint}\n\nFull analysis: ${PORTAL_URL}`;
 }
 
 // ===== SCREENSHOT ENGINE =====
@@ -10037,7 +10036,7 @@ async function captureCompanyScreenshot() {
     font-family:'IBM Plex Mono',monospace; font-size:11px;
   `;
   footer.innerHTML = `
-    <span style="color:#484f58;">PSX Corporate Financial Performance Dashboard · ${ticker} · Score <span style="color:${sc}">${score}</span> ${hint}</span>
+    <span style="color:#484f58;">PSX Corporate Financial Performance Dashboard · ${ticker} · Financial Score <span style="color:${sc}">${score}</span> ${hint}</span>
     <span style="color:#4d94ff;">${PORTAL_URL}</span>
   `;
   target.appendChild(footer);
@@ -10118,7 +10117,7 @@ async function shareToWhatsApp() {
     const dataUrl = await captureCompanyScreenshot();
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], `PSX_${ticker}.png`, { type: 'image/png' });
-    const msg  = `📊 ${ticker} — ${name}\n🏭 ${sector}\n📅 ${period} · Score ${score} ${hint}\n🔗 ${PORTAL_URL}`;
+    const msg  = `📊 ${ticker} — ${name}\n🏭 ${sector}\n📅 ${period} · Financial Score ${score} ${hint}\n🔗 ${PORTAL_URL}`;
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], text: msg });
     } else {
@@ -10143,7 +10142,7 @@ async function shareToTwitter() {
     // Download screenshot then open Twitter compose
     const a = document.createElement('a');
     a.href = dataUrl; a.download = `PSX_${ticker}.png`; a.click();
-    const text = `📊 ${ticker} · Score ${score} ${hint}\n${PORTAL_URL}`;
+    const text = `📊 ${ticker} · Financial Score ${score} ${hint}\n${PORTAL_URL}`;
     setTimeout(() => window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank'), 700);
   } catch(err) {
     showToast('Screenshot failed');
@@ -10181,7 +10180,7 @@ async function copyShareLink() {
       showToast('📋 Screenshot copied to clipboard!');
     } catch {
       // Fallback: copy text + download image
-      const msg = `📊 ${ticker} — ${name}\n🏭 ${sector}\n📅 ${period} · Score ${score} ${hint}\n🔗 ${PORTAL_URL}`;
+      const msg = `📊 ${ticker} — ${name}\n🏭 ${sector}\n📅 ${period} · Financial Score ${score} ${hint}\n🔗 ${PORTAL_URL}`;
       await navigator.clipboard.writeText(msg);
       const a = document.createElement('a');
       a.href = dataUrl; a.download = `PSX_${ticker}.png`; a.click();
@@ -10205,12 +10204,12 @@ async function copyShareLink() {
       if (!tickerEl || !scoreEl) return;
       tickerEl.textContent = ticker;
       const sc = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
-      scoreEl.innerHTML = `• <span style="color:${sc};font-weight:700">Score ${score}</span>`;
+      scoreEl.innerHTML = `• <span style="color:${sc};font-weight:700">Financial Score ${score}</span>`;
 
       // Also sync share menu button ticker badge
       const shareMenuTitle = document.getElementById('shareMenuTitle');
       if (shareMenuTitle && document.getElementById('shareMenu').style.display === 'none') {
-        shareMenuTitle.innerHTML = `Share <span style="color:var(--accent3)">${ticker}</span> · Score <span style="color:${sc}">${score}</span>`;
+        shareMenuTitle.innerHTML = `Share <span style="color:var(--accent3)">${ticker}</span> · Financial Score <span style="color:${sc}">${score}</span>`;
       }
     } catch(e) {}
   };
@@ -10301,7 +10300,7 @@ function toggleTheme() {
       else if(score >= 50) color = '#f5a623';
 
       labelEl.innerHTML =
-        `<span style="color:#4d94ff">${ticker}</span> • <span style="color:${color};font-weight:700">Score ${score}</span>`;
+        `<span style="color:#4d94ff">${ticker}</span> • <span style="color:${color};font-weight:700">Financial Score ${score}</span>`;
     }catch(e){}
   };
 
@@ -10547,7 +10546,7 @@ function buildTopTab() {
   // col definitions
   const scoreColsDef = [
     {key:'Sector',            label:'Sector',  fmt:v=>(v||'').substring(0,20), colorFn:()=>'var(--text2)'},
-    {key:'total improvement', label:'Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)},
+    {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)},
     {key:'Price',             label:'Price',   fmt:v=>'PKR '+(parseFloat(v||0).toFixed(2)), colorFn:()=>'var(--text)'},
     {key:'YTD Return %',      label:'YTD %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)}
   ];
@@ -10555,17 +10554,17 @@ function buildTopTab() {
     {key:'Sector',            label:'Sector',  fmt:v=>(v||'').substring(0,20), colorFn:()=>'var(--text2)'},
     {key:'YTD Return %',      label:'YTD %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
     {key:'Price',             label:'Price',   fmt:v=>'PKR '+(parseFloat(v||0).toFixed(2)), colorFn:()=>'var(--text)'},
-    {key:'total improvement', label:'Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const dayColsDef = [
     {key:'Day Change %',      label:'Day %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
     {key:'Price',             label:'Price',   fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
-    {key:'total improvement', label:'Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const weekColsDef = [
     {key:'Current Week Return %', label:'Week %', fmt:topFmtPct, colorFn:v=>topPctColor(v)},
     {key:'Price',                 label:'Price',  fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
-    {key:'total improvement',     label:'Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:'total improvement',     label:'Fin. Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const rvolColsDef = [
     {key:'Relative Vol',  label:'RVOL',   fmt:v=>parseFloat(v||0).toFixed(2)+'x', colorFn:v=>parseFloat(v||0)>=2?'var(--warn)':'var(--text)'},
@@ -10575,10 +10574,10 @@ function buildTopTab() {
   const discColsDef = [
     {key:'Discount Ratio',    label:'Disc %', fmt:topFmtPct, colorFn:()=>'var(--danger)'},
     {key:'Price',             label:'Price',  fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
-    {key:'total improvement', label:'Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:'total improvement', label:'Fin. Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const turnColsDef = [
-    {key:'total improvement', label:'Total Score', fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)},
+    {key:'total improvement', label:'Fin. Score', fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)},
     {key:'YTD Return %',      label:'YTD %',       fmt:topFmtPct, colorFn:v=>topPctColor(v)}
   ];
 
@@ -10610,7 +10609,7 @@ function buildTopTab() {
       card('💰','Top 10 Discount (Most Undervalued)','disc',topDisc,discColsDef)
     )}
     ${row2(
-      card('🏅','Top per Sector — Score &gt; 80','score',topByScoreFiltered,scoreColsDef),
+      card('🏅','Top per Sector — Fin. Score &gt; 80','score',topByScoreFiltered,scoreColsDef),
       card('📈','Top per Sector — YTD &gt; 10%','ytd',topByYTDFiltered,ytdColsDef)
     )}
   </div>`;
