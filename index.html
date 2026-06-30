@@ -229,6 +229,7 @@
 
   function renderAlertsPanel(signals) {
     const body = document.getElementById('alertsPanelBody');
+    if (!body) { console.warn('renderAlertsPanel: alertsPanelBody not found in DOM'); return; }
     if (!signals.length) {
       body.innerHTML = '<div class="alerts-panel-empty">No new buy signals today yet. Check back after the next data update.</div>';
       return;
@@ -286,6 +287,15 @@
     const signals = findFreshSignalsToday();
     const badge = document.getElementById('authAlertBadge');
     const countEl = document.getElementById('authAlertsCount');
+    // Defensive: these elements should always exist, but if anything ever
+    // removes/renames them, fail quietly rather than throwing — an error
+    // here must never be able to block unrelated code (e.g. watchlist sync)
+    // that happens to run right after this in the same call stack.
+    if (!badge || !countEl) {
+      console.warn('checkFreshSignalsToday: authAlertBadge/authAlertsCount not found in DOM');
+      renderAlertsPanel(signals);
+      return;
+    }
     if (signals.length > 0) {
       badge.textContent = signals.length;
       badge.classList.remove('hidden');
@@ -335,8 +345,12 @@
       const isAdmin = ADMIN_EMAILS.includes(email);
       const adminControlsEl = document.getElementById('adminControls');
       if (adminControlsEl) adminControlsEl.style.display = isAdmin ? 'flex' : 'none';
-      checkFreshSignalsToday();
+      // Watchlist sync runs first and is wrapped defensively: it must not be
+      // skipped just because an unrelated Alerts error happens to throw on
+      // the line before it (this previously caused the watchlist to never
+      // sync to Firestore at all whenever checkFreshSignalsToday() threw).
       if (typeof window.wlOnSignIn === 'function') window.wlOnSignIn(user.uid, email);
+      try { checkFreshSignalsToday(); } catch (e) { console.error('checkFreshSignalsToday failed:', e); }
     } else {
       document.body.classList.add('authgate-locked');
       overlay.classList.remove('hidden');
