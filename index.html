@@ -6625,7 +6625,7 @@
   <div id="tab-top" class="tab-content"><div style="padding-bottom:32px;">
     <div class="top-grid-2" style="margin-bottom:16px;">
     <div class="top-table-card">
-      <div class="top-table-head"><span class="th-icon">🟢</span>Daily Top 10 Gainers</div>
+      <div class="top-table-head"><span class="th-icon">🟢</span>Daily Upper Caps</div>
       <div style="overflow-x:auto;" id="wrap-dayGain"><table class="top-mini-table" id="dayGain" style="width:100%;border-collapse:collapse;">
     <thead><tr>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('dayGain','rank')"># <span style="opacity:.3">⇅</span></th>
@@ -6685,7 +6685,7 @@
     </tr></tbody></table></div>
     </div>
     <div class="top-table-card">
-      <div class="top-table-head"><span class="th-icon">🔴</span>Daily Top 10 Losers</div>
+      <div class="top-table-head"><span class="th-icon">🔴</span>Daily Lower Caps</div>
       <div style="overflow-x:auto;" id="wrap-dayLoss"><table class="top-mini-table" id="dayLoss" style="width:100%;border-collapse:collapse;">
     <thead><tr>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('dayLoss','rank')"># <span style="opacity:.3">⇅</span></th>
@@ -10586,10 +10586,18 @@ function buildTopTab() {
     .filter(d => (parseFloat(d['YTD Return %'])||0) > 10)
     .sort((a,b) => (parseFloat(b['YTD Return %'])||0) - (parseFloat(a['YTD Return %'])||0));
 
-  // 3. Daily gainers/losers
-  const hasDay = liquid.filter(d => d['Day Change %'] != null && d['Day Change %'] !== 0);
-  const dayGainers = [...hasDay].sort((a,b)=>(parseFloat(b['Day Change %'])||0)-(parseFloat(a['Day Change %'])||0)).slice(0,10);
-  const dayLosers  = [...hasDay].sort((a,b)=>(parseFloat(a['Day Change %'])||0)-(parseFloat(b['Day Change %'])||0)).slice(0,10);
+  // 3. Daily upper/lower caps — use full SOURCE_DATA (not liquid) because PSX
+  // stocks can hit the ±10% circuit breaker even with zero volume (offered at
+  // limit with no trades clearing), so the Volume > 0 liquid filter would
+  // incorrectly drop them.
+  const dayGainers = SOURCE_DATA.filter(d => {
+    const v = parseFloat(d['Day Change %']);
+    return !isNaN(v) && v >= 9.9;  // 9.9 threshold catches PSX ±10% circuit breaker stocks
+  }).sort((a,b)=>(parseFloat(b['Day Change %'])||0)-(parseFloat(a['Day Change %'])||0));   // even if stored as 9.999... due to floating point
+  const dayLosers = SOURCE_DATA.filter(d => {
+    const v = parseFloat(d['Day Change %']);
+    return !isNaN(v) && v <= -9.9;
+  }).sort((a,b)=>(parseFloat(a['Day Change %'])||0)-(parseFloat(b['Day Change %'])||0));
 
   // 4. Weekly gainers/losers
   const hasWeek = liquid.filter(d => d['Current Week Return %'] != null && d['Current Week Return %'] !== 0);
@@ -10661,8 +10669,8 @@ function buildTopTab() {
 
   el.innerHTML = `<div style="padding-bottom:32px;">
     ${row2(
-      card('🟢','Daily Top 10 Gainers','dayGain',dayGainers,dayColsDef),
-      card('🔴','Daily Top 10 Losers','dayLoss',dayLosers,dayColsDef)
+      cardScroll('🟢','Daily Upper Caps','dayGain',dayGainers,dayColsDef),
+      cardScroll('🔴','Daily Lower Caps','dayLoss',dayLosers,dayColsDef)
     )}
     ${row2(
       card('🚀','Weekly Top 10 Gainers','weekGain',weekGainers,weekColsDef),
@@ -10721,7 +10729,35 @@ const _origToggleTechnical = toggleTechnical;
 })();
 </script>
 
-<!-- ===== DISCLAIMER MODAL ===== -->
+<script>
+// ── Mobile chart tooltip dismiss ─────────────────────────────────────────────
+// On touch devices, Chart.js tooltips appear on tap but have no built-in
+// "tap elsewhere to dismiss" behaviour — they stay stuck on screen until
+// the user taps the exact same spot again. This listener fires on every
+// touchstart: if the touch lands outside all Company View chart canvases,
+// it hides the active tooltip on every chart in the registry.
+(function () {
+  const COMPANY_CHART_IDS = ['chartEPS', 'chartRev', 'chartMargins',
+                              'chartPeerScore', 'chartPeerYTD'];
+
+  function dismissChartTooltips(touchedEl) {
+    if (typeof charts === 'undefined') return;
+    COMPANY_CHART_IDS.forEach(id => {
+      const instance = charts[id];
+      if (!instance) return;
+      const canvas = document.getElementById(id);
+      // Only dismiss if the touch was outside this specific canvas
+      if (canvas && canvas.contains(touchedEl)) return;
+      instance.tooltip.setActiveElements([], {x:0, y:0});
+      instance.update('none');
+    });
+  }
+
+  document.addEventListener('touchstart', function (e) {
+    dismissChartTooltips(e.target);
+  }, { passive: true });
+})();
+</script>
 <div id="disclaimerOverlay" role="dialog" aria-modal="true" aria-labelledby="disclaimerTitle" class="">
   <div id="disclaimerModal">
     <div class="disclaimer-title" id="disclaimerTitle">
