@@ -2,6 +2,355 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nexus PSX — Where Value Meets Momentum</title>
+
+<!-- Preconnect to Firebase's CDN so the browser opens the connection (DNS +
+     TLS handshake) immediately, ahead of the auth script actually requesting
+     the SDK files further down. Shaves a bit of latency off the auth check
+     that runs on every page load. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.gstatic.com">
+
+<!-- Moved up from the end of the document so the browser starts
+     downloading + executing the Firebase Auth SDK immediately, in
+     parallel with parsing the rest of this (large) page, instead of
+     waiting until parsing reaches the very end. Safe to move: a
+     type="module" script is deferred by the browser automatically —
+     it still only executes after the full document has been parsed,
+     so every document.getElementById(...) call inside it still finds
+     its element exactly as before. Only the SDK *download* start time
+     changes, not the execution order. -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    GoogleAuthProvider,
+    signInWithPopup
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+  // ===== ADMIN ALLOWLIST =====
+  // Only signed-in users whose email is in this list see the Data menu
+  // (Update Data / Save Data JSON / Save Full HTML). Everyone else who signs
+  // in sees the dashboard normally, just without that menu.
+  // >>> REPLACE the email below with your real sign-in email before going live. <<<
+  const ADMIN_EMAILS = ['bilal1947@gmail.com'];
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmIUoD99B2U94wWuHIaQIWmU2A4kppbDY",
+    authDomain: "psx-dashboard-dev.firebaseapp.com",
+    projectId: "psx-dashboard-dev",
+    storageBucket: "psx-dashboard-dev.firebasestorage.app",
+    messagingSenderId: "1089260456151",
+    appId: "1:1089260456151:web:38c68733e2f4d547330892"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== Watchlist sync bridge (Firestore) =====
+  // The watchlist UI/state lives in a separate, non-module <script> earlier in
+  // this file (it predates Firebase Auth and doesn't import any SDK). Rather
+  // than duplicate Firestore imports there, we expose two small async
+  // functions on window that it can call directly. Each user's watchlist is
+  // stored at users/{uid}/data/watchlist — see the matching security rule
+  // note further down.
+  window.fsLoadWatchlist = async function (uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid, 'data', 'watchlist'));
+      return snap.exists() ? (snap.data().tickers || []) : null; // null = no doc yet
+    } catch (e) {
+      console.error('Firestore load watchlist failed:', e);
+      return undefined; // undefined = read failed (distinct from "no doc yet")
+    }
+  };
+  window.fsSaveWatchlist = async function (uid, tickers) {
+    try {
+      await setDoc(doc(db, 'users', uid, 'data', 'watchlist'), { tickers, updatedAt: Date.now() });
+      return true;
+    } catch (e) {
+      console.error('Firestore save watchlist failed:', e);
+      return false;
+    }
+  };
+
+  // ===== Auto-refresh on return =====
+  // Data is baked into this HTML at publish time, so the only way to pick up
+  // a newer version is a full page reload. If the user leaves this tab open
+  // (or backgrounds the mobile browser) and comes back after a while, this
+  // silently reloads so they land on whatever's currently published instead
+  // of stale in-memory data.
+  const PAGE_LOAD_TIME = Date.now();
+  const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+  function refreshIfStale() {
+    if (document.visibilityState === 'visible' && Date.now() - PAGE_LOAD_TIME > AUTO_REFRESH_INTERVAL_MS) {
+      window.location.reload();
+    }
+  }
+  document.addEventListener('visibilitychange', refreshIfStale);
+  window.addEventListener('focus', refreshIfStale);
+  const auth = getAuth(app);
+
+  const overlay = document.getElementById('authOverlay');
+  const userMenu = document.getElementById('authUserMenu');
+  const avatarBtn = document.getElementById('authAvatarBtn');
+  const dropdown = document.getElementById('authDropdown');
+  const avatarLg = document.getElementById('authAvatarLg');
+  const dropdownName = document.getElementById('authDropdownName');
+  const dropdownEmail = document.getElementById('authDropdownEmail');
+  const alertsBtn = document.getElementById('authAlertsBtn');
+  const alertsPanel = document.getElementById('alertsPanel');
+  const signOutItem = document.getElementById('authSignOutItem');
+  const emailEl = document.getElementById('authEmail');
+  const passEl = document.getElementById('authPassword');
+  const errEl = document.getElementById('authError');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  const toggleBtn = document.getElementById('authToggleMode');
+  const titleEl = document.getElementById('authTitle');
+  const subEl = document.getElementById('authSub');
+
+  let mode = 'signin'; // 'signin' | 'signup'
+
+  function setMode(next) {
+    mode = next;
+    errEl.textContent = '';
+    if (mode === 'signin') {
+      titleEl.textContent = 'Sign in';
+      subEl.textContent = 'Sign in to access Nexus PSX';
+      submitBtn.textContent = 'Sign in';
+      toggleBtn.textContent = "Need an account? Sign up";
+    } else {
+      titleEl.textContent = 'Create account';
+      subEl.textContent = 'Sign up to access the PSX dashboard';
+      submitBtn.textContent = 'Sign up';
+      toggleBtn.textContent = 'Already have an account? Sign in';
+    }
+  }
+
+  toggleBtn.addEventListener('click', () => setMode(mode === 'signin' ? 'signup' : 'signin'));
+
+  function friendlyError(err) {
+    const code = err && err.code || '';
+    if (code.includes('invalid-email')) return 'That email address looks invalid.';
+    if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
+    if (code.includes('email-already-in-use')) return 'An account already exists for that email.';
+    if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
+    if (code.includes('unauthorized-domain')) return 'This domain is not yet authorized in Firebase (Authentication → Settings → Authorized domains). Add this domain there.';
+    if (code.includes('popup-blocked')) return 'Your browser blocked the sign-in popup. Allow popups for this site and try again.';
+    if (code.includes('operation-not-allowed')) return 'Google sign-in is not enabled for this project in Firebase (Authentication → Sign-in method).';
+    if (code.includes('network-request-failed')) return 'Network error — check your connection and try again.';
+    return 'Something went wrong (' + (code || 'unknown error') + '). Please try again.';
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    errEl.textContent = '';
+    const email = emailEl.value.trim();
+    const password = passEl.value;
+    if (!email || !password) { errEl.textContent = 'Please enter an email and password.'; return; }
+    submitBtn.disabled = true;
+    try {
+      if (mode === 'signin') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      errEl.textContent = friendlyError(err);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  // Allow pressing Enter in either field to submit
+  [emailEl, passEl].forEach(el => el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitBtn.click();
+  }));
+
+  avatarBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
+  });
+  document.addEventListener('click', (e) => {
+    if (!userMenu.contains(e.target)) dropdown.classList.add('hidden');
+  });
+  signOutItem.addEventListener('click', () => { dropdown.classList.add('hidden'); signOut(auth); });
+  alertsBtn.addEventListener('click', () => {
+    dropdown.classList.add('hidden');
+    alertsPanel.classList.toggle('hidden');
+  });
+  document.addEventListener('click', (e) => {
+    if (alertsPanel.contains(e.target) || e.target === alertsBtn) return;
+    alertsPanel.classList.add('hidden');
+  });
+  document.getElementById('alertsPanelClose').addEventListener('click', () => alertsPanel.classList.add('hidden'));
+
+  // ===== "New initial buying" alerts: fresh buy signals dated today =====
+  // A stock counts as a fresh signal today if its Signal Status starts with
+  // "Fresh buy signal" and its Signal date (YYYYMMDD) matches today's date.
+  const ALERTS_WL_ONLY_KEY = 'psx_alerts_watchlist_only';
+  const watchlistOnlyToggle = document.getElementById('alertsWatchlistOnlyToggle');
+  if (watchlistOnlyToggle) {
+    watchlistOnlyToggle.checked = localStorage.getItem(ALERTS_WL_ONLY_KEY) === '1';
+    watchlistOnlyToggle.addEventListener('change', () => {
+      try { localStorage.setItem(ALERTS_WL_ONLY_KEY, watchlistOnlyToggle.checked ? '1' : '0'); } catch {}
+      checkFreshSignalsToday();
+    });
+  }
+
+  function getTodayYYYYMMDD() {
+    const d = new Date();
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  }
+
+  function findFreshSignalsToday() {
+    if (typeof SOURCE_DATA === 'undefined' || !Array.isArray(SOURCE_DATA)) return [];
+    const today = getTodayYYYYMMDD();
+    let signals = SOURCE_DATA.filter(d =>
+      d['Signal date'] === today &&
+      typeof d['Signal Status'] === 'string' &&
+      d['Signal Status'].indexOf('Fresh buy signal') === 0
+    );
+    const watchlistOnly = watchlistOnlyToggle?.checked;
+    if (watchlistOnly && typeof window.getWatchlistTickers === 'function') {
+      const tickers = new Set(window.getWatchlistTickers());
+      signals = signals.filter(d => tickers.has(String(d.Ticker)));
+    }
+    return signals;
+  }
+
+  function renderAlertsPanel(signals) {
+    const body = document.getElementById('alertsPanelBody');
+    if (!signals.length) {
+      body.innerHTML = '<div class="alerts-panel-empty">No new buy signals today yet. Check back after the next data update.</div>';
+      return;
+    }
+    body.innerHTML = signals.map(d => `
+      <div class="alert-row">
+        <div class="alert-row-left">
+          <span class="alert-row-ticker">${d.Ticker}</span>
+          <span class="alert-row-name">${d.Name || ''}</span>
+        </div>
+        <span class="alert-row-tag">${d['Signal Status']}</span>
+      </div>
+    `).join('');
+  }
+
+  function showAlertToast(signals) {
+    const existing = document.getElementById('alertToast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'alertToast';
+    toast.className = 'alert-toast';
+    const tickers = signals.slice(0, 4).map(d => d.Ticker).join(', ');
+    const more = signals.length > 4 ? ` +${signals.length - 4} more` : '';
+    toast.innerHTML = `
+      <button class="alert-toast-close">✕</button>
+      <div class="alert-toast-title" style="display:flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>${signals.length} new buy signal${signals.length > 1 ? 's' : ''} today</div>
+      <div class="alert-toast-body">${tickers}${more}</div>
+    `;
+    document.body.appendChild(toast);
+    toast.querySelector('.alert-toast-close').addEventListener('click', () => toast.remove());
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 12000);
+  }
+
+  function maybeShowBrowserNotification(signals) {
+    // Best-effort desktop/mobile popup while the tab is open. True background
+    // push (delivered even when the app/tab is closed) needs a service worker
+    // + push subscription + a backend (e.g. Firebase Cloud Messaging) — a
+    // separate, bigger build than this in-page notification.
+    if (!('Notification' in window)) return;
+    const fire = () => {
+      const tickers = signals.slice(0, 4).map(d => d.Ticker).join(', ');
+      new Notification('New buy signal' + (signals.length > 1 ? 's' : ''), {
+        body: `${signals.length} stock${signals.length > 1 ? 's' : ''} today: ${tickers}`,
+        icon: undefined
+      });
+    };
+    if (Notification.permission === 'granted') {
+      fire();
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(perm => { if (perm === 'granted') fire(); });
+    }
+  }
+
+  function checkFreshSignalsToday() {
+    const signals = findFreshSignalsToday();
+    const badge = document.getElementById('authAlertBadge');
+    const countEl = document.getElementById('authAlertsCount');
+    if (signals.length > 0) {
+      badge.textContent = signals.length;
+      badge.classList.remove('hidden');
+      countEl.textContent = signals.length;
+      countEl.classList.remove('hidden');
+      showAlertToast(signals);
+      maybeShowBrowserNotification(signals);
+    } else {
+      badge.classList.add('hidden');
+      countEl.classList.add('hidden');
+    }
+    renderAlertsPanel(signals);
+  }
+  window.checkFreshSignalsToday = checkFreshSignalsToday;
+
+
+  const googleBtn = document.getElementById('authGoogleBtn');
+  const googleProvider = new GoogleAuthProvider();
+  googleBtn.addEventListener('click', async () => {
+    errEl.textContent = '';
+    googleBtn.disabled = true;
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err) {
+      if (err && err.code === 'auth/popup-closed-by-user') {
+        // user just closed the popup, no need to show an error
+      } else {
+        errEl.textContent = friendlyError(err);
+      }
+    } finally {
+      googleBtn.disabled = false;
+    }
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      document.body.classList.remove('authgate-locked');
+      overlay.classList.add('hidden');
+      const displayName = user.displayName || '';
+      const email = user.email || '';
+      const initial = (displayName || email || '?').charAt(0).toUpperCase();
+      avatarBtn.textContent = initial;
+      avatarLg.textContent = initial;
+      dropdownName.textContent = displayName || email || 'Account';
+      dropdownEmail.textContent = email;
+      userMenu.style.display = 'block';
+      const isAdmin = ADMIN_EMAILS.includes(email);
+      const adminControlsEl = document.getElementById('adminControls');
+      if (adminControlsEl) adminControlsEl.style.display = isAdmin ? 'flex' : 'none';
+      checkFreshSignalsToday();
+      if (typeof window.wlOnSignIn === 'function') window.wlOnSignIn(user.uid, email);
+    } else {
+      document.body.classList.add('authgate-locked');
+      overlay.classList.remove('hidden');
+      userMenu.style.display = 'none';
+      const adminControlsEl2 = document.getElementById('adminControls');
+      if (adminControlsEl2) adminControlsEl2.style.display = 'none';
+      dropdown.classList.add('hidden');
+      alertsPanel.classList.add('hidden');
+      const toast = document.getElementById('alertToast');
+      if (toast) toast.remove();
+      if (typeof window.wlOnSignOut === 'function') window.wlOnSignOut();
+    }
+  });
+</script>
 <meta name="description" content="Nexus PSX — Where Value Meets Momentum. Track revenue, profit, EBITDA and market performance of Pakistan Stock Exchange listed companies with interactive charts and analytics.">
 
 <!-- Favicon / App Icons (real files, must be uploaded alongside index.html) -->
@@ -6746,7 +7095,7 @@
     </div></div>
     <div class="top-grid-2" style="margin-bottom:16px;">
     <div class="top-table-card">
-      <div class="top-table-head"><span class="th-icon">🚀</span>Weekly Top 10 Gainers</div>
+      <div class="top-table-head"><span class="th-icon">🚀</span>Weekly Top Gainers</div>
       <div style="overflow-x:auto;" id="wrap-weekGain"><table class="top-mini-table" id="weekGain" style="width:100%;border-collapse:collapse;">
     <thead><tr>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('weekGain','rank')"># <span style="opacity:.3">⇅</span></th>
@@ -6806,7 +7155,7 @@
     </tr></tbody></table></div>
     </div>
     <div class="top-table-card">
-      <div class="top-table-head"><span class="th-icon">📉</span>Weekly Top 10 Losers</div>
+      <div class="top-table-head"><span class="th-icon">📉</span>Weekly Top Losers</div>
       <div style="overflow-x:auto;" id="wrap-weekLoss"><table class="top-mini-table" id="weekLoss" style="width:100%;border-collapse:collapse;">
     <thead><tr>
       <th style="padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);text-align:center;" onclick="sortTopTable('weekLoss','rank')"># <span style="opacity:.3">⇅</span></th>
@@ -10599,10 +10948,15 @@ function buildTopTab() {
     return !isNaN(v) && v <= -9.9;
   }).sort((a,b)=>(parseFloat(a['Day Change %'])||0)-(parseFloat(b['Day Change %'])||0));
 
-  // 4. Weekly gainers/losers
-  const hasWeek = liquid.filter(d => d['Current Week Return %'] != null && d['Current Week Return %'] !== 0);
-  const weekGainers = [...hasWeek].sort((a,b)=>(parseFloat(b['Current Week Return %'])||0)-(parseFloat(a['Current Week Return %'])||0)).slice(0,10);
-  const weekLosers  = [...hasWeek].sort((a,b)=>(parseFloat(a['Current Week Return %'])||0)-(parseFloat(b['Current Week Return %'])||0)).slice(0,10);
+  // 4. Weekly gainers/losers — same ±9.9% cutoff as the daily caps, scrollable.
+  const weekGainers = SOURCE_DATA.filter(d => {
+    const v = parseFloat(d['Current Week Return %']);
+    return !isNaN(v) && v >= 9.9;
+  }).sort((a,b)=>(parseFloat(b['Current Week Return %'])||0)-(parseFloat(a['Current Week Return %'])||0));
+  const weekLosers = SOURCE_DATA.filter(d => {
+    const v = parseFloat(d['Current Week Return %']);
+    return !isNaN(v) && v <= -9.9;
+  }).sort((a,b)=>(parseFloat(a['Current Week Return %'])||0)-(parseFloat(b['Current Week Return %'])||0));
 
   // 5. Top RVOL
   const topRVOL = [...liquid].filter(d=>(parseFloat(d['Relative Vol'])||0)>0)
@@ -10673,8 +11027,8 @@ function buildTopTab() {
       cardScroll('🔴','Daily Lower Caps','dayLoss',dayLosers,dayColsDef)
     )}
     ${row2(
-      card('🚀','Weekly Top 10 Gainers','weekGain',weekGainers,weekColsDef),
-      card('📉','Weekly Top 10 Losers','weekLoss',weekLosers,weekColsDef)
+      cardScroll('🚀','Weekly Top Gainers','weekGain',weekGainers,weekColsDef),
+      cardScroll('📉','Weekly Top Losers','weekLoss',weekLosers,weekColsDef)
     )}
     ${row3(
       card('🔊','Top 10 Relative Volume','rvol',topRVOL,rvolColsDef),
@@ -10839,336 +11193,5 @@ const _origToggleTechnical = toggleTechnical;
 </nav>
 
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import {
-    getAuth,
-    onAuthStateChanged,
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    signOut,
-    GoogleAuthProvider,
-    signInWithPopup
-  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc
-  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-  // ===== ADMIN ALLOWLIST =====
-  // Only signed-in users whose email is in this list see the Data menu
-  // (Update Data / Save Data JSON / Save Full HTML). Everyone else who signs
-  // in sees the dashboard normally, just without that menu.
-  // >>> REPLACE the email below with your real sign-in email before going live. <<<
-  const ADMIN_EMAILS = ['bilal1947@gmail.com'];
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCmIUoD99B2U94wWuHIaQIWmU2A4kppbDY",
-    authDomain: "psx-dashboard-dev.firebaseapp.com",
-    projectId: "psx-dashboard-dev",
-    storageBucket: "psx-dashboard-dev.firebasestorage.app",
-    messagingSenderId: "1089260456151",
-    appId: "1:1089260456151:web:38c68733e2f4d547330892"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // ===== Watchlist sync bridge (Firestore) =====
-  // The watchlist UI/state lives in a separate, non-module <script> earlier in
-  // this file (it predates Firebase Auth and doesn't import any SDK). Rather
-  // than duplicate Firestore imports there, we expose two small async
-  // functions on window that it can call directly. Each user's watchlist is
-  // stored at users/{uid}/data/watchlist — see the matching security rule
-  // note further down.
-  window.fsLoadWatchlist = async function (uid) {
-    try {
-      const snap = await getDoc(doc(db, 'users', uid, 'data', 'watchlist'));
-      return snap.exists() ? (snap.data().tickers || []) : null; // null = no doc yet
-    } catch (e) {
-      console.error('Firestore load watchlist failed:', e);
-      return undefined; // undefined = read failed (distinct from "no doc yet")
-    }
-  };
-  window.fsSaveWatchlist = async function (uid, tickers) {
-    try {
-      await setDoc(doc(db, 'users', uid, 'data', 'watchlist'), { tickers, updatedAt: Date.now() });
-      return true;
-    } catch (e) {
-      console.error('Firestore save watchlist failed:', e);
-      return false;
-    }
-  };
-
-  // ===== Auto-refresh on return =====
-  // Data is baked into this HTML at publish time, so the only way to pick up
-  // a newer version is a full page reload. If the user leaves this tab open
-  // (or backgrounds the mobile browser) and comes back after a while, this
-  // silently reloads so they land on whatever's currently published instead
-  // of stale in-memory data.
-  const PAGE_LOAD_TIME = Date.now();
-  const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-  function refreshIfStale() {
-    if (document.visibilityState === 'visible' && Date.now() - PAGE_LOAD_TIME > AUTO_REFRESH_INTERVAL_MS) {
-      window.location.reload();
-    }
-  }
-  document.addEventListener('visibilitychange', refreshIfStale);
-  window.addEventListener('focus', refreshIfStale);
-  const auth = getAuth(app);
-
-  const overlay = document.getElementById('authOverlay');
-  const userMenu = document.getElementById('authUserMenu');
-  const avatarBtn = document.getElementById('authAvatarBtn');
-  const dropdown = document.getElementById('authDropdown');
-  const avatarLg = document.getElementById('authAvatarLg');
-  const dropdownName = document.getElementById('authDropdownName');
-  const dropdownEmail = document.getElementById('authDropdownEmail');
-  const alertsBtn = document.getElementById('authAlertsBtn');
-  const alertsPanel = document.getElementById('alertsPanel');
-  const signOutItem = document.getElementById('authSignOutItem');
-  const emailEl = document.getElementById('authEmail');
-  const passEl = document.getElementById('authPassword');
-  const errEl = document.getElementById('authError');
-  const submitBtn = document.getElementById('authSubmitBtn');
-  const toggleBtn = document.getElementById('authToggleMode');
-  const titleEl = document.getElementById('authTitle');
-  const subEl = document.getElementById('authSub');
-
-  let mode = 'signin'; // 'signin' | 'signup'
-
-  function setMode(next) {
-    mode = next;
-    errEl.textContent = '';
-    if (mode === 'signin') {
-      titleEl.textContent = 'Sign in';
-      subEl.textContent = 'Sign in to access Nexus PSX';
-      submitBtn.textContent = 'Sign in';
-      toggleBtn.textContent = "Need an account? Sign up";
-    } else {
-      titleEl.textContent = 'Create account';
-      subEl.textContent = 'Sign up to access the PSX dashboard';
-      submitBtn.textContent = 'Sign up';
-      toggleBtn.textContent = 'Already have an account? Sign in';
-    }
-  }
-
-  toggleBtn.addEventListener('click', () => setMode(mode === 'signin' ? 'signup' : 'signin'));
-
-  function friendlyError(err) {
-    const code = err && err.code || '';
-    if (code.includes('invalid-email')) return 'That email address looks invalid.';
-    if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
-    if (code.includes('email-already-in-use')) return 'An account already exists for that email.';
-    if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
-    if (code.includes('unauthorized-domain')) return 'This domain is not yet authorized in Firebase (Authentication → Settings → Authorized domains). Add this domain there.';
-    if (code.includes('popup-blocked')) return 'Your browser blocked the sign-in popup. Allow popups for this site and try again.';
-    if (code.includes('operation-not-allowed')) return 'Google sign-in is not enabled for this project in Firebase (Authentication → Sign-in method).';
-    if (code.includes('network-request-failed')) return 'Network error — check your connection and try again.';
-    return 'Something went wrong (' + (code || 'unknown error') + '). Please try again.';
-  }
-
-  submitBtn.addEventListener('click', async () => {
-    errEl.textContent = '';
-    const email = emailEl.value.trim();
-    const password = passEl.value;
-    if (!email || !password) { errEl.textContent = 'Please enter an email and password.'; return; }
-    submitBtn.disabled = true;
-    try {
-      if (mode === 'signin') {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
-    } catch (err) {
-      errEl.textContent = friendlyError(err);
-    } finally {
-      submitBtn.disabled = false;
-    }
-  });
-
-  // Allow pressing Enter in either field to submit
-  [emailEl, passEl].forEach(el => el.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') submitBtn.click();
-  }));
-
-  avatarBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle('hidden');
-  });
-  document.addEventListener('click', (e) => {
-    if (!userMenu.contains(e.target)) dropdown.classList.add('hidden');
-  });
-  signOutItem.addEventListener('click', () => { dropdown.classList.add('hidden'); signOut(auth); });
-  alertsBtn.addEventListener('click', () => {
-    dropdown.classList.add('hidden');
-    alertsPanel.classList.toggle('hidden');
-  });
-  document.addEventListener('click', (e) => {
-    if (alertsPanel.contains(e.target) || e.target === alertsBtn) return;
-    alertsPanel.classList.add('hidden');
-  });
-  document.getElementById('alertsPanelClose').addEventListener('click', () => alertsPanel.classList.add('hidden'));
-
-  // ===== "New initial buying" alerts: fresh buy signals dated today =====
-  // A stock counts as a fresh signal today if its Signal Status starts with
-  // "Fresh buy signal" and its Signal date (YYYYMMDD) matches today's date.
-  const ALERTS_WL_ONLY_KEY = 'psx_alerts_watchlist_only';
-  const watchlistOnlyToggle = document.getElementById('alertsWatchlistOnlyToggle');
-  if (watchlistOnlyToggle) {
-    watchlistOnlyToggle.checked = localStorage.getItem(ALERTS_WL_ONLY_KEY) === '1';
-    watchlistOnlyToggle.addEventListener('change', () => {
-      try { localStorage.setItem(ALERTS_WL_ONLY_KEY, watchlistOnlyToggle.checked ? '1' : '0'); } catch {}
-      checkFreshSignalsToday();
-    });
-  }
-
-  function getTodayYYYYMMDD() {
-    const d = new Date();
-    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-  }
-
-  function findFreshSignalsToday() {
-    if (typeof SOURCE_DATA === 'undefined' || !Array.isArray(SOURCE_DATA)) return [];
-    const today = getTodayYYYYMMDD();
-    let signals = SOURCE_DATA.filter(d =>
-      d['Signal date'] === today &&
-      typeof d['Signal Status'] === 'string' &&
-      d['Signal Status'].indexOf('Fresh buy signal') === 0
-    );
-    const watchlistOnly = watchlistOnlyToggle?.checked;
-    if (watchlistOnly && typeof window.getWatchlistTickers === 'function') {
-      const tickers = new Set(window.getWatchlistTickers());
-      signals = signals.filter(d => tickers.has(String(d.Ticker)));
-    }
-    return signals;
-  }
-
-  function renderAlertsPanel(signals) {
-    const body = document.getElementById('alertsPanelBody');
-    if (!signals.length) {
-      body.innerHTML = '<div class="alerts-panel-empty">No new buy signals today yet. Check back after the next data update.</div>';
-      return;
-    }
-    body.innerHTML = signals.map(d => `
-      <div class="alert-row">
-        <div class="alert-row-left">
-          <span class="alert-row-ticker">${d.Ticker}</span>
-          <span class="alert-row-name">${d.Name || ''}</span>
-        </div>
-        <span class="alert-row-tag">${d['Signal Status']}</span>
-      </div>
-    `).join('');
-  }
-
-  function showAlertToast(signals) {
-    const existing = document.getElementById('alertToast');
-    if (existing) existing.remove();
-    const toast = document.createElement('div');
-    toast.id = 'alertToast';
-    toast.className = 'alert-toast';
-    const tickers = signals.slice(0, 4).map(d => d.Ticker).join(', ');
-    const more = signals.length > 4 ? ` +${signals.length - 4} more` : '';
-    toast.innerHTML = `
-      <button class="alert-toast-close">✕</button>
-      <div class="alert-toast-title" style="display:flex;align-items:center;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>${signals.length} new buy signal${signals.length > 1 ? 's' : ''} today</div>
-      <div class="alert-toast-body">${tickers}${more}</div>
-    `;
-    document.body.appendChild(toast);
-    toast.querySelector('.alert-toast-close').addEventListener('click', () => toast.remove());
-    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 12000);
-  }
-
-  function maybeShowBrowserNotification(signals) {
-    // Best-effort desktop/mobile popup while the tab is open. True background
-    // push (delivered even when the app/tab is closed) needs a service worker
-    // + push subscription + a backend (e.g. Firebase Cloud Messaging) — a
-    // separate, bigger build than this in-page notification.
-    if (!('Notification' in window)) return;
-    const fire = () => {
-      const tickers = signals.slice(0, 4).map(d => d.Ticker).join(', ');
-      new Notification('New buy signal' + (signals.length > 1 ? 's' : ''), {
-        body: `${signals.length} stock${signals.length > 1 ? 's' : ''} today: ${tickers}`,
-        icon: undefined
-      });
-    };
-    if (Notification.permission === 'granted') {
-      fire();
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(perm => { if (perm === 'granted') fire(); });
-    }
-  }
-
-  function checkFreshSignalsToday() {
-    const signals = findFreshSignalsToday();
-    const badge = document.getElementById('authAlertBadge');
-    const countEl = document.getElementById('authAlertsCount');
-    if (signals.length > 0) {
-      badge.textContent = signals.length;
-      badge.classList.remove('hidden');
-      countEl.textContent = signals.length;
-      countEl.classList.remove('hidden');
-      showAlertToast(signals);
-      maybeShowBrowserNotification(signals);
-    } else {
-      badge.classList.add('hidden');
-      countEl.classList.add('hidden');
-    }
-    renderAlertsPanel(signals);
-  }
-  window.checkFreshSignalsToday = checkFreshSignalsToday;
-
-
-  const googleBtn = document.getElementById('authGoogleBtn');
-  const googleProvider = new GoogleAuthProvider();
-  googleBtn.addEventListener('click', async () => {
-    errEl.textContent = '';
-    googleBtn.disabled = true;
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err) {
-      if (err && err.code === 'auth/popup-closed-by-user') {
-        // user just closed the popup, no need to show an error
-      } else {
-        errEl.textContent = friendlyError(err);
-      }
-    } finally {
-      googleBtn.disabled = false;
-    }
-  });
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      document.body.classList.remove('authgate-locked');
-      overlay.classList.add('hidden');
-      const displayName = user.displayName || '';
-      const email = user.email || '';
-      const initial = (displayName || email || '?').charAt(0).toUpperCase();
-      avatarBtn.textContent = initial;
-      avatarLg.textContent = initial;
-      dropdownName.textContent = displayName || email || 'Account';
-      dropdownEmail.textContent = email;
-      userMenu.style.display = 'block';
-      const isAdmin = ADMIN_EMAILS.includes(email);
-      const adminControlsEl = document.getElementById('adminControls');
-      if (adminControlsEl) adminControlsEl.style.display = isAdmin ? 'flex' : 'none';
-      checkFreshSignalsToday();
-      if (typeof window.wlOnSignIn === 'function') window.wlOnSignIn(user.uid, email);
-    } else {
-      document.body.classList.add('authgate-locked');
-      overlay.classList.remove('hidden');
-      userMenu.style.display = 'none';
-      const adminControlsEl2 = document.getElementById('adminControls');
-      if (adminControlsEl2) adminControlsEl2.style.display = 'none';
-      dropdown.classList.add('hidden');
-      alertsPanel.classList.add('hidden');
-      const toast = document.getElementById('alertToast');
-      if (toast) toast.remove();
-      if (typeof window.wlOnSignOut === 'function') window.wlOnSignOut();
-    }
-  });
-</script>
 </body></html>
