@@ -2342,7 +2342,7 @@
     <div id="chartsAndKpi">
     <div class="charts-grid">
       <div class="chart-card">
-        <div class="chart-title">EPS Trend (Quarterly) <span id="chartEPSLabel"><span style="color:#4d94ff">NBP</span> • <span style="color:#ff4757;font-weight:700">Financial Score 40</span></span></div>
+        <div class="chart-title">EPS Trend (Quarterly) <span id="chartEPSLabel"></span></div>
         <div class="chart-wrap"><canvas id="chartEPS" style="box-sizing: border-box; display: block; height: 300px; width: 726px;" width="762" height="314"></canvas></div>
       </div>
       <div class="chart-card">
@@ -2354,7 +2354,7 @@
         <div class="chart-wrap"><canvas id="chartMargins" style="box-sizing: border-box; display: block; height: 300px; width: 726px;" width="762" height="314"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">KPI Summary vs Sector <span id="chartKpiLabel"><span id="kpiTickerBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent3)">NBP</span><span id="kpiScoreBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-left:6px">• <span style="color:var(--warn);font-weight:700">Financial Score 40</span></span></span></div>
+        <div class="chart-title">KPI Summary vs Sector <span id="chartKpiLabel"><span id="kpiTickerBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent3)"></span><span id="kpiScoreBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-left:6px"></span></span></div>
         <div style="overflow-y:auto; overflow-x:auto; max-height: 360px; margin-top: 4px; position: relative; border-radius: 6px; border: 1px solid var(--border);">
           <table class="kpi-table">
             <thead>
@@ -2439,12 +2439,6 @@
 
   <!-- ===== SECTOR TAB ===== -->
   <div id="tab-sector" class="tab-content">
-    <div class="charts-grid" style="grid-template-columns: 1fr;">
-      <div class="chart-card">
-        <div class="chart-title">Top Sectors by Financial Score (Avg)</div>
-        <div class="chart-wrap" style="height: 320px;"><canvas id="chartSectors" style="box-sizing: border-box; display: block; height: 320px; width: 1510px;" width="1585" height="335"></canvas></div>
-      </div>
-    </div>
     <div class="table-card">
       <div class="table-header">
         <div class="table-title">Sector Performance Summary</div>
@@ -10272,16 +10266,17 @@ async function copyShareLink() {
       const scoreEl  = document.getElementById('kpiScoreBadge');
       if (!tickerEl || !scoreEl) return;
       tickerEl.textContent = ticker;
-      const sc = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
-      scoreEl.innerHTML = `• <span style="color:${sc};font-weight:700">Financial Score ${score}</span>`;
+      const sc = score >= 80 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
+      scoreEl.innerHTML = `• <span style="color:${sc};font-weight:700">Fin. Score ${score}</span>`;
 
       // Also sync share menu button ticker badge
       const shareMenuTitle = document.getElementById('shareMenuTitle');
       if (shareMenuTitle && document.getElementById('shareMenu').style.display === 'none') {
-        shareMenuTitle.innerHTML = `Share <span style="color:var(--accent3)">${ticker}</span> · Financial Score <span style="color:${sc}">${score}</span>`;
+        shareMenuTitle.innerHTML = `Share <span style="color:var(--accent3)">${ticker}</span> · Fin. Score <span style="color:${sc}">${score}</span>`;
       }
     } catch(e) {}
   };
+  updateKpiBadge();
   setInterval(updateKpiBadge, 800);
   window.addEventListener('load', updateKpiBadge);
 })();
@@ -10365,14 +10360,15 @@ function toggleTheme() {
 
       const score = parseFloat(scoreEl.textContent) || 0;
       let color = '#ff4757';
-      if(score >= 70) color = '#2ed573';
-      else if(score >= 50) color = '#f5a623';
+      if(score >= 80) color = '#2ed573';
+      else if(score >= 40) color = '#f5a623';
 
       labelEl.innerHTML =
-        `<span style="color:#4d94ff">${ticker}</span> • <span style="color:${color};font-weight:700">Financial Score ${score}</span>`;
+        `<span style="color:#4d94ff">${ticker}</span> • <span style="color:${color};font-weight:700">Fin. Score ${score}</span>`;
     }catch(e){}
   };
 
+  updateEPSHeader();
   setInterval(updateEPSHeader, 1000);
   window.addEventListener('load', updateEPSHeader);
 })();
