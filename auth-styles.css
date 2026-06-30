@@ -1,0 +1,136 @@
+
+  /* ===== AUTH GATE (Firebase) ===== */
+  body.authgate-locked > *:not(#authOverlay) { display: none !important; }
+  #authOverlay {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  #authOverlay.hidden { display: none; }
+  .auth-card {
+    width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px 26px; box-shadow: 0 20px 60px rgba(15,23,42,0.12);
+  }
+  .auth-card h1 { color: var(--text); font-size: 18px; margin: 0 0 4px; }
+  .auth-card p.auth-sub { color: var(--text2); font-size: 13px; margin: 0 0 20px; }
+  .auth-card input {
+    width: 100%; box-sizing: border-box; padding: 11px 12px; margin-bottom: 10px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text);
+    font-size: 15px; outline: none;
+  }
+  .auth-card input:focus { border-color: var(--accent); }
+  .auth-card button.auth-btn {
+    width: 100%; padding: 11px 12px; margin-top: 4px; border: none; border-radius: 8px;
+    background: var(--accent); color: #ffffff; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .auth-card button.auth-btn:hover { filter: brightness(1.08); }
+  .auth-card button.auth-link {
+    width: 100%; margin-top: 14px; background: none; border: none; color: var(--text2);
+    font-size: 13px; cursor: pointer; text-align: center;
+  }
+  .auth-card button.auth-link:hover { color: var(--accent); }
+  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--text2); font-size: 12px; }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .auth-google-btn {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .auth-google-btn:hover { background: var(--surface2); }
+  .auth-error { color: var(--danger); font-size: 13px; margin: 0 0 10px; min-height: 16px; }
+  #authUserMenu { position: relative; z-index: 99998; display: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+  .auth-avatar-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--accent); color: #ffffff; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.2);
+  }
+  .auth-dropdown {
+    position: absolute; top: 42px; right: 0; width: 270px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 24px rgba(15,23,42,0.16);
+    padding: 16px; box-sizing: border-box;
+  }
+  .auth-dropdown.hidden { display: none; }
+  .auth-dropdown-header { display: flex; align-items: center; gap: 12px; }
+  .auth-avatar-lg {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent); color: #ffffff; font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .auth-dropdown-info { overflow: hidden; }
+  .auth-dropdown-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .auth-dropdown-email { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .auth-dropdown-sep { height: 1px; background: var(--border); margin: 12px 0; }
+  .auth-dropdown-item {
+    width: 100%; text-align: left; padding: 9px 10px; border: none; background: none;
+    border-radius: 8px; font-size: 13px; color: var(--text); cursor: pointer;
+  }
+  .auth-dropdown-item:hover { background: var(--surface2); }
+  .auth-dropdown-item { position: relative; display: flex; align-items: center; justify-content: space-between; }
+  .auth-alert-badge {
+    position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 3px;
+    border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+    border: 2px solid var(--surface);
+  }
+  .auth-alert-badge.hidden { display: none; }
+  .auth-alerts-count {
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--danger);
+    color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .auth-alerts-count.hidden { display: none; }
+
+  .alerts-panel {
+    position: fixed; top: 60px; right: max(14px, env(safe-area-inset-right)); z-index: 99999; width: 320px; max-width: calc(100vw - 28px); max-height: 70vh;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 34px rgba(15,23,42,0.2);
+    overflow: hidden; display: flex; flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  .alerts-panel.hidden { display: none; }
+  .alerts-panel-header {
+    display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;
+    background: var(--surface2); color: var(--text); font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+  .alerts-panel-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 14px; }
+  .alerts-panel-close:hover { color: var(--text); }
+  .alerts-panel-body { overflow-y: auto; padding: 6px; }
+  .alert-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 9px 8px; border-radius: 8px; cursor: default;
+  }
+  .alert-row:hover { background: var(--surface2); }
+  .alert-row-left { display: flex; flex-direction: column; min-width: 0; }
+  .alert-row-ticker { font-size: 13px; font-weight: 700; color: var(--text); }
+  .alert-row-name { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+  .alert-row-tag {
+    font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap;
+    background: var(--accent-dim); color: var(--accent);
+  }
+  .alerts-panel-empty { padding: 24px 14px; text-align: center; color: var(--text2); font-size: 13px; }
+
+  .alert-toast {
+    position: fixed; top: 60px; right: max(14px, env(safe-area-inset-right)); z-index: 99997; width: 300px; max-width: calc(100vw - 28px);
+    background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(15,23,42,0.2); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    border-left: 4px solid var(--accent);
+  }
+  .alert-toast.hidden { display: none; }
+  .alert-toast-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .alert-toast-body { font-size: 12px; color: var(--text2); }
+  .alert-toast-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; }
+
+
+@media (max-width: 768px) {
+  /* The header wraps on mobile, so the avatar button doesn't always land
+     at the screen's right edge like it does on desktop. Anchor the
+     dropdown to the viewport itself instead of the button's position, so
+     it can never spill off either edge regardless of where it wraps to. */
+  .auth-dropdown {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    left: 10px !important;
+    width: auto !important;
+  }
+}
