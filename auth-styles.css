@@ -6,14 +6,15 @@
        • logged in  → splash fades, dashboard shown, authOverlay stays hidden
        • logged out → splash fades, authOverlay revealed, dashboard stays hidden */
   body.authgate-locked > *:not(#authOverlay):not(#splashOverlay) { display: none !important; }
-  /* Auth overlay starts hidden — only revealed when user actually needs to sign in */
-  #authOverlay { display: none; }
+
+  /* Auth overlay base styles — position/layout only, no display property here
+     so the display:none / display:flex toggling via JS style.display is unambiguous */
   #authOverlay {
-    position: fixed; inset: 0; z-index: 99999;
-    display: flex; align-items: center; justify-content: center;
+    position: fixed; inset: 0; z-index: 9999;
+    align-items: center; justify-content: center;
     background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    display: none; /* hidden by default — JS sets display:flex only when login is needed */
   }
-  #authOverlay.hidden { display: none; }
   .auth-card {
     width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border);
     border-radius: 14px; padding: 28px 26px; box-shadow: 0 20px 60px rgba(15,23,42,0.12);

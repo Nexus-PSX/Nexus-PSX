@@ -75,15 +75,19 @@
     const btn = document.getElementById('pushPermBtn');
     if (!btn) return;
     if (!('Notification' in window)) { btn.style.display = 'none'; return; }
+    const span = btn.querySelector('span');
     if (Notification.permission === 'granted') {
-      btn.innerHTML = '🔔 Alerts On'; btn.style.opacity = '0.6';
+      if (span) span.childNodes[span.childNodes.length - 1].textContent = ' Alerts On';
       btn.title = 'Push notifications are enabled';
+      btn.style.opacity = '0.6';
     } else if (Notification.permission === 'denied') {
-      btn.innerHTML = '🔕 Blocked'; btn.style.opacity = '0.6';
-      btn.title = 'Notifications blocked — enable in your browser site settings';
+      if (span) span.childNodes[span.childNodes.length - 1].textContent = ' Alerts Blocked';
+      btn.title = 'Notifications blocked — enable in browser site settings';
+      btn.style.opacity = '0.6';
     } else {
-      btn.innerHTML = '🔔 Enable Alerts'; btn.style.opacity = '1';
+      if (span) span.childNodes[span.childNodes.length - 1].textContent = ' Enable Alerts';
       btn.title = 'Get push notifications for new buy signals, even when the tab is closed';
+      btn.style.opacity = '1';
     }
   }
 
@@ -462,7 +466,7 @@
       document.body.classList.add('authgate-locked');
       // Only reveal the sign-in form now that auth has confirmed user is logged out.
       // It starts hidden (display:none in CSS) so it never flashes for returning users.
-      overlay.style.display = 'block';
+      overlay.style.display = 'flex';
       userMenu.style.display = 'none';
       const adminControlsEl2 = document.getElementById('adminControls');
       if (adminControlsEl2) adminControlsEl2.style.display = 'none';
