@@ -1163,7 +1163,10 @@ function sortSectorTable(col) {
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
-  const sorted = [...SECTOR_DATA].sort((a,b) => {
+  // Sort only the currently filtered subset so an active sector filter is preserved.
+  const sel = mselRegistry.sectorFilter.selected;
+  const base = sel.size > 0 ? SECTOR_DATA.filter(s => sel.has(s.sector)) : [...SECTOR_DATA];
+  const sorted = base.sort((a,b) => {
     const av = a[key], bv = b[key];
     if (av == null) return 1; if (bv == null) return -1;
     return typeof av === 'string' ? av.localeCompare(bv) * sectorSort.dir : (av - bv) * sectorSort.dir;
