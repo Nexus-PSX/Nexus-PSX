@@ -15,6 +15,11 @@
     getDoc,
     setDoc
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import {
+    getMessaging,
+    getToken,
+    onMessage
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-messaging.js";
 
   // ===== ADMIN ALLOWLIST =====
   // Only signed-in users whose email is in this list see the Data menu
@@ -34,9 +39,84 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  const db  = getFirestore(app);
+  const messaging = getMessaging(app);
 
-  // ===== Watchlist sync bridge (Firestore) =====
+  // ===== VAPID key — from Firebase Console → Project Settings → Cloud Messaging
+  // → Web Push certificates → Key pair. Replace this placeholder with your
+  // actual VAPID key before deploying. Without it, getToken() will fail silently.
+  const VAPID_KEY = 'BCAeBSeNlmWhNR3A6jNMNhGUeyuySekxIMihnSsQwSCH2kS5WAfPoMjBVLqEfEfN9ThbzNQQqqB2cFVwA9CByiI';
+
+  // ===== FCM Push Notifications =====
+  // Requests notification permission, gets an FCM registration token, and
+  // stores it in Firestore under users/{uid}/data/fcm_token so the admin
+  // sender can look up all tokens to push to.
+
+  async function registerForPush(uid) {
+    if (!uid) return;
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'denied') return;
+    try {
+      const swReg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+      await navigator.serviceWorker.ready;
+      const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+      if (!token) return;
+      await setDoc(
+        doc(db, 'users', uid, 'data', 'fcm_token'),
+        { token, updatedAt: Date.now(), userAgent: navigator.userAgent.slice(0, 200) }
+      );
+      console.log('FCM token registered');
+    } catch (e) {
+      console.warn('FCM registration failed:', e.message || e);
+    }
+  }
+
+  function syncPushButtonState() {
+    const btn = document.getElementById('pushPermBtn');
+    if (!btn) return;
+    if (!('Notification' in window)) { btn.style.display = 'none'; return; }
+    if (Notification.permission === 'granted') {
+      btn.innerHTML = '🔔 Alerts On'; btn.style.opacity = '0.6';
+      btn.title = 'Push notifications are enabled';
+    } else if (Notification.permission === 'denied') {
+      btn.innerHTML = '🔕 Blocked'; btn.style.opacity = '0.6';
+      btn.title = 'Notifications blocked — enable in your browser site settings';
+    } else {
+      btn.innerHTML = '🔔 Enable Alerts'; btn.style.opacity = '1';
+      btn.title = 'Get push notifications for new buy signals, even when the tab is closed';
+    }
+  }
+
+  // Foreground handler: tab is open + a push arrives → use in-app toast
+  // instead of a system notification (browsers suppress those when focused).
+  onMessage(messaging, payload => {
+    const { title, body } = payload.data || {};
+    if (typeof showToast === 'function') showToast(`🔔 ${title || 'Alert'}: ${body || ''}`);
+    if (typeof window.checkFreshSignalsToday === 'function') window.checkFreshSignalsToday();
+  });
+
+  // Exposed on window so the button in index.html can call it from outside
+  // this module scope.
+  window.requestPushPermission = async function () {
+    const uid = window._currentFcmUid || null;
+    const btn = document.getElementById('pushPermBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Setting up…'; }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted' && uid) await registerForPush(uid);
+    } finally {
+      if (btn) btn.disabled = false;
+      syncPushButtonState();
+    }
+  };
+
+  window.unregisterPushToken = async function (uid) {
+    if (!uid) return;
+    try { await setDoc(doc(db, 'users', uid, 'data', 'fcm_token'), { token: null, removedAt: Date.now() }); }
+    catch (e) { /* ignore */ }
+  };
+
+  // ===== Firestore bridges (watchlist) =====
   // The watchlist UI/state lives in a separate, non-module <script> earlier in
   // this file (it predates Firebase Auth and doesn't import any SDK). Rather
   // than duplicate Firestore imports there, we expose two small async
@@ -228,6 +308,10 @@
 
     writeStatusBaseline(newBaseline);
 
+    // Expose to admin.html's FCM sender (window._latestNewSignals is read by
+    // sendFcmToAllUsers() after data upload + reinitDashboard() runs).
+    window._latestNewSignals = signals;
+
     const watchlistOnly = watchlistOnlyToggle?.checked;
     if (watchlistOnly && typeof window.getWatchlistTickers === 'function') {
       const tickers = new Set(window.getWatchlistTickers());
@@ -368,6 +452,12 @@
       // sync to Firestore at all whenever checkFreshSignalsToday() threw).
       if (typeof window.wlOnSignIn === 'function') window.wlOnSignIn(user.uid, email);
       try { checkFreshSignalsToday(); } catch (e) { console.error('checkFreshSignalsToday failed:', e); }
+      // Store the current UID for the push-permission button and register FCM
+      // if permission was already granted on a previous visit (so returning
+      // users get their token refreshed without needing to click the button again).
+      window._currentFcmUid = user.uid;
+      syncPushButtonState();
+      if (Notification.permission === 'granted') registerForPush(user.uid);
     } else {
       document.body.classList.add('authgate-locked');
       overlay.classList.remove('hidden');
@@ -379,5 +469,7 @@
       const toast = document.getElementById('alertToast');
       if (toast) toast.remove();
       if (typeof window.wlOnSignOut === 'function') window.wlOnSignOut();
+      window._currentFcmUid = null;
+      syncPushButtonState();
     }
   });
