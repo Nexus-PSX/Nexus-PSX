@@ -1152,8 +1152,10 @@ function renderSectorTable(data) {
   });
 }
 function filterSectorTable() {
-  const q = document.getElementById('sectorSearch').value.toLowerCase();
-  const filtered = q ? SECTOR_DATA.filter(s => s.sector.toLowerCase().includes(q)) : [...SECTOR_DATA];
+  const sel = mselRegistry.sectorFilter.selected;
+  const filtered = sel.size > 0
+    ? SECTOR_DATA.filter(s => sel.has(s.sector))
+    : [...SECTOR_DATA];
   renderSectorTable(filtered.sort((a,b) => b.totalScore - a.totalScore));
 }
 function sortSectorTable(col) {
@@ -1286,6 +1288,15 @@ const mselRegistry = {
     allLabel: 'Volume Phase',
     oneLabel: v => (VOLPHASE_OPTIONS.find(o=>o.value===v)||{}).label || v,
     manyLabel: n => `Phases`,
+  },
+  sectorFilter: {
+    options: () => [...new Set(SECTOR_DATA.map(s => s.sector))].sort().map(s => ({value: s, label: s})),
+    selected: new Set(),
+    searchable: true,
+    allLabel: 'All Sectors',
+    oneLabel: v => v,
+    manyLabel: n => `${n} Sectors`,
+    onChange: () => filterSectorTable(),
   }
 };
 
@@ -1336,7 +1347,7 @@ function mselToggleItem(key, value, checked) {
   if (!cfg) return;
   if (checked) cfg.selected.add(value); else cfg.selected.delete(value);
   mselUpdateLabel(key);
-  filterScreener();
+  (cfg.onChange || filterScreener)();
 }
 
 function mselSelectAll(key) {
@@ -1349,7 +1360,7 @@ function mselSelectAll(key) {
   opts.forEach(o => cfg.selected.add(o.value));
   mselRenderList(key);
   mselUpdateLabel(key);
-  filterScreener();
+  (cfg.onChange || filterScreener)();
 }
 
 function mselClear(key) {
@@ -1365,7 +1376,7 @@ function mselClear(key) {
   }
   mselRenderList(key);
   mselUpdateLabel(key);
-  filterScreener();
+  (cfg.onChange || filterScreener)();
 }
 
 let mselOpenedAt = 0;

@@ -19,7 +19,7 @@
      so every document.getElementById(...) call inside it still finds
      its element exactly as before. Only the SDK *download* start time
      changes, not the execution order. -->
-<script type="module" src="auth.js?v=20260630j"></script>
+<script type="module" src="auth.js?v=20260630k"></script>
 <meta name="description" content="Nexus PSX — Where Value Meets Momentum. Track revenue, profit, EBITDA and market performance of Pakistan Stock Exchange listed companies with interactive charts and analytics.">
 
 <!-- Favicon / App Icons (real files, must be uploaded alongside index.html) -->
@@ -39,7 +39,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=20260630j">
+<link rel="stylesheet" href="styles.css?v=20260630k">
 </head>
 <body class="authgate-locked">
 
@@ -68,7 +68,7 @@
 <style>
   @keyframes splashSpin { to { transform: rotate(360deg); } }
 </style>
-<link rel="stylesheet" href="auth-styles.css?v=20260630j">
+<link rel="stylesheet" href="auth-styles.css?v=20260630k">
 <div id="authOverlay">
   <div class="auth-card">
     <h1 id="authTitle">Sign in</h1>
@@ -401,7 +401,21 @@
       <div class="table-header">
         <div class="table-title">Sector Performance Summary</div>
         <div class="table-filters">
-          <input type="text" class="table-search" id="sectorSearch" placeholder="Filter sector..." oninput="filterSectorTable()">
+          <div class="msel" id="sectorFilterMsel">
+            <button type="button" class="msel-btn" id="sectorFilterMselBtn" onclick="mselTogglePanel('sectorFilter', event)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M3 3h18M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+              <span id="sectorFilterMselLabel">All Sectors</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="sectorFilterMselPanel">
+              <div class="msel-search-wrap"><input class="msel-search" id="sectorFilterMselSearch" placeholder="Search sector…" oninput="mselRenderList('sectorFilter')"></div>
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('sectorFilter')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('sectorFilter')">Clear</button>
+              </div>
+              <div class="msel-list" id="sectorFilterMselList"></div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="scroll-table">
@@ -1532,7 +1546,7 @@
           </span>
       </div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-      <script src="app.js?v=20260630j"></script>
+      <script src="app.js?v=20260630k"></script>
       <div class="scroll-table">
         <table class="data-table hide-financials hide-performance hide-daily" id="screenerTable">
           <thead>
