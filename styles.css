@@ -971,9 +971,10 @@
   /* ===== MOBILE RESPONSIVE ===== */
   @media (max-width: 768px) {
     .filters-toggle-btn {
-      display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+      display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
       background: var(--surface2); border: 1px solid var(--border); color: var(--text);
       border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+      white-space: nowrap;
     }
     .header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
     .header-title { font-size: 13px; }
