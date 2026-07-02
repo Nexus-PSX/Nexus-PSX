@@ -249,6 +249,11 @@
   alertsBtn.addEventListener('click', () => {
     dropdown.classList.add('hidden');
     alertsPanel.classList.toggle('hidden');
+    // Re-render every time the panel opens so it always shows fresh signal data
+    // even if checkFreshSignalsToday() ran before the panel body existed in the DOM.
+    if (!alertsPanel.classList.contains('hidden')) {
+      renderAlertsPanel(window._latestNewSignals || findFreshSignalsToday());
+    }
   });
   document.addEventListener('click', (e) => {
     if (alertsPanel.contains(e.target) || alertsBtn.contains(e.target)) return;
@@ -382,6 +387,7 @@
 
   function checkFreshSignalsToday() {
     const signals = findFreshSignalsToday();
+    window._latestNewSignals = signals; // persisted so panel can re-render on open
     const badge = document.getElementById('authAlertBadge');
     const countEl = document.getElementById('authAlertsCount');
     // Defensive: these elements should always exist, but if anything ever
