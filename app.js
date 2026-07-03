@@ -213,7 +213,13 @@ function init() {
 
   // Populate sector & index filters (multi-select)
   allSectors = [...new Set(SOURCE_DATA.filter(d=>d.Sector && d.Sector!=='0').map(d=>d.Sector))].sort();
-  allTickersList = [...new Set(SOURCE_DATA.filter(d=>d.Ticker).map(d=>String(d.Ticker)))].sort();
+  // Build as [{value: ticker, label: ticker, name: company}] so Comparison
+  // filter can search by both ticker symbol and company name.
+  allTickersList = SOURCE_DATA
+    .filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0)
+    .map(d => ({ value: String(d.Ticker), label: String(d.Ticker), name: String(d.Name || '') }))
+    .sort((a, b) => a.value.localeCompare(b.value))
+    .filter((t, i, arr) => i === 0 || arr[i-1].value !== t.value);
   const allIndicesSet = new Set();
   SOURCE_DATA.forEach(d => { if(d.Index) String(d.Index).split(',').forEach(i => allIndicesSet.add(i.trim())); });
   allIndicesList = [...allIndicesSet].filter(i=>i&&i!=='0').sort();
@@ -1385,7 +1391,7 @@ const mselRegistry = {
     manyLabel: n => `Indices`,
   },
   ticker: {
-    options: () => allTickersList.map(s => ({value:s, label:s})),
+    options: () => allTickersList,
     selected: new Set(),
     searchable: true,
     allLabel: 'Comparison',
@@ -1480,7 +1486,10 @@ function mselRenderList(key) {
   const searchEl = document.getElementById(key + 'MselSearch');
   const q = (searchEl && searchEl.value || '').toLowerCase();
   let opts = cfg.options();
-  if (q) opts = opts.filter(o => String(o.label).toLowerCase().includes(q));
+  if (q) opts = opts.filter(o =>
+    String(o.label).toLowerCase().includes(q) ||
+    String(o.name || '').toLowerCase().includes(q)
+  );
   if (opts.length === 0) {
     list.innerHTML = '<div class="msel-empty">No matches found</div>';
     return;
@@ -1489,7 +1498,11 @@ function mselRenderList(key) {
     const checked = cfg.selected.has(o.value) ? 'checked' : '';
     const safeVal = escapeHtml(o.value).replace(/'/g, "\\'");
     const safeLabel = escapeHtml(o.label);
-    return `<label class="msel-item"><input type="checkbox" ${checked} onchange="mselToggleItem('${key}', '${safeVal}', this.checked)"><span class="msel-label" title="${safeLabel}">${safeLabel}</span></label>`;
+    const safeName = o.name ? escapeHtml(String(o.name)) : '';
+    const nameSpan = safeName
+      ? `<span class="msel-item-name">${safeName.length > 28 ? safeName.slice(0,26)+'…' : safeName}</span>`
+      : '';
+    return `<label class="msel-item"><input type="checkbox" ${checked} onchange="mselToggleItem('${key}', '${safeVal}', this.checked)"><span class="msel-label" title="${safeLabel}${safeName ? ' — ' + safeName : ''}">${safeLabel}${nameSpan}</span></label>`;
   }).join('');
 }
 
@@ -2712,7 +2725,13 @@ function reinitDashboard(filename) {
     });
 
   allSectors = [...new Set(SOURCE_DATA.filter(d=>d.Sector && d.Sector!=='0').map(d=>d.Sector))].sort();
-  allTickersList = [...new Set(SOURCE_DATA.filter(d=>d.Ticker).map(d=>String(d.Ticker)))].sort();
+  // Build as [{value: ticker, label: ticker, name: company}] so Comparison
+  // filter can search by both ticker symbol and company name.
+  allTickersList = SOURCE_DATA
+    .filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0)
+    .map(d => ({ value: String(d.Ticker), label: String(d.Ticker), name: String(d.Name || '') }))
+    .sort((a, b) => a.value.localeCompare(b.value))
+    .filter((t, i, arr) => i === 0 || arr[i-1].value !== t.value);
   const allIdx = new Set();
   SOURCE_DATA.forEach(d => { if(d.Index) String(d.Index).split(',').forEach(i => allIdx.add(i.trim())); });
   allIndicesList = [...allIdx].filter(i=>i&&i!=='0').sort();

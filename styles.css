@@ -2083,3 +2083,13 @@
   .ticker-banner { height: 30px; }
   .tk-item { font-size: 11px; padding: 0 7px; }
 }
+
+/* Company name sub-label inside Comparison filter items */
+.msel-item-name {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 1px;
+  line-height: 1.3;
+}
