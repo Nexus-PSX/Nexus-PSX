@@ -816,7 +816,7 @@ function sharedTooltipWithChange(valueFmt, dataArrays, isPercent) {
           const pct = ((val - prevVal) / Math.abs(prevVal)) * 100;
           const sign = pct >= 0 ? '+' : '';
           const arrow = pct >= 0 ? '▲' : '▼';
-          changeSuffix = `  ${arrow} ${sign}${pct.toFixed(1)}% vs prev`;
+          changeSuffix = `  ${arrow} ${sign}${pct.toFixed(1)}%`;
         }
         return ` ${ctx.dataset.label}: ${formattedVal}${changeSuffix}`;
       }
