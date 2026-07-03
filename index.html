@@ -8,17 +8,20 @@
 <meta property="og:url"         content="https://nexus-psx.github.io/Nexus-PSX/">
 <meta property="og:title"       content="Nexus PSX — Where Value Meets Momentum">
 <meta property="og:description" content="Track financial performance, signals, and momentum across Pakistan Stock Exchange listed companies. Screener, sector analysis, watchlist and buy-signal alerts.">
-<meta property="og:image"       content="https://nexus-psx.github.io/Nexus-PSX/icon-512.png">
-<meta property="og:image:width" content="512">
-<meta property="og:image:height" content="512">
-<meta property="og:image:alt"   content="Nexus PSX logo">
+<meta property="og:image"       content="https://nexus-psx.github.io/Nexus-PSX/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type"  content="image/png">
+<meta property="og:image:alt"   content="Nexus PSX — Stock screener, sector analysis and buy-signal alerts for Pakistan Stock Exchange">
 <meta property="og:site_name"   content="Nexus PSX">
+<meta property="og:locale"      content="en_US">
 
 <!-- ── Twitter / X Card ─────────────────────────────────────────────── -->
-<meta name="twitter:card"        content="summary">
+<meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:title"       content="Nexus PSX — Where Value Meets Momentum">
 <meta name="twitter:description" content="Track financial performance, signals, and momentum across Pakistan Stock Exchange listed companies.">
-<meta name="twitter:image"       content="https://nexus-psx.github.io/Nexus-PSX/icon-512.png">
+<meta name="twitter:image"       content="https://nexus-psx.github.io/Nexus-PSX/og-image.png">
+<meta name="twitter:image:alt"   content="Nexus PSX dashboard preview">
 
 <!-- Preconnect to Firebase's CDN so the browser opens the connection (DNS +
      TLS handshake) immediately, ahead of the auth script actually requesting
@@ -36,7 +39,7 @@
      so every document.getElementById(...) call inside it still finds
      its element exactly as before. Only the SDK *download* start time
      changes, not the execution order. -->
-<script type="module" src="auth.js?v=20260702e"></script>
+<script type="module" src="auth.js?v=20260702i"></script>
 <meta name="description" content="Nexus PSX — Where Value Meets Momentum. Track revenue, profit, EBITDA and market performance of Pakistan Stock Exchange listed companies with interactive charts and analytics.">
 
 <!-- Favicon / App Icons (real files, must be uploaded alongside index.html) -->
@@ -56,7 +59,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=20260702e">
+<link rel="stylesheet" href="styles.css?v=20260702i">
 </head>
 <body class="authgate-locked">
 
@@ -85,7 +88,7 @@
 <style>
   @keyframes splashSpin { to { transform: rotate(360deg); } }
 </style>
-<link rel="stylesheet" href="auth-styles.css?v=20260702e">
+<link rel="stylesheet" href="auth-styles.css?v=20260702i">
 <div id="authOverlay">
   <div class="auth-card">
     <h1 id="authTitle">Sign in</h1>
@@ -1410,6 +1413,12 @@
 
   <!-- ===== SCREENER TAB ===== -->
   <div id="tab-screener" class="tab-content active">
+    <!-- ── Rolling Market Ticker ──────────────────────────────────── -->
+    <div class="ticker-banner" id="tickerBanner">
+      <div class="ticker-track" id="tickerTrack">
+        <!-- populated by buildMarketTicker() once data loads -->
+      </div>
+    </div>
     <div class="table-card">
       <div class="table-header">
         <div class="table-title">All Companies — Stock Screener</div>
@@ -1565,7 +1574,7 @@
           </span>
       </div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-      <script src="app.js?v=20260702e"></script>
+      <script src="app.js?v=20260702i"></script>
       <div class="scroll-table">
         <table class="data-table hide-financials hide-performance hide-daily" id="screenerTable">
           <thead>

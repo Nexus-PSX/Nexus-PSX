@@ -122,6 +122,87 @@ let screenerSort = {col: 14, dir: -1};
 let sectorSort = {col: 12, dir: -1};
 
 // ===== INIT =====
+// ===== ROLLING MARKET TICKER ====================================
+// A scrolling ticker-tape that shows:
+//   • KSE 100 avg 1D% / YTD%
+//   • KSE 30  avg 1D%
+//   • KMI 30  avg 1D%
+//   • Top 20 KSE 100 gainers by 1D% (ticker + change)
+// Data is computed from SOURCE_DATA so no external feed is needed.
+function buildMarketTicker() {
+  const track = document.getElementById('tickerTrack');
+  if (!track) return;
+  // If data isn't ready yet, retry after a short delay
+  if (!SOURCE_DATA.length) {
+    setTimeout(buildMarketTicker, 800);
+    return;
+  }
+
+  // ── Compute index averages ─────────────────────────────────
+  function indexAvg(names, field) {
+    const members = SOURCE_DATA.filter(d => {
+      const idx = String(d.Index || '');
+      return names.some(n => idx.includes(n));
+    });
+    const vals = members.map(d => parseFloat(d[field])).filter(v => !isNaN(v));
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  }
+  function fmt(v) {
+    if (v == null) return '—';
+    return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  }
+  function colorClass(v) {
+    return v == null ? '' : v > 0 ? 'tk-pos' : v < 0 ? 'tk-neg' : 'tk-neu';
+  }
+  function indexItem(label, v1d, vYtd) {
+    const cl = colorClass(v1d);
+    const ytdStr = vYtd != null ? ` <span class="tk-ytd">${fmt(vYtd)} YTD</span>` : '';
+    return `<span class="tk-item">
+      <span class="tk-name">${label}</span>
+      <span class="${cl}">${fmt(v1d)}</span>${ytdStr}
+    </span><span class="tk-sep">·</span>`;
+  }
+
+  const kse100_1d  = indexAvg(['KSE 100','KSE100'], 'Day Change %');
+  const kse100_ytd = indexAvg(['KSE 100','KSE100'], 'YTD Return %');
+  const kse30_1d   = indexAvg(['KSE 30', 'KSE30'],  'Day Change %');
+  const kmi30_1d   = indexAvg(['KMI 30', 'KMI30', 'KMI'], 'Day Change %');
+
+  // ── Top 20 KSE 100 gainers ─────────────────────────────────
+  const kse100members = SOURCE_DATA.filter(d =>
+    String(d.Index || '').includes('KSE 100') || String(d.Index || '').includes('KSE100')
+  );
+  const top20 = [...kse100members]
+    .filter(d => { const v = parseFloat(d['Day Change %']); return !isNaN(v); })
+    .sort((a,b) => parseFloat(b['Day Change %']) - parseFloat(a['Day Change %']))
+    .slice(0, 20);
+
+  // ── Build the scrolling content ────────────────────────────
+  let html = '';
+  html += indexItem('KSE 100', kse100_1d, kse100_ytd);
+  html += indexItem('KSE 30',  kse30_1d,  null);
+  html += indexItem('KMI 30',  kmi30_1d,  null);
+
+  top20.forEach(d => {
+    const v = parseFloat(d['Day Change %']);
+    html += `<span class="tk-item">
+      <span class="tk-ticker">${d.Ticker}</span>
+      <span class="${colorClass(v)}">${fmt(v)}</span>
+    </span><span class="tk-sep">·</span>`;
+  });
+
+  // Duplicate content so scroll loop is seamless
+  const content = html + html;
+  track.innerHTML = content;
+
+  // Set animation duration based on content length
+  // ~80px per item, moderate speed
+  const itemCount = 3 + top20.length; // indices + gainers
+  const duration = Math.max(25, itemCount * 2.2);
+  track.style.animationDuration = duration + 's';
+}
+window.buildMarketTicker = buildMarketTicker;
+
 function init() {
   buildColMap(SOURCE_DATA);
   // Build ticker list
@@ -151,6 +232,7 @@ function init() {
     .map(d => ({...d, Ticker: String(d.Ticker), Name: String(d.Name||''), Index: String(d.Index||'')}));
   renderScreener();
   initWatchlist();
+  buildMarketTicker();
 }
 
 let acIndex = -1;
@@ -239,7 +321,52 @@ function dget(row, name) {
   return row[col(name)];
 }
 
-// ===== EXCEL SERIAL DATE HELPER =====
+// ===== COUNTER ANIMATION ===========================================
+// Smoothly counts from previous value to new value in ~600ms.
+// Works with any element that contains a formatted number string.
+// Non-numeric values (—, n/a) are set instantly without animation.
+function animateCount(el, newText, duration = 600) {
+  if (!el) return;
+  const oldText = el.textContent || '';
+  // Extract raw numbers — strip %, commas, B/M/K suffixes for parsing
+  const parse = s => parseFloat(String(s).replace(/[,%BKMBT₹$+]/gi, '')) || 0;
+  const oldVal = parse(oldText);
+  const newVal = parse(newText);
+  if (isNaN(oldVal) || isNaN(newVal) || oldText === newText || !isFinite(newVal)) {
+    el.textContent = newText;
+    return;
+  }
+  const start = performance.now();
+  // Determine decimal places from the target string
+  const decimals = (newText.match(/\.(\d+)/) || ['', ''])[1].length;
+  const suffix = newText.replace(/^[+\-]?[\d.,]+/, ''); // e.g. '%', 'B', 'M'
+  const prefix = newText.match(/^[+\-](?=\d)/) ? newText[0] : '';
+  const step = ts => {
+    const elapsed = ts - start;
+    const t = Math.min(elapsed / duration, 1);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - t, 3);
+    const curr = oldVal + (newVal - oldVal) * eased;
+    el.textContent = prefix + curr.toFixed(decimals) + suffix;
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = newText; // snap to exact final value
+  };
+  requestAnimationFrame(step);
+}
+
+// Wrap setEl so numeric KPI values animate instead of snapping
+const _origSetEl = setEl;
+function setEl(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Animate only known KPI value elements; everything else sets instantly
+  const KPI_ANIMATE_IDS = new Set(['kpiEPS','kpiTTM','kpiRev','kpiROE','kpiDE','kpiCFO','kpiSig','kpiOpMgn']);
+  if (KPI_ANIMATE_IDS.has(id) && el.textContent !== text) {
+    animateCount(el, text, 600);
+  } else {
+    el.textContent = text;
+  }
+}
 function excelSerialToDateStr(serial) {
   // Excel serial: days since 1900-01-01 (with leap year bug)
   const utc = (serial - 25569) * 86400 * 1000;
@@ -2603,6 +2730,7 @@ function reinitDashboard(filename) {
   if (charts['sectors']) { charts['sectors'].destroy(); delete charts['sectors']; }
   buildSectorChart();
   buildSectorTable();
+  buildMarketTicker();
 }
 
 function showOverlay(msg) {
@@ -2780,9 +2908,6 @@ fetch('./data.json')
     (data.sector || []).forEach(s => SECTOR_DATA.push(s));
     init();
     updateDataBadges(data.updatedAt);
-    // Data wasn't necessarily ready yet at sign-in time (this fetch is async
-    // and can resolve after or before auth state settles) — re-check alerts
-    // now that real data definitely exists.
     if (typeof window.checkFreshSignalsToday === 'function') window.checkFreshSignalsToday();
   })
   .catch(err => {
@@ -2790,7 +2915,6 @@ fetch('./data.json')
     init();
     updateDataBadges();
   });
-
 // ===== SHARE FUNCTIONALITY =====
 const PORTAL_URL = 'https://Nexus-PSX.github.io/Nexus-PSX/';
 
@@ -3448,3 +3572,11 @@ const _origToggleTechnical = toggleTechnical;
     dismissChartTooltips(e.target);
   }, { passive: true });
 })();
+
+// Auto-fire ticker on page load — picks up inline baked-in SOURCE_DATA
+// in saved admin.html without needing to wait for Excel upload.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(buildMarketTicker, 200));
+} else {
+  setTimeout(buildMarketTicker, 200);
+}
