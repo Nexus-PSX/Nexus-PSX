@@ -782,6 +782,48 @@ function sharedTooltip(valueFmt) {
   };
 }
 
+// Like sharedTooltip but appends a % change vs. the previous period.
+// dataArrays is an array of the raw number arrays (one per dataset) so the
+// callback can look up the prior value by index.
+function sharedTooltipWithChange(valueFmt, dataArrays, isPercent) {
+  const th = getChartTheme();
+  return {
+    backgroundColor: th.tooltip.bg,
+    borderColor: th.tooltip.border,
+    borderWidth: 1,
+    titleColor: th.tooltip.title,
+    bodyColor: th.tooltip.body,
+    padding: 10,
+    cornerRadius: 6,
+    titleFont: { size: 11, family: CHART_FONT },
+    bodyFont:  { size: 11, family: CHART_FONT },
+    callbacks: {
+      label: ctx => {
+        const val = ctx.raw;
+        const idx = ctx.dataIndex;
+        const dsIdx = ctx.datasetIndex;
+        const arr = dataArrays[dsIdx] || [];
+        const formattedVal = valueFmt(val);
+
+        // Find the nearest previous non-null value for % change
+        let prevVal = null;
+        for (let i = idx - 1; i >= 0; i--) {
+          if (arr[i] != null && arr[i] !== 0) { prevVal = arr[i]; break; }
+        }
+
+        let changeSuffix = '';
+        if (val != null && prevVal != null && prevVal !== 0) {
+          const pct = ((val - prevVal) / Math.abs(prevVal)) * 100;
+          const sign = pct >= 0 ? '+' : '';
+          const arrow = pct >= 0 ? '▲' : '▼';
+          changeSuffix = `  ${arrow} ${sign}${pct.toFixed(1)}% vs prev`;
+        }
+        return ` ${ctx.dataset.label}: ${formattedVal}${changeSuffix}`;
+      }
+    }
+  };
+}
+
 function buildLineChart(id, labels, data1, data2, label1, label2, isPercent) {
   if (charts[id]) { charts[id].destroy(); }
   const canvas = document.getElementById(id);
@@ -867,7 +909,11 @@ function buildLineChart(id, labels, data1, data2, label1, label2, isPercent) {
             })),
           }
         },
-        tooltip: sharedTooltip(v => v == null ? '—' : (isPercent ? (v*100).toFixed(1) + '%' : fmt(v, 3)))
+        tooltip: sharedTooltipWithChange(
+          v => v == null ? '—' : (isPercent ? (v*100).toFixed(1) + '%' : fmt(v, 3)),
+          [data1, data2],
+          isPercent
+        )
       },
       scales: {
         x: {
@@ -958,7 +1004,7 @@ function buildBarChart(id, labels, data, color) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
-        tooltip: sharedTooltip(v => v == null ? '—' : fmtBig(v))
+        tooltip: sharedTooltipWithChange(v => v == null ? '—' : fmtBig(v), [data])
       },
       scales: {
         x: {
