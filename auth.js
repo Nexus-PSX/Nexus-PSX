@@ -75,20 +75,20 @@
     const btn = document.getElementById('pushPermBtn');
     if (!btn) return;
     if (!('Notification' in window)) { btn.style.display = 'none'; return; }
-    const span = btn.querySelector('span');
     if (Notification.permission === 'granted') {
-      if (span) span.childNodes[span.childNodes.length - 1].textContent = ' Alerts On';
+      btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔔 Alerts On</span>';
       btn.title = 'Push notifications are enabled';
       btn.style.opacity = '0.6';
     } else if (Notification.permission === 'denied') {
-      if (span) span.childNodes[span.childNodes.length - 1].textContent = ' Alerts Blocked';
+      btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔕 Blocked</span>';
       btn.title = 'Notifications blocked — enable in browser site settings';
       btn.style.opacity = '0.6';
     } else {
-      if (span) span.childNodes[span.childNodes.length - 1].textContent = ' Enable Alerts';
+      btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔔 Enable Alerts</span>';
       btn.title = 'Get push notifications for new buy signals, even when the tab is closed';
       btn.style.opacity = '1';
     }
+    btn.disabled = false;
   }
 
   // Foreground handler: tab is open + a push arrives → use in-app toast
@@ -104,13 +104,17 @@
   window.requestPushPermission = async function () {
     const uid = window._currentFcmUid || null;
     const btn = document.getElementById('pushPermBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Setting up…'; }
+    // Only update the label text, not innerHTML — preserves the SVG/span structure
+    if (btn) {
+      btn.disabled = true;
+      const span = btn.querySelector('span');
+      if (span) span.lastChild.textContent = ' Setting up…';
+    }
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted' && uid) await registerForPush(uid);
     } finally {
-      if (btn) btn.disabled = false;
-      syncPushButtonState();
+      syncPushButtonState(); // rebuilds the full button correctly
     }
   };
 
