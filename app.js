@@ -164,26 +164,37 @@ function buildMarketTicker() {
   }
 
   const kse100_1d  = indexAvg(['KSE 100','KSE100'], 'Day Change %');
-  const kse100_ytd = indexAvg(['KSE 100','KSE100'], 'YTD Return %');
   const kse30_1d   = indexAvg(['KSE 30', 'KSE30'],  'Day Change %');
   const kmi30_1d   = indexAvg(['KMI 30', 'KMI30', 'KMI'], 'Day Change %');
 
-  // ── Top 20 KSE 100 gainers ─────────────────────────────────
+  // ── Top 20 KSE 100 gainers & top 20 losers ───────────────────
   const kse100members = SOURCE_DATA.filter(d =>
     String(d.Index || '').includes('KSE 100') || String(d.Index || '').includes('KSE100')
   );
-  const top20 = [...kse100members]
-    .filter(d => { const v = parseFloat(d['Day Change %']); return !isNaN(v); })
+  const validMembers = [...kse100members]
+    .filter(d => { const v = parseFloat(d['Day Change %']); return !isNaN(v); });
+  const top20 = [...validMembers]
     .sort((a,b) => parseFloat(b['Day Change %']) - parseFloat(a['Day Change %']))
+    .slice(0, 20);
+  const bottom20 = [...validMembers]
+    .sort((a,b) => parseFloat(a['Day Change %']) - parseFloat(b['Day Change %']))
     .slice(0, 20);
 
   // ── Build the scrolling content ────────────────────────────
   let html = '';
-  html += indexItem('KSE 100', kse100_1d, kse100_ytd);
+  html += indexItem('KSE 100', kse100_1d, null);
   html += indexItem('KSE 30',  kse30_1d,  null);
   html += indexItem('KMI 30',  kmi30_1d,  null);
 
   top20.forEach(d => {
+    const v = parseFloat(d['Day Change %']);
+    html += `<span class="tk-item">
+      <span class="tk-ticker">${d.Ticker}</span>
+      <span class="${colorClass(v)}">${fmt(v)}</span>
+    </span><span class="tk-sep">·</span>`;
+  });
+
+  bottom20.forEach(d => {
     const v = parseFloat(d['Day Change %']);
     html += `<span class="tk-item">
       <span class="tk-ticker">${d.Ticker}</span>
@@ -196,9 +207,8 @@ function buildMarketTicker() {
   track.innerHTML = content;
 
   // Set animation duration based on content length
-  // ~80px per item, moderate speed
-  const itemCount = 3 + top20.length; // indices + gainers
-  const duration = Math.max(25, itemCount * 2.2);
+  const itemCount = 3 + top20.length + bottom20.length;
+  const duration = Math.max(30, itemCount * 2.2);
   track.style.animationDuration = duration + 's';
 }
 window.buildMarketTicker = buildMarketTicker;
@@ -1289,9 +1299,13 @@ function updateSortArrows(headRowId, activeCol, dir) {
 // ===== SECTOR TABLE =====
 let sectorTableData = [];
 function buildSectorTable() {
-  sectorTableData = [...SECTOR_DATA].sort((a,b) => b.totalScore - a.totalScore);
+  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
+  const regular = SECTOR_DATA.filter(s => !isAvgRow(s)).sort((a,b) => b.totalScore - a.totalScore);
+  const avgRows  = SECTOR_DATA.filter(s =>  isAvgRow(s));
+  sectorTableData = [...regular, ...avgRows];
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   renderSectorTable(sectorTableData);
+  renderSectorHeatmap();
 }
 function renderSectorTable(data) {
   const tbody = document.getElementById('sectorTableBody');
@@ -1303,8 +1317,17 @@ function renderSectorTable(data) {
     const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '';
     return `<span class="mono ${cls}">${arrow}${Math.abs(pct)}%</span>`;
   };
-  data.forEach(s => {
+
+  // Separate Market Average row — always pinned to bottom, never sorted
+  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
+  const regular = data.filter(s => !isAvgRow(s));
+  const avgRows = data.filter(s => isAvgRow(s));
+
+  const buildRow = (s, isPinned) => {
     const tr = document.createElement('tr');
+    if (isPinned) {
+      tr.style.cssText = 'border-top:2px solid var(--border);font-weight:600;background:var(--surface2);position:sticky;bottom:0;z-index:1;';
+    }
     tr.innerHTML = `
       <td class="sector-name-cell">${s.sector}</td>
       <td class="sector-hide-mobile mono" style="text-align:center">${s.companies}</td>
@@ -1328,7 +1351,10 @@ function renderSectorTable(data) {
       <td style="text-align:center">${fmtChg(s.pYTD)}</td>
     `;
     tbody.appendChild(tr);
-  });
+  };
+
+  regular.forEach(s => buildRow(s, false));
+  avgRows.forEach(s => buildRow(s, true));
 }
 // Tracks which tickers were auto-added to the Comparison filter by the
 // "My Watchlist" Others filter, so we can remove only those if the user
@@ -1352,11 +1378,12 @@ function syncWatchlistToComparison(active) {
 }
 
 function filterSectorTable() {
+  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
   const sel = mselRegistry.sectorFilter.selected;
-  const filtered = sel.size > 0
-    ? SECTOR_DATA.filter(s => sel.has(s.sector))
-    : [...SECTOR_DATA];
-  renderSectorTable(filtered.sort((a,b) => b.totalScore - a.totalScore));
+  const base = sel.size > 0 ? SECTOR_DATA.filter(s => sel.has(s.sector)) : [...SECTOR_DATA];
+  const regular = base.filter(s => !isAvgRow(s));
+  const avgRows  = base.filter(s =>  isAvgRow(s));
+  renderSectorTable([...regular.sort((a,b) => b.totalScore - a.totalScore), ...avgRows]);
 }
 function sortSectorTable(col) {
   const cols = ['sector','companies','epsQ','epsTTM','opMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD'];
@@ -1364,14 +1391,17 @@ function sortSectorTable(col) {
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   // Sort only the currently filtered subset so an active sector filter is preserved.
+  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
   const sel = mselRegistry.sectorFilter.selected;
   const base = sel.size > 0 ? SECTOR_DATA.filter(s => sel.has(s.sector)) : [...SECTOR_DATA];
-  const sorted = base.sort((a,b) => {
+  const regular = base.filter(s => !isAvgRow(s));
+  const avgRows = base.filter(s => isAvgRow(s));
+  const sorted = regular.sort((a,b) => {
     const av = a[key], bv = b[key];
     if (av == null) return 1; if (bv == null) return -1;
     return typeof av === 'string' ? av.localeCompare(bv) * sectorSort.dir : (av - bv) * sectorSort.dir;
   });
-  renderSectorTable(sorted);
+  renderSectorTable([...sorted, ...avgRows]);
 }
 
 // ===== SCREENER =====
