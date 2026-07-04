@@ -1305,7 +1305,6 @@ function buildSectorTable() {
   sectorTableData = [...regular, ...avgRows];
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   renderSectorTable(sectorTableData);
-  renderSectorHeatmap();
 }
 function renderSectorTable(data) {
   const tbody = document.getElementById('sectorTableBody');
@@ -1330,7 +1329,7 @@ function renderSectorTable(data) {
     }
     tr.innerHTML = `
       <td class="sector-name-cell">${s.sector}</td>
-      <td class="sector-hide-mobile mono" style="text-align:center">${s.companies}</td>
+      <td class="sector-hide-mobile mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
       <td class="sector-hide-mobile mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
       <td class="sector-hide-mobile mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
