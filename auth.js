@@ -167,23 +167,87 @@
   window.addEventListener('focus', refreshIfStale);
   const auth = getAuth(app);
 
-  const overlay = document.getElementById('authOverlay');
-  const userMenu = document.getElementById('authUserMenu');
-  const avatarBtn = document.getElementById('authAvatarBtn');
-  const dropdown = document.getElementById('authDropdown');
-  const avatarLg = document.getElementById('authAvatarLg');
-  const dropdownName = document.getElementById('authDropdownName');
-  const dropdownEmail = document.getElementById('authDropdownEmail');
-  const alertsBtn = document.getElementById('authAlertsBtn');
-  const alertsPanel = document.getElementById('alertsPanel');
-  const signOutItem = document.getElementById('authSignOutItem');
-  const emailEl = document.getElementById('authEmail');
-  const passEl = document.getElementById('authPassword');
-  const errEl = document.getElementById('authError');
-  const submitBtn = document.getElementById('authSubmitBtn');
-  const toggleBtn = document.getElementById('authToggleMode');
-  const titleEl = document.getElementById('authTitle');
-  const subEl = document.getElementById('authSub');
+  // DOM references — resolved inside DOMContentLoaded since this module script
+  // runs before the body is parsed (it's in <head>), so querying immediately
+  // would return null for most elements.
+  let overlay, userMenu, avatarBtn, dropdown, avatarLg, dropdownName,
+      dropdownEmail, alertsBtn, alertsPanel, signOutItem,
+      emailEl, passEl, errEl, submitBtn, toggleBtn, titleEl, subEl;
+
+  function getAllCurrentBuySignals() {
+    if (!window.SOURCE_DATA || !Array.isArray(window.SOURCE_DATA) || !window.SOURCE_DATA.length) return [];
+
+    const BUY_CODES = new Set([1.5, 2, 2.5]);
+    // Text fragments covering all buy-signal label variants in the SIGNAL_STATUS_MAP
+    const BUY_TEXTS = ['initial buy signal', 'fresh buy signal', 'continuation buy signal', 'extended buy signal'];
+
+    let signals = window.SOURCE_DATA.filter(d => {
+      const raw = d['Signal Status'];
+      if (raw == null || raw === '') return false;
+      // Numeric code (most common after the data migration)
+      if (typeof raw === 'number') return BUY_CODES.has(raw);
+      // String that contains a numeric code e.g. "1.5" or "2"
+      const num = parseFloat(raw);
+      if (!isNaN(num) && String(num) === String(raw).trim()) return BUY_CODES.has(num);
+      // Text label e.g. "Initial buy signal", "Continuation buy signal"
+      const lower = String(raw).toLowerCase();
+      return BUY_TEXTS.some(t => lower.includes(t));
+    });
+
+    const wlToggle = document.getElementById('alertsWatchlistOnlyToggle');
+    if (wlToggle?.checked && typeof window.getWatchlistTickers === 'function') {
+      const tickers = new Set(window.getWatchlistTickers());
+      signals = signals.filter(d => tickers.has(String(d.Ticker)));
+    }
+    return signals;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    overlay      = document.getElementById('authOverlay');
+    userMenu     = document.getElementById('authUserMenu');
+    avatarBtn    = document.getElementById('authAvatarBtn');
+    dropdown     = document.getElementById('authDropdown');
+    avatarLg     = document.getElementById('authAvatarLg');
+    dropdownName = document.getElementById('authDropdownName');
+    dropdownEmail= document.getElementById('authDropdownEmail');
+    alertsBtn    = document.getElementById('authAlertsBtn');
+    alertsPanel  = document.getElementById('alertsPanel');
+    signOutItem  = document.getElementById('authSignOutItem');
+    emailEl      = document.getElementById('authEmail');
+    passEl       = document.getElementById('authPassword');
+    errEl        = document.getElementById('authError');
+    submitBtn    = document.getElementById('authSubmitBtn');
+    toggleBtn    = document.getElementById('authToggleMode');
+    titleEl      = document.getElementById('authTitle');
+    subEl        = document.getElementById('authSub');
+
+    if (!alertsBtn || !alertsPanel) return;
+
+    alertsBtn.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      alertsPanel.classList.toggle('hidden');
+      // Always re-render on open — show all current buy signals
+      if (!alertsPanel.classList.contains('hidden')) {
+        renderAlertsPanel(getAllCurrentBuySignals());
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!alertsPanel || !alertsBtn) return;
+      if (alertsPanel.contains(e.target) || alertsBtn.contains(e.target)) return;
+      alertsPanel.classList.add('hidden');
+    });
+    document.getElementById('alertsPanelClose')?.addEventListener('click',
+      () => alertsPanel.classList.add('hidden'));
+
+    const wlToggle = document.getElementById('alertsWatchlistOnlyToggle');
+    if (wlToggle) {
+      wlToggle.checked = localStorage.getItem(ALERTS_WL_ONLY_KEY) === '1';
+      wlToggle.addEventListener('change', () => {
+        try { localStorage.setItem(ALERTS_WL_ONLY_KEY, wlToggle.checked ? '1' : '0'); } catch {}
+        renderAlertsPanel(getAllCurrentBuySignals());
+      });
+    }
+  });
 
   let mode = 'signin'; // 'signin' | 'signup'
 
@@ -250,20 +314,6 @@
     if (!userMenu.contains(e.target)) dropdown.classList.add('hidden');
   });
   signOutItem.addEventListener('click', () => { dropdown.classList.add('hidden'); signOut(auth); });
-  alertsBtn.addEventListener('click', () => {
-    dropdown.classList.add('hidden');
-    alertsPanel.classList.toggle('hidden');
-    // Re-render every time the panel opens so it always shows fresh signal data
-    // even if checkFreshSignalsToday() ran before the panel body existed in the DOM.
-    if (!alertsPanel.classList.contains('hidden')) {
-      renderAlertsPanel(window._latestNewSignals || findFreshSignalsToday());
-    }
-  });
-  document.addEventListener('click', (e) => {
-    if (alertsPanel.contains(e.target) || alertsBtn.contains(e.target)) return;
-    alertsPanel.classList.add('hidden');
-  });
-  document.getElementById('alertsPanelClose').addEventListener('click', () => alertsPanel.classList.add('hidden'));
 
   // ===== Buy-signal alerts: fires when a stock's status CHANGES into the
   // "buy" family (Initial buy signal / Fresh buy signal / Continuation buy
@@ -275,14 +325,6 @@
   const ALERTS_WL_ONLY_KEY = 'psx_alerts_watchlist_only';
   const ALERT_STATUS_BASELINE_KEY = 'psx_alert_status_baseline_v1';
   const BUY_SIGNAL_CODES = new Set([1.5, 2, 2.5]); // Initial / Fresh / Continuation / cautious variants
-  const watchlistOnlyToggle = document.getElementById('alertsWatchlistOnlyToggle');
-  if (watchlistOnlyToggle) {
-    watchlistOnlyToggle.checked = localStorage.getItem(ALERTS_WL_ONLY_KEY) === '1';
-    watchlistOnlyToggle.addEventListener('change', () => {
-      try { localStorage.setItem(ALERTS_WL_ONLY_KEY, watchlistOnlyToggle.checked ? '1' : '0'); } catch {}
-      checkFreshSignalsToday();
-    });
-  }
 
   function readStatusBaseline() {
     try { return JSON.parse(localStorage.getItem(ALERT_STATUS_BASELINE_KEY) || '{}'); }
@@ -337,7 +379,7 @@
     const body = document.getElementById('alertsPanelBody');
     if (!body) { console.warn('renderAlertsPanel: alertsPanelBody not found in DOM'); return; }
     if (!signals.length) {
-      body.innerHTML = '<div class="alerts-panel-empty">No new buy-signal changes since you last checked. Check back after the next data update.</div>';
+      body.innerHTML = '<div class="alerts-panel-empty">No stocks currently in a buy signal. Check back after the next data update.</div>';
       return;
     }
     body.innerHTML = signals.map(d => `
@@ -346,7 +388,10 @@
           <span class="alert-row-ticker">${d.Ticker}</span>
           <span class="alert-row-name">${d.Name || ''}</span>
         </div>
-        <span class="alert-row-tag">${(typeof sigStatusLabel === 'function' ? sigStatusLabel(d['Signal Status']) : null) || d['Signal Status']}</span>
+        <span class="alert-row-tag">${
+          (typeof sigStatusLabel === 'function' ? sigStatusLabel(d['Signal Status']) : null)
+          || String(d['Signal Status'] || '')
+        }</span>
       </div>
     `).join('');
   }
