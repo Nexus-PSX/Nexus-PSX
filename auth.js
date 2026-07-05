@@ -374,7 +374,7 @@
     // sendFcmToAllUsers() after data upload + reinitDashboard() runs).
     window._latestNewSignals = signals;
 
-    const watchlistOnly = watchlistOnlyToggle?.checked;
+    const watchlistOnly = document.getElementById('alertsWatchlistOnlyToggle')?.checked;
     if (watchlistOnly && typeof window.getWatchlistTickers === 'function') {
       const tickers = new Set(window.getWatchlistTickers());
       signals = signals.filter(d => tickers.has(String(d.Ticker)));
