@@ -249,71 +249,78 @@
     }
   });
 
-  let mode = 'signin'; // 'signin' | 'signup'
 
-  function setMode(next) {
-    mode = next;
-    errEl.textContent = '';
-    if (mode === 'signin') {
-      titleEl.textContent = 'Sign in';
-      subEl.textContent = 'Sign in to access Nexus PSX';
-      submitBtn.textContent = 'Sign in';
-      toggleBtn.textContent = "Need an account? Sign up";
-    } else {
-      titleEl.textContent = 'Create account';
-      subEl.textContent = 'Sign up to access the PSX dashboard';
-      submitBtn.textContent = 'Sign up';
-      toggleBtn.textContent = 'Already have an account? Sign in';
+  // ── Auth form listeners — inside a second DOMContentLoaded because the
+  // variables (emailEl, passEl, submitBtn, avatarBtn etc.) are only assigned
+  // in the first DOMContentLoaded block above and would be undefined here. ──
+  document.addEventListener('DOMContentLoaded', () => {
+    let mode = 'signin';
+
+    function friendlyError(err) {
+      const code = err && err.code || '';
+      if (code.includes('invalid-email')) return 'That email address looks invalid.';
+      if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
+      if (code.includes('email-already-in-use')) return 'An account already exists for that email.';
+      if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
+      if (code.includes('unauthorized-domain')) return 'This domain is not yet authorized in Firebase (Authentication → Settings → Authorized domains). Add this domain there.';
+      if (code.includes('popup-blocked')) return 'Your browser blocked the sign-in popup. Allow popups for this site and try again.';
+      if (code.includes('operation-not-allowed')) return 'Google sign-in is not enabled for this project in Firebase (Authentication → Sign-in method).';
+      if (code.includes('network-request-failed')) return 'Network error — check your connection and try again.';
+      return 'Something went wrong (' + (code || 'unknown error') + '). Please try again.';
     }
-  }
 
-  toggleBtn.addEventListener('click', () => setMode(mode === 'signin' ? 'signup' : 'signin'));
-
-  function friendlyError(err) {
-    const code = err && err.code || '';
-    if (code.includes('invalid-email')) return 'That email address looks invalid.';
-    if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
-    if (code.includes('email-already-in-use')) return 'An account already exists for that email.';
-    if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
-    if (code.includes('unauthorized-domain')) return 'This domain is not yet authorized in Firebase (Authentication → Settings → Authorized domains). Add this domain there.';
-    if (code.includes('popup-blocked')) return 'Your browser blocked the sign-in popup. Allow popups for this site and try again.';
-    if (code.includes('operation-not-allowed')) return 'Google sign-in is not enabled for this project in Firebase (Authentication → Sign-in method).';
-    if (code.includes('network-request-failed')) return 'Network error — check your connection and try again.';
-    return 'Something went wrong (' + (code || 'unknown error') + '). Please try again.';
-  }
-
-  submitBtn.addEventListener('click', async () => {
-    errEl.textContent = '';
-    const email = emailEl.value.trim();
-    const password = passEl.value;
-    if (!email || !password) { errEl.textContent = 'Please enter an email and password.'; return; }
-    submitBtn.disabled = true;
-    try {
+    function setMode(next) {
+      mode = next;
+      if (!errEl || !titleEl) return;
+      errEl.textContent = '';
       if (mode === 'signin') {
-        await signInWithEmailAndPassword(auth, email, password);
+        titleEl.textContent = 'Sign in';
+        subEl.textContent = 'Sign in to access Nexus PSX';
+        submitBtn.textContent = 'Sign in';
+        toggleBtn.textContent = "Need an account? Sign up";
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        titleEl.textContent = 'Create account';
+        subEl.textContent = 'Sign up to access the PSX dashboard';
+        submitBtn.textContent = 'Sign up';
+        toggleBtn.textContent = 'Already have an account? Sign in';
       }
-    } catch (err) {
-      errEl.textContent = friendlyError(err);
-    } finally {
-      submitBtn.disabled = false;
     }
-  });
 
-  // Allow pressing Enter in either field to submit
-  [emailEl, passEl].forEach(el => el.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') submitBtn.click();
-  }));
+    toggleBtn?.addEventListener('click', () => setMode(mode === 'signin' ? 'signup' : 'signin'));
 
-  avatarBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle('hidden');
+    submitBtn?.addEventListener('click', async () => {
+      if (!emailEl || !passEl) return;
+      errEl.textContent = '';
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+      if (!email || !password) { errEl.textContent = 'Please enter an email and password.'; return; }
+      submitBtn.disabled = true;
+      try {
+        if (mode === 'signin') {
+          await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          await createUserWithEmailAndPassword(auth, email, password);
+        }
+      } catch (err) {
+        errEl.textContent = friendlyError(err);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    [emailEl, passEl].forEach(el => el?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitBtn?.click();
+    }));
+
+    avatarBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown?.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      if (userMenu && !userMenu.contains(e.target)) dropdown?.classList.add('hidden');
+    });
+    signOutItem?.addEventListener('click', () => { dropdown?.classList.add('hidden'); signOut(auth); });
   });
-  document.addEventListener('click', (e) => {
-    if (!userMenu.contains(e.target)) dropdown.classList.add('hidden');
-  });
-  signOutItem.addEventListener('click', () => { dropdown.classList.add('hidden'); signOut(auth); });
 
   // ===== Buy-signal alerts: fires when a stock's status CHANGES into the
   // "buy" family (Initial buy signal / Fresh buy signal / Continuation buy
@@ -463,23 +470,27 @@
   }
   window.checkFreshSignalsToday = checkFreshSignalsToday;
 
-
-  const googleBtn = document.getElementById('authGoogleBtn');
-  const googleProvider = new GoogleAuthProvider();
-  googleBtn.addEventListener('click', async () => {
-    errEl.textContent = '';
-    googleBtn.disabled = true;
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err) {
-      if (err && err.code === 'auth/popup-closed-by-user') {
-        // user just closed the popup, no need to show an error
-      } else {
-        errEl.textContent = friendlyError(err);
+  // Google sign-in button — must run after DOM is parsed (googleBtn would be
+  // null if queried before DOMContentLoaded)
+  document.addEventListener('DOMContentLoaded', () => {
+    const googleBtn = document.getElementById('authGoogleBtn');
+    const googleProvider = new GoogleAuthProvider();
+    if (!googleBtn) return;
+    googleBtn.addEventListener('click', async () => {
+      if (errEl) errEl.textContent = '';
+      googleBtn.disabled = true;
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (err) {
+        if (err && err.code === 'auth/popup-closed-by-user') {
+          // user just closed the popup, no need to show an error
+        } else {
+          if (errEl) errEl.textContent = typeof friendlyError === 'function' ? friendlyError(err) : (err?.message || 'Sign-in failed');
+        }
+      } finally {
+        googleBtn.disabled = false;
       }
-    } finally {
-      googleBtn.disabled = false;
-    }
+    });
   });
 
   onAuthStateChanged(auth, (user) => {
