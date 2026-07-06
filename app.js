@@ -188,17 +188,25 @@ function buildMarketTicker() {
 
   top20.forEach(d => {
     const v = parseFloat(d['Day Change %']);
+    const price = parseFloat(d['Price']);
+    const dayChg = parseFloat(d['Day Change']);
+    const priceStr = !isNaN(price) ? price.toFixed(2) : '';
+    const chgStr = !isNaN(dayChg) ? (dayChg >= 0 ? '+' : '') + dayChg.toFixed(2) : '';
     html += `<span class="tk-item">
       <span class="tk-ticker">${d.Ticker}</span>
-      <span class="${colorClass(v)}">${fmt(v)}</span>
+      <span class="${colorClass(v)}">${priceStr}${priceStr ? ' ' : ''}(${chgStr}/${fmt(v)})</span>
     </span><span class="tk-sep">·</span>`;
   });
 
   bottom20.forEach(d => {
     const v = parseFloat(d['Day Change %']);
+    const price = parseFloat(d['Price']);
+    const dayChg = parseFloat(d['Day Change']);
+    const priceStr = !isNaN(price) ? price.toFixed(2) : '';
+    const chgStr = !isNaN(dayChg) ? (dayChg >= 0 ? '+' : '') + dayChg.toFixed(2) : '';
     html += `<span class="tk-item">
       <span class="tk-ticker">${d.Ticker}</span>
-      <span class="${colorClass(v)}">${fmt(v)}</span>
+      <span class="${colorClass(v)}">${priceStr}${priceStr ? ' ' : ''}(${chgStr}/${fmt(v)})</span>
     </span><span class="tk-sep">·</span>`;
   });
 
@@ -208,7 +216,7 @@ function buildMarketTicker() {
 
   // Set animation duration based on content length
   const itemCount = 3 + top20.length + bottom20.length;
-  const duration = Math.max(30, itemCount * 2.2);
+  const duration = Math.max(40, itemCount * 3.0);
   track.style.animationDuration = duration + 's';
 }
 window.buildMarketTicker = buildMarketTicker;
@@ -1412,8 +1420,8 @@ let allTickersList = [];
 
 const SCORE_OPTIONS = [
   {value:'80,Infinity',   label:'Fin. Scores > 80'},
-  {value:'50,80',         label:'Fin. Scores > 50 to 80'},
-  {value:'40,50',         label:'Fin. Scores > 40 to 50'},
+  {value:'60,80',         label:'Fin. Scores > 60 to 80'},
+  {value:'40,60',         label:'Fin. Scores > 40 to 60'},
   {value:'20,40',         label:'Fin. Scores > 20 to 40'},
   {value:'-Infinity,20',  label:'Fin. Scores < 20'}
 ];
@@ -1830,7 +1838,7 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %'];
   const key = sortKeys[screenerSort.col];
   filteredScreener.sort((a,b) => {
   const av = a[key];
@@ -1844,7 +1852,7 @@ function filterScreener() {
   }
 
   // columns that must be numeric
-  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %') {
+  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %') {
     return (Number(av) - Number(bv)) * screenerSort.dir;
   }
 
@@ -2359,7 +2367,8 @@ function renderScreenerPage() {
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
       <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(1)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
-      <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toFixed(2):'—';})()}</td>
+      <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
+      <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Day Change'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
       <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Relative Vol')??dget(d,'Rel Vol'));return n==null?'':n>1.5?'positive':n<0.5?'negative':'';})()}">${(()=>{const n=toNum(dget(d,'Relative Vol')??dget(d,'Rel Vol'));return n!=null?n.toFixed(2):'—';})()}</td>
       <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Volume'));return n==null?'':n>0?'positive':n<0?'negative':'';})()}">${(()=>{const n=toNum(dget(d,'Volume'));return n!=null?Math.round(n).toLocaleString():'—';})()}</td>
       <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Day Change %'));return n==null||n===0?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Day Change %'));return n!=null&&n!==0?(n>0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
@@ -2993,7 +3002,7 @@ function closeModal() {
 }
 
 // ===== STARTUP =====
-fetch('./data.json')
+fetch('./data.json?t=' + Date.now())
   .then(r => r.json())
   .then(data => {
     SOURCE_DATA.length = 0;
