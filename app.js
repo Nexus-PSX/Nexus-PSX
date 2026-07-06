@@ -1841,8 +1841,14 @@ function filterScreener() {
   const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %'];
   const key = sortKeys[screenerSort.col];
   filteredScreener.sort((a,b) => {
-  const av = a[key];
-  const bv = b[key];
+  let av = a[key];
+  let bv = b[key];
+
+  // Signal date of 0 means "no date" — treat same as null so it sorts to the bottom
+  if (key === 'Signal date') {
+    if (av === 0 || av === '0' || av === '') av = null;
+    if (bv === 0 || bv === '0' || bv === '') bv = null;
+  }
 
   if (av == null) return 1;
   if (bv == null) return -1;
@@ -2459,7 +2465,7 @@ function fmt(v, dec=2) {
 // Signal date is stored as an 8-digit YYYYMMDD number (e.g. 20260511 → 11 May 2026).
 // Shared by the Stock Screener table and Company View so both read it identically.
 function fmtSignalDate(v) {
-  if (v == null) return '—';
+  if (v == null || v === 0 || v === '0' || v === '') return '—';
   const sd = String(v);
   if (sd.length !== 8) return sd || '—';
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
