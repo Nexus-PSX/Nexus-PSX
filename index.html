@@ -451,6 +451,7 @@
               <div class="msel-list" id="sectorFilterMselList"></div>
             </div>
           </div>
+          <button type="button" id="clearSectorFiltersBtn" onclick="clearSectorFilters()" title="Clear all sector filters" style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
         </div>
       </div>
       <div class="scroll-table">
@@ -471,9 +472,9 @@
               <th onclick="sortSectorTable(11)" title="Average Relative Volume vs Average" class="">Rel Vol</th>
               <th onclick="sortSectorTable(12)" title="Average Discount Ratio" class="">Disc Ratio</th>
               <th onclick="sortSectorTable(13)" title="1-Day Price Change" class="sector-hide-mobile">1D %</th>
-              <th onclick="sortSectorTable(14)" title="1-Week Price Change" class="sector-hide-mobile">1W %</th>
-              <th onclick="sortSectorTable(15)" title="1-Month Price Change">1M %</th>
-              <th onclick="sortSectorTable(16)" title="3-Month Price Change">3M %</th>
+              <th onclick="sortSectorTable(14)" title="Week-to-Date Price Change" class="sector-hide-mobile">WTD %</th>
+              <th onclick="sortSectorTable(15)" title="Month-to-Date Price Change">MTD %</th>
+              <th onclick="sortSectorTable(16)" title="Quarter-to-Date Price Change">QTD %</th>
               <th onclick="sortSectorTable(17)" title="Year-to-Date Price Change" class="">YTD %</th>
             </tr>
           </thead>
@@ -1619,9 +1620,9 @@
               <th class="screener-daily-col" onclick="sortScreener(21)" title="Relative Volume vs Average">Rel Vol</th>
               <th class="screener-daily-col" onclick="sortScreener(22)" title="Volume">Volume</th>
               <th class="screener-daily-col" onclick="sortScreener(23)">1D %</th>
-              <th class="screener-perf-col" onclick="sortScreener(24)">1W %</th>
-              <th class="screener-perf-col" onclick="sortScreener(25)">1M %</th>
-              <th class="screener-perf-col" onclick="sortScreener(26)">3M %</th>
+              <th class="screener-perf-col" onclick="sortScreener(24)">WTD %</th>
+              <th class="screener-perf-col" onclick="sortScreener(25)">MTD %</th>
+              <th class="screener-perf-col" onclick="sortScreener(26)">QTD %</th>
               <th class="screener-perf-col" onclick="sortScreener(27)">YTD %</th>
               <th style="width:36px;"></th>
             </tr>

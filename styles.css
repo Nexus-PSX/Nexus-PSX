@@ -2034,6 +2034,10 @@
   .top-grid-2 { grid-template-columns: 1fr; }
   .top-grid-3 { grid-template-columns: 1fr; }
   .top-cards-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Top tab tables: give each table a minimum width so columns don't squash.
+     The parent wrap div already has overflow-x:auto so horizontal scroll kicks in. */
+  .top-mini-table { min-width: 420px; }
+  .top-mini-table .nm { max-width: 100px; }
 }
 
 

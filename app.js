@@ -1388,6 +1388,24 @@ function syncWatchlistToComparison(active) {
   mselUpdateLabel('ticker');
 }
 
+function clearSectorFilters() {
+  ['sectorFilter', 'sectorIndex'].forEach(key => {
+    if (mselRegistry[key]) {
+      mselRegistry[key].selected.clear();
+      mselUpdateLabel(key);
+    }
+  });
+  filterSectorTable();
+}
+
+function updateSectorClearBtn() {
+  const btn = document.getElementById('clearSectorFiltersBtn');
+  if (!btn) return;
+  const hasSector = mselRegistry.sectorFilter && mselRegistry.sectorFilter.selected.size > 0;
+  const hasIndex  = mselRegistry.sectorIndex  && mselRegistry.sectorIndex.selected.size  > 0;
+  btn.style.display = (hasSector || hasIndex) ? '' : 'none';
+}
+
 function filterSectorTable() {
   const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
   const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
@@ -1414,6 +1432,7 @@ function filterSectorTable() {
 
   // Market Average recomputed from the same filtered companies
   renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
+  updateSectorClearBtn();
 }
 function sortSectorTable(col) {
   const cols = ['sector','companies','epsQ','epsTTM','opMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD'];
@@ -1443,6 +1462,7 @@ function sortSectorTable(col) {
     return typeof av === 'string' ? av.localeCompare(bv) * sectorSort.dir : (av - bv) * sectorSort.dir;
   });
   renderSectorTable([...sorted, buildMarketAvgRowFromCompanies(companies, sorted)]);
+  updateSectorClearBtn();
 }
 
 // ===== SECTOR DRILL-THROUGH =====
@@ -3661,7 +3681,7 @@ function buildTopTab() {
     {key:'Day Change',        label:'Day Chg',     fmt:v=>{const n=parseFloat(v||0);return (n>=0?'+':'')+n.toFixed(2);}, colorFn:v=>topPctColor(parseFloat(v||0))}
   ];
   const weekColsDef = [
-    {key:'Current Week Return %', label:'Week %', fmt:topFmtPct, colorFn:v=>topPctColor(v)},
+    {key:'Current Week Return %', label:'WTD %', fmt:topFmtPct, colorFn:v=>topPctColor(v)},
     {key:'Price',                 label:'Price',  fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
     {key:'total improvement',     label:'Fin. Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
