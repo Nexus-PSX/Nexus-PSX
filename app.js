@@ -32,85 +32,68 @@ const SOURCE_DATA = [];
 // never reassigned — it's const), so this single alias stays correct forever.
 window.SOURCE_DATA = SOURCE_DATA;
 
-// ===== SECTOR_DATA: read directly from SectorAnalysis sheet on upload =====
-function parseSectorSheet(wb) {
-  const sheetName = wb.SheetNames.find(n => n.toLowerCase() === 'sectoranalysis');
-  if (!sheetName) return [];
-  const ws = wb.Sheets[sheetName];
-  const allRows = XLSX.utils.sheet_to_json(ws, {header: 1, defval: null});
+// ===== SECTOR: computed live from SOURCE_DATA via computeSectorData() =====
+function parseSectorSheet(wb) { return []; } // no longer used — sector data computed from SOURCE_DATA
 
-  // Find header row (the row where col 0 is "Sector")
-  const headerIdx = allRows.findIndex(r => r[0] && String(r[0]).trim().toLowerCase() === 'sector');
-  if (headerIdx < 0) return [];
-  const headerRow = allRows[headerIdx];
-  const dataRows  = allRows.slice(headerIdx + 1);
-
-  // Log the full header so we can verify column names in console
-  console.log('[SectorAnalysis] Header row:', headerRow.map((h, i) => `${i}:${h}`).join(' | '));
-
-  const toNum = v => (v != null && v !== '-' && v !== '' && !isNaN(Number(v))) ? Number(v) : null;
-
-  // Build a map of normalised header name → column index
-  const colIdx = {};
-  headerRow.forEach((h, i) => {
-    if (h != null) colIdx[String(h).trim().toLowerCase()] = i;
+function computeSectorData(rows) {
+  const toNum = v => (v != null && v !== '' && !isNaN(Number(v))) ? Number(v) : null;
+  const avg   = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+  const groups = {};
+  rows.forEach(d => {
+    const s = d['Sector'];
+    if (!s || s === '0') return;
+    if (!groups[s]) groups[s] = [];
+    groups[s].push(d);
   });
-
-  // Helper: find column index by trying a list of candidate names (exact, then partial)
-  const fc = (...names) => {
-    for (const n of names) {
-      const nl = n.trim().toLowerCase();
-      if (colIdx[nl] != null) return colIdx[nl];           // exact match
-      const partial = Object.keys(colIdx).find(k => k.includes(nl) || nl.includes(k));
-      if (partial) return colIdx[partial];                  // partial match
-    }
-    return null; // not found — will result in null values
-  };
-
-  // Fixed columns 0-12 (always the same positions in your sheet)
-  // Price columns: search by every plausible name variant
-  const C = {
-    p1d:          fc('day change %',  '1d %',  '1d%',  'day change',  '1 day %'),
-    p1w:          fc('current week return %',  '1w %',  '1w%',  'week return %', 'weekly return %', '1 week %', 'week %'),
-    p1m:          fc('current month return %', '1m %',  '1m%',  'month return %','monthly return %','1 month %','month %'),
-    p3m:          fc('past 3 months return %', '3m %',  '3m%',  '3 month return %','3months %','3 months %','3m return %','quarterly return %'),
-    pYTD:         fc('ytd return %',  'ytd %', 'ytd%',  'year to date %', 'ytd'),
-    relVol:       fc('relative vol', 'rel vol', 'rel_vol', 'relative volume', 'relvol'),
-    discRatio:    fc('discount ratio', 'discount_ratio', 'discountratio', 'disc ratio'),
-    divYield:     fc('dividend yield %', 'dividend yield', 'div yield %', 'div yield', 'div y'),
-    peRatio:      fc('p/e ratio', 'pe ratio', 'p/e', 'pe'),
-  };
-
-  // Log which column indices were resolved
-  console.log('[SectorAnalysis] Price column indices resolved:', JSON.stringify(C));
-
-  return dataRows
-    .filter(r => r[0] && typeof r[0] === 'string' && r[0].trim() !== '')
-    .map(r => ({
-      sector:     r[0].trim(),
-      companies:  toNum(r[1]) || 0,
-      epsQ:       toNum(r[2]),
-      epsTTM:     toNum(r[3]),
-      opMargin:   toNum(r[4]),
-      roe:        toNum(r[6]),
-      de:         toNum(r[7]),
-      cfo:        toNum(r[8]),
-      rev:        toNum(r[9]),
-      qtrScore:   toNum(r[10]) || 0,
-      ttmScore:   toNum(r[11]) || 0,
-      totalScore: toNum(r[12]) || 0,
-      p1d:        C.p1d      != null ? toNum(r[C.p1d])      : null,
-      p1w:        C.p1w      != null ? toNum(r[C.p1w])      : null,
-      p1m:        C.p1m      != null ? toNum(r[C.p1m])      : null,
-      p3m:        C.p3m      != null ? toNum(r[C.p3m])      : null,
-      pYTD:       C.pYTD     != null ? toNum(r[C.pYTD])     : null,
-      relVol:     C.relVol   != null ? toNum(r[C.relVol])   : null,
-      discRatio:  C.discRatio!= null ? toNum(r[C.discRatio]): null,
-      divYield:   C.divYield != null ? toNum(r[C.divYield]) : null,
-      peRatio:    C.peRatio  != null ? toNum(r[C.peRatio])  : null,
-    }));
+  const latestCFO = d => toNum(d['CFO 2026-Q1']) != null ? toNum(d['CFO 2026-Q1']) : toNum(d['CFO 2025-Q4']) != null ? toNum(d['CFO 2025-Q4']) : toNum(d['CFO 2025-Q3']);
+  const latestROE = d => toNum(d['ROE 2026-Q1']) != null ? toNum(d['ROE 2026-Q1']) : toNum(d['ROE 2025-Q4']) != null ? toNum(d['ROE 2025-Q4']) : toNum(d['ROE 2025-Q3']);
+  const latestDE  = d => toNum(d['Debt/Equity 2026-Q1']) != null ? toNum(d['Debt/Equity 2026-Q1']) : toNum(d['Debt/Equity 2025-Q4']) != null ? toNum(d['Debt/Equity 2025-Q4']) : toNum(d['Debt/Equity 2025-Q3']);
+  const result = Object.entries(groups).map(([sector, members]) => ({
+    sector,
+    companies:  members.length,
+    epsQ:       avg(members.map(d => toNum(d['Latest EPS  Q']))),
+    epsTTM:     avg(members.map(d => toNum(d['Latest TTM EPS Q']))),
+    opMargin:   avg(members.map(d => toNum(d['Op Income-Q']))),
+    roe:        avg(members.map(d => latestROE(d))),
+    de:         avg(members.map(d => latestDE(d))),
+    cfo:        avg(members.map(d => latestCFO(d))),
+    divYield:   avg(members.map(d => toNum(d['Latest Div Y Q']))),
+    peRatio:    avg(members.map(d => toNum(d['P/E Ratio']))),
+    totalScore: parseFloat((avg(members.map(d => toNum(d['total improvement']))) || 0).toFixed(1)),
+    relVol:     avg(members.map(d => toNum(d['Relative Vol']))),
+    discRatio:  avg(members.map(d => toNum(d['Discount Ratio']))),
+    p1d:        avg(members.map(d => toNum(d['Day Change %']))),
+    p1w:        avg(members.map(d => toNum(d['Current Week Return %']))),
+    p1m:        avg(members.map(d => toNum(d['Current Month Return %']))),
+    p3m:        avg(members.map(d => toNum(d['Past 3 Months Return %']))),
+    pYTD:       avg(members.map(d => toNum(d['YTD Return %']))),
+  }));
+  const allMembers = rows.filter(d => d['Sector'] && d['Sector'] !== '0');
+  if (allMembers.length) {
+    result.push({
+      sector:     'MARKET AVERAGE',
+      companies:  parseFloat((allMembers.length / Object.keys(groups).length).toFixed(3)),
+      epsQ:       avg(allMembers.map(d => toNum(d['Latest EPS  Q']))),
+      epsTTM:     avg(allMembers.map(d => toNum(d['Latest TTM EPS Q']))),
+      opMargin:   avg(allMembers.map(d => toNum(d['Op Income-Q']))),
+      roe:        avg(allMembers.map(d => latestROE(d))),
+      de:         avg(allMembers.map(d => latestDE(d))),
+      cfo:        avg(allMembers.map(d => latestCFO(d))),
+      divYield:   avg(allMembers.map(d => toNum(d['Latest Div Y Q']))),
+      peRatio:    avg(allMembers.map(d => toNum(d['P/E Ratio']))),
+      totalScore: parseFloat((avg(allMembers.map(d => toNum(d['total improvement']))) || 0).toFixed(1)),
+      relVol:     avg(allMembers.map(d => toNum(d['Relative Vol']))),
+      discRatio:  avg(allMembers.map(d => toNum(d['Discount Ratio']))),
+      p1d:        avg(allMembers.map(d => toNum(d['Day Change %']))),
+      p1w:        avg(allMembers.map(d => toNum(d['Current Week Return %']))),
+      p1m:        avg(allMembers.map(d => toNum(d['Current Month Return %']))),
+      p3m:        avg(allMembers.map(d => toNum(d['Past 3 Months Return %']))),
+      pYTD:       avg(allMembers.map(d => toNum(d['YTD Return %']))),
+    });
+  }
+  return result;
 }
-let SECTOR_DATA = [];
+
 
 // ===== CHART INSTANCES =====
 let charts = {};
@@ -571,7 +554,7 @@ function loadTicker(ticker) {
     'Op Margin', 'Net Margin', true
   );
 
-  const sectorInfo = SECTOR_DATA.find(s => s.sector === d.Sector);
+  const sectorInfo = computeSectorData(SOURCE_DATA).find(s => s.sector === d.Sector);
 
   // KPI table header
   setHTML('kpiTableHead', `
@@ -1242,7 +1225,7 @@ function buildSectorChart() {
   if (charts['sectors']) { charts['sectors'].destroy(); delete charts['sectors']; }
   const canvas = document.getElementById('chartSectors');
   if (!canvas) return;
-  const sorted = [...SECTOR_DATA].sort((a,b) => b.totalScore - a.totalScore).slice(0, 20);
+  const sorted = computeSectorData(SOURCE_DATA).filter(s => !/market.?average/i.test(s.sector)).sort((a,b) => b.totalScore - a.totalScore).slice(0, 20);
   const ctx = canvas.getContext('2d');
   const th = getChartTheme();
 
@@ -1306,14 +1289,42 @@ function updateSortArrows(headRowId, activeCol, dir) {
 
 // ===== SECTOR TABLE =====
 let sectorTableData = [];
+
+function _sectorFilteredSource() {
+  const selIdx = mselRegistry.sectorIndexFilter.selected;
+  if (selIdx.size === 0) return SOURCE_DATA;
+  return SOURCE_DATA.filter(d => {
+    const idx = String(d['Index'] || '');
+    return [...selIdx].some(i => idx.includes(i));
+  });
+}
+
+function drillSectorToScreener(sectorName) {
+  const tickerSel = mselRegistry.ticker.selected;
+  tickerSel.clear();
+  _sectorFilteredSource().forEach(d => {
+    if (d['Sector'] === sectorName && d.Ticker && d.Ticker !== '0') {
+      tickerSel.add(String(d.Ticker));
+    }
+  });
+  mselRenderList('ticker');
+  mselUpdateLabel('ticker');
+  switchTab('screener');
+  filterScreener();
+}
+
 function buildSectorTable() {
   const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
-  const regular = SECTOR_DATA.filter(s => !isAvgRow(s)).sort((a,b) => b.totalScore - a.totalScore);
-  const avgRows  = SECTOR_DATA.filter(s =>  isAvgRow(s));
+  const computed = computeSectorData(_sectorFilteredSource());
+  const selSec = mselRegistry.sectorFilter.selected;
+  const base = selSec.size > 0 ? computed.filter(s => selSec.has(s.sector)) : computed;
+  const regular = base.filter(s => !isAvgRow(s)).sort((a,b) => b.totalScore - a.totalScore);
+  const avgRows  = base.filter(s =>  isAvgRow(s));
   sectorTableData = [...regular, ...avgRows];
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   renderSectorTable(sectorTableData);
 }
+
 function renderSectorTable(data) {
   const tbody = document.getElementById('sectorTableBody');
   tbody.innerHTML = '';
@@ -1322,10 +1333,9 @@ function renderSectorTable(data) {
     const pct = Number(v).toFixed(2);
     const cls = v > 0 ? 'positive' : v < 0 ? 'negative' : '';
     const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '';
-    return `<span class="mono ${cls}">${arrow}${Math.abs(pct)}%</span>`;
+    return '<span class="mono ' + cls + '">' + arrow + Math.abs(pct) + '%</span>';
   };
 
-  // Separate Market Average row — always pinned to bottom, never sorted
   const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
   const regular = data.filter(s => !isAvgRow(s));
   const avgRows = data.filter(s => isAvgRow(s));
@@ -1335,28 +1345,45 @@ function renderSectorTable(data) {
     if (isPinned) {
       tr.style.cssText = 'border-top:2px solid var(--border);font-weight:600;background:var(--surface2);position:sticky;bottom:0;z-index:1;';
     }
-    tr.innerHTML = `
-      <td class="sector-name-cell">${s.sector}</td>
-      <td class="sector-hide-mobile mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.roe)}">${fmtPct(s.roe)}</td>
-      <td class="sector-hide-mobile mono">${s.de!=null?fmt(s.de,2):'—'}</td>
-      <td class="sector-hide-mobile mono">${fmt(s.cfo,1)}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield):'—'}</td>
-      <td class="sector-hide-mobile mono">${s.peRatio!=null?fmt(s.peRatio,2):'—'}</td>
-      <td class="mono"><span class="${scoreColor(s.totalScore)}" style="font-weight:700">${fmt(s.totalScore,1)}</span>
-        <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,s.totalScore)}%; background:${s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)'}"></div></div>
-      </td>
-      <td class="mono" style="text-align:center">${s.relVol!=null?fmt(s.relVol,2):'—'}</td>
-      <td class="mono ${s.discRatio!=null?(s.discRatio>0?'positive':'negative'):''}" style="text-align:center">${s.discRatio!=null?fmt(s.discRatio,1)+'%':'—'}</td>
-      <td class="sector-hide-mobile" style="text-align:center">${fmtChg(s.p1d)}</td>
-      <td class="sector-hide-mobile" style="text-align:center">${fmtChg(s.p1w)}</td>
-      <td style="text-align:center">${fmtChg(s.p1m)}</td>
-      <td style="text-align:center">${fmtChg(s.p3m)}</td>
-      <td style="text-align:center">${fmtChg(s.pYTD)}</td>
-    `;
+    const nameTd = document.createElement('td');
+    nameTd.className = 'sector-name-cell';
+    nameTd.textContent = s.sector;
+    if (!isPinned) {
+      nameTd.style.cssText = 'cursor:pointer;color:var(--accent3);';
+      nameTd.title = 'View companies in Screener';
+      nameTd.addEventListener('click', function() { drillSectorToScreener(s.sector); });
+    }
+    tr.appendChild(nameTd);
+
+    const rest = document.createElement('td');
+    rest.colSpan = 17;
+    tr.appendChild(rest);
+    // build the rest as innerHTML on the row after first td
+    tr.removeChild(rest);
+
+    const rows_html = [
+      '<td class="sector-hide-mobile mono" style="text-align:center">' + (s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—') + '</td>',
+      '<td class="sector-hide-mobile mono ' + valColor(s.epsQ) + '">' + fmt(s.epsQ,2) + '</td>',
+      '<td class="sector-hide-mobile mono ' + valColor(s.epsTTM) + '">' + fmt(s.epsTTM,2) + '</td>',
+      '<td class="sector-hide-mobile mono ' + valColor(s.opMargin) + '">' + (s.opMargin!=null?fmtPct(s.opMargin):'—') + '</td>',
+      '<td class="sector-hide-mobile mono ' + valColor(s.roe) + '">' + fmtPct(s.roe) + '</td>',
+      '<td class="sector-hide-mobile mono">' + (s.de!=null?fmt(s.de,2):'—') + '</td>',
+      '<td class="sector-hide-mobile mono">' + fmt(s.cfo,1) + '</td>',
+      '<td class="sector-hide-mobile mono ' + valColor(s.divYield) + '">' + (s.divYield!=null?fmtPct(s.divYield):'—') + '</td>',
+      '<td class="sector-hide-mobile mono">' + (s.peRatio!=null?fmt(s.peRatio,2):'—') + '</td>',
+      '<td class="mono"><span class="' + scoreColor(s.totalScore) + '" style="font-weight:700">' + fmt(s.totalScore,1) + '</span><div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(100,s.totalScore) + '%; background:' + (s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)') + '"></div></div></td>',
+      '<td class="mono" style="text-align:center">' + (s.relVol!=null?fmt(s.relVol,2):'—') + '</td>',
+      '<td class="mono ' + (s.discRatio!=null?(s.discRatio>0?'positive':'negative'):'') + '" style="text-align:center">' + (s.discRatio!=null?fmt(s.discRatio,1)+'%':'—') + '</td>',
+      '<td class="sector-hide-mobile" style="text-align:center">' + fmtChg(s.p1d) + '</td>',
+      '<td class="sector-hide-mobile" style="text-align:center">' + fmtChg(s.p1w) + '</td>',
+      '<td style="text-align:center">' + fmtChg(s.p1m) + '</td>',
+      '<td style="text-align:center">' + fmtChg(s.p3m) + '</td>',
+      '<td style="text-align:center">' + fmtChg(s.pYTD) + '</td>',
+    ].join('');
+
+    const tmp = document.createElement('tbody');
+    tmp.innerHTML = '<tr>' + rows_html + '</tr>';
+    Array.from(tmp.firstChild.children).forEach(td => tr.appendChild(td));
     tbody.appendChild(tr);
   };
 
@@ -1386,8 +1413,9 @@ function syncWatchlistToComparison(active) {
 
 function filterSectorTable() {
   const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
+  const computed = computeSectorData(_sectorFilteredSource());
   const sel = mselRegistry.sectorFilter.selected;
-  const base = sel.size > 0 ? SECTOR_DATA.filter(s => sel.has(s.sector)) : [...SECTOR_DATA];
+  const base = sel.size > 0 ? computed.filter(s => sel.has(s.sector)) : computed;
   const regular = base.filter(s => !isAvgRow(s));
   const avgRows  = base.filter(s =>  isAvgRow(s));
   renderSectorTable([...regular.sort((a,b) => b.totalScore - a.totalScore), ...avgRows]);
@@ -1397,10 +1425,10 @@ function sortSectorTable(col) {
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
-  // Sort only the currently filtered subset so an active sector filter is preserved.
   const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
+  const computed = computeSectorData(_sectorFilteredSource());
   const sel = mselRegistry.sectorFilter.selected;
-  const base = sel.size > 0 ? SECTOR_DATA.filter(s => sel.has(s.sector)) : [...SECTOR_DATA];
+  const base = sel.size > 0 ? computed.filter(s => sel.has(s.sector)) : computed;
   const regular = base.filter(s => !isAvgRow(s));
   const avgRows = base.filter(s => isAvgRow(s));
   const sorted = regular.sort((a,b) => {
@@ -1530,13 +1558,22 @@ const mselRegistry = {
     manyLabel: n => `Phases`,
   },
   sectorFilter: {
-    options: () => [...new Set(SECTOR_DATA.map(s => s.sector))].sort().map(s => ({value: s, label: s})),
+    options: () => [...new Set(SOURCE_DATA.filter(d=>d['Sector']&&d['Sector']!=='0').map(d=>d['Sector']))].sort().map(s => ({value:s, label:s})),
     selected: new Set(),
     searchable: true,
     allLabel: 'All Sectors',
     oneLabel: v => v,
-    manyLabel: n => `${n} Sectors`,
+    manyLabel: n => n + ' Sectors',
     onChange: () => filterSectorTable(),
+  },
+  sectorIndexFilter: {
+    options: () => allIndicesList.map(s => ({value:s, label:s})),
+    selected: new Set(),
+    searchable: true,
+    allLabel: 'All Indices',
+    oneLabel: v => v,
+    manyLabel: n => n + ' Indices',
+    onChange: () => buildSectorTable(),
   }
 };
 
@@ -1711,7 +1748,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'status', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndexFilter', 'status', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
@@ -2718,8 +2755,10 @@ function handleExcelUpload(event) {
             r[k] = `${y}-${m}-${d2}`;
             continue;
           }
-          // SheetJS date serial numbers for date columns (e.g. Last Period End Date)
-          if (typeof v === 'number' && k.toLowerCase().includes('date')) {
+          // SheetJS date serial numbers for date columns (e.g. Last Period End Date).
+          // "Signal date" stores YYYYMMDD integers, NOT Excel serials — skip it.
+          if (typeof v === 'number' && k.toLowerCase().includes('date') && !k.toLowerCase().includes('signal')) {
+            if (v === 0) { r[k] = null; continue; }
             try {
               const d2 = XLSX.SSF.parse_date_code(v);
               r[k] = `${d2.y}-${String(d2.m).padStart(2,'0')}-${String(d2.d).padStart(2,'0')}`;
@@ -2737,11 +2776,7 @@ function handleExcelUpload(event) {
         SOURCE_DATA.push(r);
       });
 
-      // Read SectorAnalysis sheet directly — Excel has already evaluated all formulas
-      showOverlay('Parsing SectorAnalysis sheet...');
-      const parsedSectors = parseSectorSheet(wb);
-      SECTOR_DATA.length = 0;
-      parsedSectors.forEach(s => SECTOR_DATA.push(s));
+      // Sector data is now computed live from SOURCE_DATA — no SectorAnalysis sheet needed.
 
       reinitDashboard(file.name);
       hideOverlay();
@@ -2880,7 +2915,7 @@ function showModalError(title, body, detail) {
 }
 
 // ===== DATA MENU =====
-let dataMenuOpen = false;
+var dataMenuOpen = false;
 
 function positionDataMenuMobile(menu, btn) {
   // On narrow screens the header wraps, so the menu's normal CSS
@@ -2961,7 +2996,7 @@ function saveDataJson() {
   // Push the resulting data.json to replace the one your live site fetches —
   // the HTML itself never needs to change for a routine data update.
   closeDataMenu();
-  const payload = JSON.stringify({ source: SOURCE_DATA, sector: SECTOR_DATA, updatedAt: Date.now() });
+  const payload = JSON.stringify({ source: SOURCE_DATA, updatedAt: Date.now() });
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2985,13 +3020,6 @@ function saveHtmlFile() {
     `const SOURCE_DATA = ${dataJson};`
   );
 
-  // Also embed SECTOR_DATA so it persists across reopens
-  const sectorJson = JSON.stringify(SECTOR_DATA, null, 0);
-  updated = updated.replace(
-    /let SECTOR_DATA\s*=\s*\[[\s\S]*?\];/,
-    `let SECTOR_DATA = ${sectorJson};`
-  );
-
   // Trigger download
   const blob = new Blob([updated], {type: 'text/html'});
   const url  = URL.createObjectURL(blob);
@@ -3013,8 +3041,6 @@ fetch('./data.json?t=' + Date.now())
   .then(data => {
     SOURCE_DATA.length = 0;
     (data.source || []).forEach(d => SOURCE_DATA.push(d));
-    SECTOR_DATA.length = 0;
-    (data.sector || []).forEach(s => SECTOR_DATA.push(s));
     init();
     updateDataBadges(data.updatedAt);
     if (typeof window.checkFreshSignalsToday === 'function') window.checkFreshSignalsToday();
@@ -3429,11 +3455,11 @@ function topTableRender(tableId) {
     });
   }
 
-  const ths = `padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);`;
-  const thA = `padding:7px 11px;background:var(--accent-dim);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);color:var(--accent);`;
+  const ths = `padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);position:sticky;top:0;z-index:2;`;
+  const thA = `padding:7px 11px;background:var(--accent-dim);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);color:var(--accent);position:sticky;top:0;z-index:2;`;
   const arr = col => sortCol===col ? (sortDir===-1?'▼':'▲') : '<span style="opacity:.3">⇅</span>';
 
-  let html = `<table class="top-mini-table" id="${tableId}" style="width:100%;border-collapse:collapse;">
+  let html = `<table class="top-mini-table" id="${tableId}" style="width:100%;border-collapse:separate;border-spacing:0;">
     <thead><tr>
       <th style="${sortCol==='rank'?thA:ths}text-align:center;" onclick="sortTopTable('${tableId}','rank')"># ${arr('rank')}</th>
       <th style="${sortCol==='ticker'?thA:ths}" onclick="sortTopTable('${tableId}','ticker')">Ticker ${arr('ticker')}</th>
@@ -3554,9 +3580,9 @@ function buildTopTab() {
     {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const dayColsDef = [
-    {key:'Day Change %',      label:'Day %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
-    {key:'Price',             label:'Price',   fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
-    {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:'Day Change %', label:'Day %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
+    {key:' Price ',      label:'Price',   fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
+    {key:'Day Change',   label:'Day Chg', fmt:v=>{const n=parseFloat(v||0);return (n>=0?'+':'')+n.toFixed(2);}, colorFn:v=>topPctColor(parseFloat(v||0))}
   ];
   const weekColsDef = [
     {key:'Current Week Return %', label:'Week %', fmt:topFmtPct, colorFn:v=>topPctColor(v)},
