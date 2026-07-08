@@ -3580,14 +3580,25 @@ function buildTopTab() {
     {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const dayColsDef = [
-    {key:'Day Change %', label:'Day %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
-    {key:' Price ',      label:'Price',   fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
-    {key:'Day Change',   label:'Day Chg', fmt:v=>{const n=parseFloat(v||0);return (n>=0?'+':'')+n.toFixed(2);}, colorFn:v=>topPctColor(parseFloat(v||0))}
+    {key:col('Day Change %'), label:'Day %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
+    {key:col('Price'),        label:'Price',   fmt:v=>v!=null&&!isNaN(parseFloat(v))?parseFloat(v).toFixed(2):'—', colorFn:()=>'var(--text)'},
+    {key:'_dayChgAmt',        label:'Day Chg (PKR)', fmt:v=>v!=null?((v>=0?'+':'')+parseFloat(v).toFixed(2)):'—', colorFn:v=>v!=null?topPctColor(v):'var(--text2)'}
   ];
+  // Pre-compute Day Change PKR: use raw Day Change column if present, else derive from % × Price.
+  const priceKey  = col('Price');
+  const dayChgKey = col('Day Change');
+  const dayPctKey = col('Day Change %');
+  ;[...dayGainers, ...dayLosers].forEach(d => {
+    const raw = parseFloat(d[dayChgKey]);
+    if (!isNaN(raw) && raw !== 0) { d['_dayChgAmt'] = raw; return; }
+    const pct = parseFloat(d[dayPctKey]);
+    const px  = parseFloat(d[priceKey]);
+    d['_dayChgAmt'] = (!isNaN(pct) && !isNaN(px) && px !== 0) ? (pct / 100) * px : null;
+  });
   const weekColsDef = [
-    {key:'Current Week Return %', label:'Week %', fmt:topFmtPct, colorFn:v=>topPctColor(v)},
-    {key:'Price',                 label:'Price',  fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
-    {key:'total improvement',     label:'Fin. Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:col('Current Week Return %'), label:'Week %',    fmt:topFmtPct, colorFn:v=>topPctColor(v)},
+    {key:col('Price'),                 label:'Price',     fmt:v=>v!=null&&!isNaN(parseFloat(v))?parseFloat(v).toFixed(2):'—', colorFn:()=>'var(--text)'},
+    {key:'total improvement',          label:'Fin. Score',fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const rvolColsDef = [
     {key:'Relative Vol',  label:'RVOL',   fmt:v=>parseFloat(v||0).toFixed(2)+'x', colorFn:v=>parseFloat(v||0)>=2?'var(--warn)':'var(--text)'},
