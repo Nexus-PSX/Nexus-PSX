@@ -32,68 +32,89 @@ const SOURCE_DATA = [];
 // never reassigned — it's const), so this single alias stays correct forever.
 window.SOURCE_DATA = SOURCE_DATA;
 
-// ===== SECTOR: computed live from SOURCE_DATA via computeSectorData() =====
-function parseSectorSheet(wb) { return []; } // no longer used — sector data computed from SOURCE_DATA
+let SECTOR_DATA = [];
 
-function computeSectorData(rows) {
-  const toNum = v => (v != null && v !== '' && !isNaN(Number(v))) ? Number(v) : null;
-  const avg   = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
-  const groups = {};
-  rows.forEach(d => {
-    const s = d['Sector'];
+// ── computeSectorDataFromSource ──────────────────────────────────────────────
+// Builds SECTOR_DATA entirely from SOURCE_DATA averages — no external sheet needed.
+// Called once after data load. Market Average for the current filter selection
+// is computed dynamically inside filterSectorTable/sortSectorTable/buildSectorTable.
+// Core helper: compute sector summary rows from an arbitrary array of company rows.
+// Used by computeSectorDataFromSource (full dataset) and filterSectorTable (filtered subset).
+function computeSectorRowsFromCompanies(companies) {
+  const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const avg = (arr, field) => {
+    const vals = arr.map(d => toN(d[field])).filter(v => v !== null);
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  };
+  const bySector = {};
+  companies.forEach(d => {
+    const s = (d.Sector || '').trim();
     if (!s || s === '0') return;
-    if (!groups[s]) groups[s] = [];
-    groups[s].push(d);
+    if (!bySector[s]) bySector[s] = [];
+    bySector[s].push(d);
   });
-  const latestCFO = d => toNum(d['CFO 2026-Q1']) != null ? toNum(d['CFO 2026-Q1']) : toNum(d['CFO 2025-Q4']) != null ? toNum(d['CFO 2025-Q4']) : toNum(d['CFO 2025-Q3']);
-  const latestROE = d => toNum(d['ROE 2026-Q1']) != null ? toNum(d['ROE 2026-Q1']) : toNum(d['ROE 2025-Q4']) != null ? toNum(d['ROE 2025-Q4']) : toNum(d['ROE 2025-Q3']);
-  const latestDE  = d => toNum(d['Debt/Equity 2026-Q1']) != null ? toNum(d['Debt/Equity 2026-Q1']) : toNum(d['Debt/Equity 2025-Q4']) != null ? toNum(d['Debt/Equity 2025-Q4']) : toNum(d['Debt/Equity 2025-Q3']);
-  const result = Object.entries(groups).map(([sector, members]) => ({
+  return Object.entries(bySector).map(([sector, rows]) => ({
     sector,
-    companies:  members.length,
-    epsQ:       avg(members.map(d => toNum(d['Latest EPS  Q']))),
-    epsTTM:     avg(members.map(d => toNum(d['Latest TTM EPS Q']))),
-    opMargin:   avg(members.map(d => toNum(d['Op Income-Q']))),
-    roe:        avg(members.map(d => latestROE(d))),
-    de:         avg(members.map(d => latestDE(d))),
-    cfo:        avg(members.map(d => latestCFO(d))),
-    divYield:   avg(members.map(d => toNum(d['Latest Div Y Q']))),
-    peRatio:    avg(members.map(d => toNum(d['P/E Ratio']))),
-    totalScore: parseFloat((avg(members.map(d => toNum(d['total improvement']))) || 0).toFixed(1)),
-    relVol:     avg(members.map(d => toNum(d['Relative Vol']))),
-    discRatio:  avg(members.map(d => toNum(d['Discount Ratio']))),
-    p1d:        avg(members.map(d => toNum(d['Day Change %']))),
-    p1w:        avg(members.map(d => toNum(d['Current Week Return %']))),
-    p1m:        avg(members.map(d => toNum(d['Current Month Return %']))),
-    p3m:        avg(members.map(d => toNum(d['Past 3 Months Return %']))),
-    pYTD:       avg(members.map(d => toNum(d['YTD Return %']))),
+    companies:  rows.length,
+    epsQ:       avg(rows, 'Latest EPS  Q'),
+    epsTTM:     avg(rows, 'Latest TTM EPS Q'),
+    opMargin:   avg(rows, 'Op Income-Q'),
+    roe:        avg(rows, 'ROE 2026-Q1'),
+    de:         avg(rows, 'Debt/Equity 2026-Q1'),
+    cfo:        avg(rows, 'CFO 2026-Q1'),
+    divYield:   avg(rows, 'Latest Div Y Q'),
+    totalScore: avg(rows, 'total improvement'),
+    qtrScore:   null,
+    ttmScore:   null,
+    peRatio:    avg(rows, 'P/E Ratio'),
+    relVol:     avg(rows, 'Relative Vol'),
+    discRatio:  avg(rows, 'Discount Ratio'),
+    p1d:        avg(rows, 'Day Change %'),
+    p1w:        avg(rows, 'Current Week Return %'),
+    p1m:        avg(rows, 'Current Month Return %'),
+    p3m:        avg(rows, 'Past 3 Months Return %'),
+    pYTD:       avg(rows, 'YTD Return %'),
   }));
-  const allMembers = rows.filter(d => d['Sector'] && d['Sector'] !== '0');
-  if (allMembers.length) {
-    result.push({
-      sector:     'MARKET AVERAGE',
-      companies:  parseFloat((allMembers.length / Object.keys(groups).length).toFixed(3)),
-      epsQ:       avg(allMembers.map(d => toNum(d['Latest EPS  Q']))),
-      epsTTM:     avg(allMembers.map(d => toNum(d['Latest TTM EPS Q']))),
-      opMargin:   avg(allMembers.map(d => toNum(d['Op Income-Q']))),
-      roe:        avg(allMembers.map(d => latestROE(d))),
-      de:         avg(allMembers.map(d => latestDE(d))),
-      cfo:        avg(allMembers.map(d => latestCFO(d))),
-      divYield:   avg(allMembers.map(d => toNum(d['Latest Div Y Q']))),
-      peRatio:    avg(allMembers.map(d => toNum(d['P/E Ratio']))),
-      totalScore: parseFloat((avg(allMembers.map(d => toNum(d['total improvement']))) || 0).toFixed(1)),
-      relVol:     avg(allMembers.map(d => toNum(d['Relative Vol']))),
-      discRatio:  avg(allMembers.map(d => toNum(d['Discount Ratio']))),
-      p1d:        avg(allMembers.map(d => toNum(d['Day Change %']))),
-      p1w:        avg(allMembers.map(d => toNum(d['Current Week Return %']))),
-      p1m:        avg(allMembers.map(d => toNum(d['Current Month Return %']))),
-      p3m:        avg(allMembers.map(d => toNum(d['Past 3 Months Return %']))),
-      pYTD:       avg(allMembers.map(d => toNum(d['YTD Return %']))),
-    });
-  }
-  return result;
 }
 
+function computeSectorDataFromSource() {
+  const validRows = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+  SECTOR_DATA.length = 0;
+  computeSectorRowsFromCompanies(validRows).forEach(s => SECTOR_DATA.push(s));
+  // Market Average is computed dynamically at render time from the visible rows.
+}
+
+// Build a Market Average row by averaging directly from the filtered company rows.
+// sectorRows is passed only to get an accurate company count per visible sector.
+function buildMarketAvgRowFromCompanies(companies, sectorRows) {
+  const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const avg = (field) => {
+    const vals = companies.map(d => toN(d[field])).filter(v => v !== null);
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  };
+  return {
+    sector:     'MARKET AVERAGE',
+    companies:  companies.length,
+    epsQ:       avg('Latest EPS  Q'),
+    epsTTM:     avg('Latest TTM EPS Q'),
+    opMargin:   avg('Op Income-Q'),
+    roe:        avg('ROE 2026-Q1'),
+    de:         avg('Debt/Equity 2026-Q1'),
+    cfo:        avg('CFO 2026-Q1'),
+    divYield:   avg('Latest Div Y Q'),
+    totalScore: avg('total improvement'),
+    qtrScore:   null,
+    ttmScore:   null,
+    peRatio:    avg('P/E Ratio'),
+    relVol:     avg('Relative Vol'),
+    discRatio:  avg('Discount Ratio'),
+    p1d:        avg('Day Change %'),
+    p1w:        avg('Current Week Return %'),
+    p1m:        avg('Current Month Return %'),
+    p3m:        avg('Past 3 Months Return %'),
+    pYTD:       avg('YTD Return %'),
+  };
+}
 
 // ===== CHART INSTANCES =====
 let charts = {};
@@ -554,7 +575,7 @@ function loadTicker(ticker) {
     'Op Margin', 'Net Margin', true
   );
 
-  const sectorInfo = computeSectorData(SOURCE_DATA).find(s => s.sector === d.Sector);
+  const sectorInfo = SECTOR_DATA.find(s => s.sector === d.Sector);
 
   // KPI table header
   setHTML('kpiTableHead', `
@@ -1225,7 +1246,7 @@ function buildSectorChart() {
   if (charts['sectors']) { charts['sectors'].destroy(); delete charts['sectors']; }
   const canvas = document.getElementById('chartSectors');
   if (!canvas) return;
-  const sorted = computeSectorData(SOURCE_DATA).filter(s => !/market.?average/i.test(s.sector)).sort((a,b) => b.totalScore - a.totalScore).slice(0, 20);
+  const sorted = [...SECTOR_DATA].sort((a,b) => b.totalScore - a.totalScore).slice(0, 20);
   const ctx = canvas.getContext('2d');
   const th = getChartTheme();
 
@@ -1289,42 +1310,14 @@ function updateSortArrows(headRowId, activeCol, dir) {
 
 // ===== SECTOR TABLE =====
 let sectorTableData = [];
-
-function _sectorFilteredSource() {
-  const selIdx = mselRegistry.sectorIndexFilter.selected;
-  if (selIdx.size === 0) return SOURCE_DATA;
-  return SOURCE_DATA.filter(d => {
-    const idx = String(d['Index'] || '');
-    return [...selIdx].some(i => idx.includes(i));
-  });
-}
-
-function drillSectorToScreener(sectorName) {
-  const tickerSel = mselRegistry.ticker.selected;
-  tickerSel.clear();
-  _sectorFilteredSource().forEach(d => {
-    if (d['Sector'] === sectorName && d.Ticker && d.Ticker !== '0') {
-      tickerSel.add(String(d.Ticker));
-    }
-  });
-  mselRenderList('ticker');
-  mselUpdateLabel('ticker');
-  switchTab('screener');
-  filterScreener();
-}
-
 function buildSectorTable() {
-  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
-  const computed = computeSectorData(_sectorFilteredSource());
-  const selSec = mselRegistry.sectorFilter.selected;
-  const base = selSec.size > 0 ? computed.filter(s => selSec.has(s.sector)) : computed;
-  const regular = base.filter(s => !isAvgRow(s)).sort((a,b) => b.totalScore - a.totalScore);
-  const avgRows  = base.filter(s =>  isAvgRow(s));
-  sectorTableData = [...regular, ...avgRows];
+  const companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+  const regular = computeSectorRowsFromCompanies(companies)
+    .sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
+  sectorTableData = regular;
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
-  renderSectorTable(sectorTableData);
+  renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
 }
-
 function renderSectorTable(data) {
   const tbody = document.getElementById('sectorTableBody');
   tbody.innerHTML = '';
@@ -1333,9 +1326,10 @@ function renderSectorTable(data) {
     const pct = Number(v).toFixed(2);
     const cls = v > 0 ? 'positive' : v < 0 ? 'negative' : '';
     const arrow = v > 0 ? '▲' : v < 0 ? '▼' : '';
-    return '<span class="mono ' + cls + '">' + arrow + Math.abs(pct) + '%</span>';
+    return `<span class="mono ${cls}">${arrow}${Math.abs(pct)}%</span>`;
   };
 
+  // Separate Market Average row — always pinned to bottom, never sorted
   const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
   const regular = data.filter(s => !isAvgRow(s));
   const avgRows = data.filter(s => isAvgRow(s));
@@ -1345,45 +1339,28 @@ function renderSectorTable(data) {
     if (isPinned) {
       tr.style.cssText = 'border-top:2px solid var(--border);font-weight:600;background:var(--surface2);position:sticky;bottom:0;z-index:1;';
     }
-    const nameTd = document.createElement('td');
-    nameTd.className = 'sector-name-cell';
-    nameTd.textContent = s.sector;
-    if (!isPinned) {
-      nameTd.style.cssText = 'cursor:pointer;color:var(--accent3);';
-      nameTd.title = 'View companies in Screener';
-      nameTd.addEventListener('click', function() { drillSectorToScreener(s.sector); });
-    }
-    tr.appendChild(nameTd);
-
-    const rest = document.createElement('td');
-    rest.colSpan = 17;
-    tr.appendChild(rest);
-    // build the rest as innerHTML on the row after first td
-    tr.removeChild(rest);
-
-    const rows_html = [
-      '<td class="sector-hide-mobile mono" style="text-align:center">' + (s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—') + '</td>',
-      '<td class="sector-hide-mobile mono ' + valColor(s.epsQ) + '">' + fmt(s.epsQ,2) + '</td>',
-      '<td class="sector-hide-mobile mono ' + valColor(s.epsTTM) + '">' + fmt(s.epsTTM,2) + '</td>',
-      '<td class="sector-hide-mobile mono ' + valColor(s.opMargin) + '">' + (s.opMargin!=null?fmtPct(s.opMargin):'—') + '</td>',
-      '<td class="sector-hide-mobile mono ' + valColor(s.roe) + '">' + fmtPct(s.roe) + '</td>',
-      '<td class="sector-hide-mobile mono">' + (s.de!=null?fmt(s.de,2):'—') + '</td>',
-      '<td class="sector-hide-mobile mono">' + fmt(s.cfo,1) + '</td>',
-      '<td class="sector-hide-mobile mono ' + valColor(s.divYield) + '">' + (s.divYield!=null?fmtPct(s.divYield):'—') + '</td>',
-      '<td class="sector-hide-mobile mono">' + (s.peRatio!=null?fmt(s.peRatio,2):'—') + '</td>',
-      '<td class="mono"><span class="' + scoreColor(s.totalScore) + '" style="font-weight:700">' + fmt(s.totalScore,1) + '</span><div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(100,s.totalScore) + '%; background:' + (s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)') + '"></div></div></td>',
-      '<td class="mono" style="text-align:center">' + (s.relVol!=null?fmt(s.relVol,2):'—') + '</td>',
-      '<td class="mono ' + (s.discRatio!=null?(s.discRatio>0?'positive':'negative'):'') + '" style="text-align:center">' + (s.discRatio!=null?fmt(s.discRatio,1)+'%':'—') + '</td>',
-      '<td class="sector-hide-mobile" style="text-align:center">' + fmtChg(s.p1d) + '</td>',
-      '<td class="sector-hide-mobile" style="text-align:center">' + fmtChg(s.p1w) + '</td>',
-      '<td style="text-align:center">' + fmtChg(s.p1m) + '</td>',
-      '<td style="text-align:center">' + fmtChg(s.p3m) + '</td>',
-      '<td style="text-align:center">' + fmtChg(s.pYTD) + '</td>',
-    ].join('');
-
-    const tmp = document.createElement('tbody');
-    tmp.innerHTML = '<tr>' + rows_html + '</tr>';
-    Array.from(tmp.firstChild.children).forEach(td => tr.appendChild(td));
+    tr.innerHTML = `
+      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector} <span style="font-size:10px;color:var(--text3);margin-left:4px;">↗</span></td>
+      <td class="sector-hide-mobile mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
+      <td class="sector-hide-mobile mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
+      <td class="sector-hide-mobile mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
+      <td class="sector-hide-mobile mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
+      <td class="sector-hide-mobile mono ${valColor(s.roe)}">${fmtPct(s.roe)}</td>
+      <td class="sector-hide-mobile mono">${s.de!=null?fmt(s.de,2):'—'}</td>
+      <td class="sector-hide-mobile mono">${fmt(s.cfo,1)}</td>
+      <td class="sector-hide-mobile mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield):'—'}</td>
+      <td class="sector-hide-mobile mono">${s.peRatio!=null?fmt(s.peRatio,2):'—'}</td>
+      <td class="mono"><span class="${scoreColor(s.totalScore)}" style="font-weight:700">${fmt(s.totalScore,1)}</span>
+        <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,s.totalScore)}%; background:${s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)'}"></div></div>
+      </td>
+      <td class="mono" style="text-align:center">${s.relVol!=null?fmt(s.relVol,2):'—'}</td>
+      <td class="mono ${s.discRatio!=null?(s.discRatio>0?'positive':'negative'):''}" style="text-align:center">${s.discRatio!=null?fmt(s.discRatio,1)+'%':'—'}</td>
+      <td class="sector-hide-mobile" style="text-align:center">${fmtChg(s.p1d)}</td>
+      <td class="sector-hide-mobile" style="text-align:center">${fmtChg(s.p1w)}</td>
+      <td style="text-align:center">${fmtChg(s.p1m)}</td>
+      <td style="text-align:center">${fmtChg(s.p3m)}</td>
+      <td style="text-align:center">${fmtChg(s.pYTD)}</td>
+    `;
     tbody.appendChild(tr);
   };
 
@@ -1412,31 +1389,95 @@ function syncWatchlistToComparison(active) {
 }
 
 function filterSectorTable() {
-  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
-  const computed = computeSectorData(_sectorFilteredSource());
-  const sel = mselRegistry.sectorFilter.selected;
-  const base = sel.size > 0 ? computed.filter(s => sel.has(s.sector)) : computed;
-  const regular = base.filter(s => !isAvgRow(s));
-  const avgRows  = base.filter(s =>  isAvgRow(s));
-  renderSectorTable([...regular.sort((a,b) => b.totalScore - a.totalScore), ...avgRows]);
+  const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
+  const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
+
+  // Start from the full company list, then narrow by index and/or sector filters.
+  // This means averages are always recomputed from the actual matching companies —
+  // not from pre-stored sector aggregates — so every column reflects only those firms.
+  let companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+
+  if (selIndex.size > 0) {
+    companies = companies.filter(d => {
+      const dIdx = String(d.Index || '');
+      for (const v of selIndex) { if (dIdx.includes(v)) return true; }
+      return false;
+    });
+  }
+
+  if (selSector.size > 0) {
+    companies = companies.filter(d => selSector.has((d.Sector || '').trim()));
+  }
+
+  const regular = computeSectorRowsFromCompanies(companies)
+    .sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
+
+  // Market Average recomputed from the same filtered companies
+  renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
 }
 function sortSectorTable(col) {
   const cols = ['sector','companies','epsQ','epsTTM','opMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD'];
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
-  const isAvgRow = s => /market.?average|market.?avg|psx.?average|all.?sectors/i.test(s.sector);
-  const computed = computeSectorData(_sectorFilteredSource());
-  const sel = mselRegistry.sectorFilter.selected;
-  const base = sel.size > 0 ? computed.filter(s => sel.has(s.sector)) : computed;
-  const regular = base.filter(s => !isAvgRow(s));
-  const avgRows = base.filter(s => isAvgRow(s));
-  const sorted = regular.sort((a,b) => {
+
+  const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
+  const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
+
+  // Recompute from the same filtered company pool as filterSectorTable
+  let companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+  if (selIndex.size > 0) {
+    companies = companies.filter(d => {
+      const dIdx = String(d.Index || '');
+      for (const v of selIndex) { if (dIdx.includes(v)) return true; }
+      return false;
+    });
+  }
+  if (selSector.size > 0) {
+    companies = companies.filter(d => selSector.has((d.Sector || '').trim()));
+  }
+
+  const sorted = computeSectorRowsFromCompanies(companies).sort((a,b) => {
     const av = a[key], bv = b[key];
     if (av == null) return 1; if (bv == null) return -1;
     return typeof av === 'string' ? av.localeCompare(bv) * sectorSort.dir : (av - bv) * sectorSort.dir;
   });
-  renderSectorTable([...sorted, ...avgRows]);
+  renderSectorTable([...sorted, buildMarketAvgRowFromCompanies(companies, sorted)]);
+}
+
+// ===== SECTOR DRILL-THROUGH =====
+// Always navigates to Screener using the Comparison (ticker) filter —
+// populated with the exact companies visible in the current sector table view.
+function drillSectorToScreener(sectorName) {
+  const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
+  const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
+
+  // Resolve the same company pool that is currently displayed in the sector table
+  let companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+
+  if (selIndex.size > 0) {
+    companies = companies.filter(d => {
+      const dIdx = String(d.Index || '');
+      for (const v of selIndex) { if (dIdx.includes(v)) return true; }
+      return false;
+    });
+  }
+
+  // Always narrow to the clicked sector
+  companies = companies.filter(d => (d.Sector || '').trim() === sectorName);
+
+  // Clear ALL screener filters then load matched tickers into Comparison
+  Object.keys(mselRegistry).forEach(key => {
+    mselRegistry[key].selected.clear();
+    mselUpdateLabel(key);
+  });
+
+  const tickerReg = mselRegistry.ticker;
+  companies.forEach(d => tickerReg.selected.add(String(d.Ticker)));
+  mselUpdateLabel('ticker');
+
+  switchTab('screener');
+  filterScreener();
 }
 
 // ===== SCREENER =====
@@ -1558,22 +1599,29 @@ const mselRegistry = {
     manyLabel: n => `Phases`,
   },
   sectorFilter: {
-    options: () => [...new Set(SOURCE_DATA.filter(d=>d['Sector']&&d['Sector']!=='0').map(d=>d['Sector']))].sort().map(s => ({value:s, label:s})),
+    options: () => [...new Set(SECTOR_DATA.map(s => s.sector))].sort().map(s => ({value: s, label: s})),
     selected: new Set(),
     searchable: true,
     allLabel: 'All Sectors',
     oneLabel: v => v,
-    manyLabel: n => n + ' Sectors',
+    manyLabel: n => `${n} Sectors`,
     onChange: () => filterSectorTable(),
   },
-  sectorIndexFilter: {
-    options: () => allIndicesList.map(s => ({value:s, label:s})),
+  sectorIndex: {
+    // Options built dynamically from SOURCE_DATA index membership
+    options: () => {
+      const set = new Set();
+      SOURCE_DATA.forEach(d => {
+        if (d.Index) String(d.Index).split(',').forEach(i => { const t = i.trim(); if (t && t !== '0') set.add(t); });
+      });
+      return [...set].sort().map(v => ({value: v, label: v}));
+    },
     selected: new Set(),
     searchable: true,
     allLabel: 'All Indices',
     oneLabel: v => v,
-    manyLabel: n => n + ' Indices',
-    onChange: () => buildSectorTable(),
+    manyLabel: n => `${n} Indices`,
+    onChange: () => filterSectorTable(),
   }
 };
 
@@ -1748,7 +1796,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndexFilter', 'status', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'status', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
@@ -1783,6 +1831,22 @@ function resetMselFilters() {
     mselRegistry[key].selected.clear();
     mselUpdateLabel(key);
   });
+}
+
+function clearAllFilters() {
+  const searchEl = document.getElementById('screenerSearch');
+  if (searchEl) searchEl.value = '';
+  resetMselFilters();
+  filterScreener();
+}
+
+function updateClearAllBtn() {
+  const btn = document.getElementById('clearAllFiltersBtn');
+  if (!btn) return;
+  const searchEl = document.getElementById('screenerSearch');
+  const hasSearch = searchEl && searchEl.value.trim().length > 0;
+  const hasMsel = Object.keys(mselRegistry).some(key => mselRegistry[key].selected.size > 0);
+  btn.style.display = (hasSearch || hasMsel) ? '' : 'none';
 }
 
 function filterScreener() {
@@ -1909,6 +1973,7 @@ function filterScreener() {
   updateSortArrows('screenerTableHead', screenerSort.col, screenerSort.dir);
   renderScreenerPage();
   alignScreenerToggles();
+  updateClearAllBtn();
 }
 
 function alignScreenerToggles() {
@@ -2757,6 +2822,7 @@ function handleExcelUpload(event) {
           }
           // SheetJS date serial numbers for date columns (e.g. Last Period End Date).
           // "Signal date" stores YYYYMMDD integers, NOT Excel serials — skip it.
+          // For real serial columns, serial 0 = blank cell → null, not "1900-01-00".
           if (typeof v === 'number' && k.toLowerCase().includes('date') && !k.toLowerCase().includes('signal')) {
             if (v === 0) { r[k] = null; continue; }
             try {
@@ -2776,7 +2842,7 @@ function handleExcelUpload(event) {
         SOURCE_DATA.push(r);
       });
 
-      // Sector data is now computed live from SOURCE_DATA — no SectorAnalysis sheet needed.
+      computeSectorDataFromSource();
 
       reinitDashboard(file.name);
       hideOverlay();
@@ -2915,6 +2981,8 @@ function showModalError(title, body, detail) {
 }
 
 // ===== DATA MENU =====
+// var (not let) so dataMenuOpen is on window and reachable from inline
+// onmouseleave handlers in admin.html before app.js finishes executing.
 var dataMenuOpen = false;
 
 function positionDataMenuMobile(menu, btn) {
@@ -2996,7 +3064,7 @@ function saveDataJson() {
   // Push the resulting data.json to replace the one your live site fetches —
   // the HTML itself never needs to change for a routine data update.
   closeDataMenu();
-  const payload = JSON.stringify({ source: SOURCE_DATA, updatedAt: Date.now() });
+  const payload = JSON.stringify({ source: SOURCE_DATA, sector: SECTOR_DATA, updatedAt: Date.now() });
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -3020,6 +3088,13 @@ function saveHtmlFile() {
     `const SOURCE_DATA = ${dataJson};`
   );
 
+  // Also embed SECTOR_DATA so it persists across reopens
+  const sectorJson = JSON.stringify(SECTOR_DATA, null, 0);
+  updated = updated.replace(
+    /let SECTOR_DATA\s*=\s*\[[\s\S]*?\];/,
+    `let SECTOR_DATA = ${sectorJson};`
+  );
+
   // Trigger download
   const blob = new Blob([updated], {type: 'text/html'});
   const url  = URL.createObjectURL(blob);
@@ -3041,6 +3116,7 @@ fetch('./data.json?t=' + Date.now())
   .then(data => {
     SOURCE_DATA.length = 0;
     (data.source || []).forEach(d => SOURCE_DATA.push(d));
+    computeSectorDataFromSource();
     init();
     updateDataBadges(data.updatedAt);
     if (typeof window.checkFreshSignalsToday === 'function') window.checkFreshSignalsToday();
@@ -3470,7 +3546,7 @@ function topTableRender(tableId) {
   sorted.forEach((d,i) => {
     html += `<tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">${i+1}</td>
-      <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('${(d.Ticker||'').replace(/'/g,"\\'")}');">${d.Ticker||'—'}</td>
+      <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('${(d.Ticker||'').replace(/'/g,"\\'")}');">${d.Ticker||'—'}${tickerBadges(d)}</td>
       <td class="nm" style="padding:7px 11px;" title="${(d.Name||'').replace(/"/g,'&quot;')}">${(d.Name||'').substring(0,26)}${(d.Name||'').length>26?'…':''}</td>
       ${cols.map((c,ci)=>{
         const raw = d[c.key];
@@ -3580,25 +3656,14 @@ function buildTopTab() {
     {key:'total improvement', label:'Fin. Score',   fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const dayColsDef = [
-    {key:col('Day Change %'), label:'Day %',   fmt:topFmtPct, colorFn:v=>topPctColor(v)},
-    {key:col('Price'),        label:'Price',   fmt:v=>v!=null&&!isNaN(parseFloat(v))?parseFloat(v).toFixed(2):'—', colorFn:()=>'var(--text)'},
-    {key:'_dayChgAmt',        label:'Day Chg (PKR)', fmt:v=>v!=null?((v>=0?'+':'')+parseFloat(v).toFixed(2)):'—', colorFn:v=>v!=null?topPctColor(v):'var(--text2)'}
+    {key:'Day Change %',      label:'Day %',      fmt:topFmtPct, colorFn:v=>topPctColor(v)},
+    {key:'Price',             label:'Price',       fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
+    {key:'Day Change',        label:'Day Chg',     fmt:v=>{const n=parseFloat(v||0);return (n>=0?'+':'')+n.toFixed(2);}, colorFn:v=>topPctColor(parseFloat(v||0))}
   ];
-  // Pre-compute Day Change PKR: use raw Day Change column if present, else derive from % × Price.
-  const priceKey  = col('Price');
-  const dayChgKey = col('Day Change');
-  const dayPctKey = col('Day Change %');
-  ;[...dayGainers, ...dayLosers].forEach(d => {
-    const raw = parseFloat(d[dayChgKey]);
-    if (!isNaN(raw) && raw !== 0) { d['_dayChgAmt'] = raw; return; }
-    const pct = parseFloat(d[dayPctKey]);
-    const px  = parseFloat(d[priceKey]);
-    d['_dayChgAmt'] = (!isNaN(pct) && !isNaN(px) && px !== 0) ? (pct / 100) * px : null;
-  });
   const weekColsDef = [
-    {key:col('Current Week Return %'), label:'Week %',    fmt:topFmtPct, colorFn:v=>topPctColor(v)},
-    {key:col('Price'),                 label:'Price',     fmt:v=>v!=null&&!isNaN(parseFloat(v))?parseFloat(v).toFixed(2):'—', colorFn:()=>'var(--text)'},
-    {key:'total improvement',          label:'Fin. Score',fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
+    {key:'Current Week Return %', label:'Week %', fmt:topFmtPct, colorFn:v=>topPctColor(v)},
+    {key:'Price',                 label:'Price',  fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
+    {key:'total improvement',     label:'Fin. Score',  fmt:v=>parseFloat(v||0).toFixed(0), colorFn:v=>topScoreColor(v)}
   ];
   const rvolColsDef = [
     {key:'Relative Vol',  label:'RVOL',   fmt:v=>parseFloat(v||0).toFixed(2)+'x', colorFn:v=>parseFloat(v||0)>=2?'var(--warn)':'var(--text)'},
