@@ -2961,6 +2961,7 @@ function reinitDashboard(filename) {
   buildSectorChart();
   buildSectorTable();
   buildMarketTicker();
+  buildTopTab();
 }
 
 function showOverlay(msg) {
@@ -3566,7 +3567,7 @@ function topTableRender(tableId) {
   sorted.forEach((d,i) => {
     html += `<tr>
       <td class="rk" style="text-align:center;padding:7px 8px;">${i+1}</td>
-      <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('${(d.Ticker||'').replace(/'/g,"\\'")}');">${d.Ticker||'—'}${tickerBadges(d)}</td>
+      <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('${String(d.Ticker||'').replace(/'/g,"\\'")}');">${d.Ticker||'—'}${tickerBadges(d)}</td>
       <td class="nm" style="padding:7px 11px;" title="${(d.Name||'').replace(/"/g,'&quot;')}">${(d.Name||'').substring(0,26)}${(d.Name||'').length>26?'…':''}</td>
       ${cols.map((c,ci)=>{
         const raw = d[c.key];
@@ -3650,9 +3651,13 @@ function buildTopTab() {
     return !isNaN(v) && v <= -9.9;
   }).sort((a,b)=>(parseFloat(a['Current Week Return %'])||0)-(parseFloat(b['Current Week Return %'])||0));
 
-  // 5. Top RVOL
-  const topRVOL = [...liquid].filter(d=>(parseFloat(d['Relative Vol'])||0)>0)
-    .sort((a,b)=>(parseFloat(b['Relative Vol'])||0)-(parseFloat(a['Relative Vol'])||0)).slice(0,10);
+  // 5. Top RVOL — all with RVOL > 1, scrollable
+  const topRVOL = [...liquid].filter(d=>(parseFloat(d['Relative Vol'])||0)>1)
+    .sort((a,b)=>(parseFloat(b['Relative Vol'])||0)-(parseFloat(a['Relative Vol'])||0));
+
+  // 5b. Top Volume > 1M — scrollable
+  const topVolMillion = [...liquid].filter(d=>(parseFloat(d['Volume'])||0)>=1000000)
+    .sort((a,b)=>(parseFloat(b['Volume'])||0)-(parseFloat(a['Volume'])||0));
 
   // 6. Top discount (most negative)
   const topDisc = [...liquid].filter(d=>d['Discount Ratio']!=null && (parseFloat(d['Discount Ratio'])||0)<0)
@@ -3690,6 +3695,11 @@ function buildTopTab() {
     {key:'Volume',        label:'Volume', fmt:topFmtNum, colorFn:()=>'var(--text2)'},
     {key:'Day Change %',  label:'Day %',  fmt:topFmtPct, colorFn:v=>topPctColor(v)}
   ];
+  const volMillionColsDef = [
+    {key:'Volume',        label:'Volume', fmt:topFmtNum, colorFn:()=>'var(--text)'},
+    {key:'Relative Vol',  label:'RVOL',   fmt:v=>parseFloat(v||0).toFixed(2)+'x', colorFn:v=>parseFloat(v||0)>=2?'var(--warn)':'var(--text2)'},
+    {key:'Day Change %',  label:'Day %',  fmt:topFmtPct, colorFn:v=>topPctColor(v)}
+  ];
   const discColsDef = [
     {key:'Discount Ratio',    label:'Disc %', fmt:topFmtPct, colorFn:()=>'var(--danger)'},
     {key:'Price',             label:'Price',  fmt:v=>parseFloat(v||0).toFixed(2), colorFn:()=>'var(--text)'},
@@ -3719,17 +3729,20 @@ function buildTopTab() {
       cardScroll('🔴','Daily Lower Caps','dayLoss',dayLosers,dayColsDef)
     )}
     ${row2(
-      cardScroll('🚀','Weekly Top Gainers','weekGain',weekGainers,weekColsDef),
-      cardScroll('📉','Weekly Top Losers','weekLoss',weekLosers,weekColsDef)
+      cardScroll('🔊','Top Relative Volume (RVOL &gt; 1)','rvol',topRVOL,rvolColsDef),
+      cardScroll('💹','Top Volume &gt; 1M','volMillion',topVolMillion,volMillionColsDef)
     )}
-    ${row3(
-      card('🔊','Top 10 Relative Volume','rvol',topRVOL,rvolColsDef),
+    ${row2(
       cardScroll('🔁','Turnaround Candidates (Loss Narrowing)','turn',turnaroundList,turnColsDef),
       card('💰','Top 10 Discount (Most Undervalued)','disc',topDisc,discColsDef)
     )}
     ${row2(
-      card('🏅','Top per Sector — Fin. Score &gt; 80','score',topByScoreFiltered,scoreColsDef),
-      card('📈','Top per Sector — YTD &gt; 10%','ytd',topByYTDFiltered,ytdColsDef)
+      cardScroll('🚀','Weekly Top Gainers','weekGain',weekGainers,weekColsDef),
+      cardScroll('📉','Weekly Top Losers','weekLoss',weekLosers,weekColsDef)
+    )}
+    ${row2(
+      cardScroll('🏅','Top per Sector — Fin. Score &gt; 80','score',topByScoreFiltered,scoreColsDef),
+      cardScroll('📈','Top per Sector — YTD &gt; 10%','ytd',topByYTDFiltered,ytdColsDef)
     )}
   </div>`;
 }
