@@ -1856,8 +1856,28 @@ function resetMselFilters() {
 function clearAllFilters() {
   const searchEl = document.getElementById('screenerSearch');
   if (searchEl) searchEl.value = '';
+  const pv = document.getElementById('priceFilterVal');
+  if (pv) pv.value = '';
+  const pd = document.getElementById('priceFilterDir');
+  if (pd) { pd.textContent = '＞'; pd.dataset.dir = 'gt'; }
   resetMselFilters();
   filterScreener();
+}
+
+function togglePriceFilterDir() {
+  const btn = document.getElementById('priceFilterDir');
+  if (!btn) return;
+  const isGt = !btn.dataset.dir || btn.dataset.dir === 'gt';
+  btn.dataset.dir = isGt ? 'lt' : 'gt';
+  btn.textContent = isGt ? '＜' : '＞';
+  filterScreener();
+}
+
+function getPriceFilter() {
+  const val = parseFloat(document.getElementById('priceFilterVal')?.value);
+  if (isNaN(val)) return null;
+  const dir = document.getElementById('priceFilterDir')?.dataset.dir || 'gt';
+  return { val, dir };
 }
 
 function updateClearAllBtn() {
@@ -1866,10 +1886,12 @@ function updateClearAllBtn() {
   const searchEl = document.getElementById('screenerSearch');
   const hasSearch = searchEl && searchEl.value.trim().length > 0;
   const hasMsel = Object.keys(mselRegistry).some(key => mselRegistry[key].selected.size > 0);
-  btn.style.display = (hasSearch || hasMsel) ? '' : 'none';
+  const hasPrice = !!getPriceFilter();
+  btn.style.display = (hasSearch || hasMsel || hasPrice) ? '' : 'none';
 }
 
 function filterScreener() {
+  const priceF = getPriceFilter();
   const q = document.getElementById('screenerSearch').value.toLowerCase();
   const selLiquid = mselRegistry.liquid.selected;
   const selVolPhase = mselRegistry.volPhase.selected;
@@ -1903,6 +1925,12 @@ function filterScreener() {
 
   filteredScreener = screenerData.filter(d => {
     if (q && !String(d.Ticker||'').toLowerCase().includes(q) && !String(d.Name||'').toLowerCase().includes(q)) return false;
+    if (priceF) {
+      const price = parseFloat(d['Price']);
+      if (isNaN(price)) return false;
+      if (priceF.dir === 'gt' && price <= priceF.val) return false;
+      if (priceF.dir === 'lt' && price >= priceF.val) return false;
+    }
     if (selExtra.size > 0) {
       let matched = false;
       for (const v of selExtra) { if (matchesExtra(d, v)) { matched = true; break; } }

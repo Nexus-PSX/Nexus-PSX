@@ -1574,6 +1574,15 @@
               <div class="msel-list" id="othersMselList"></div>
             </div>
           </div>
+          <div id="priceFilterWrap" style="display:inline-flex;align-items:center;gap:4px;padding:0 2px;">
+            <button type="button" id="priceFilterDir" onclick="togglePriceFilterDir()"
+              style="padding:5px 8px;border:1px solid var(--border);border-radius:7px 0 0 7px;background:var(--surface2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;min-width:28px;line-height:1;"
+              title="Toggle greater/less than">＞</button>
+            <input type="number" id="priceFilterVal" placeholder="Price" min="0" step="0.01"
+              oninput="filterScreener()"
+              style="width:72px;padding:5px 7px;border:1px solid var(--border);border-radius:0 7px 7px 0;border-left:none;background:var(--surface2);color:var(--text);font-size:12px;outline:none;"
+              title="Filter by price">
+          </div>
           </div>
 
         </div>
