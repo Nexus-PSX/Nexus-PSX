@@ -1859,7 +1859,7 @@ function clearAllFilters() {
   const pv = document.getElementById('priceFilterVal');
   if (pv) pv.value = '';
   const pd = document.getElementById('priceFilterDir');
-  if (pd) { pd.textContent = '＞'; pd.dataset.dir = 'gt'; }
+  if (pd) { pd.textContent = '>'; pd.dataset.dir = 'gt'; }
   resetMselFilters();
   filterScreener();
 }
