@@ -2050,13 +2050,14 @@ function alignScreenerToggles() {
     toggles.style.paddingLeft = '16px';
     return;
   }
+  // Align toggle row left edge to the Indices filter chip (first chip in filter row)
   const target = document.getElementById('indexMsel');
-  const header = document.getElementById('screenerSearch') ? document.getElementById('screenerSearch').closest('.table-header') : null;
-  if (!target || !header) return;
-  const headerRect = header.getBoundingClientRect();
+  const tableCard = toggles.closest('.table-card');
+  if (!target || !tableCard) { toggles.style.paddingLeft = '16px'; return; }
+  const cardRect = tableCard.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
-  if (headerRect.width === 0) return; // tab hidden, skip
-  const offset = Math.max(16, Math.round(targetRect.left - headerRect.left));
+  if (cardRect.width === 0) return; // tab hidden, skip
+  const offset = Math.max(16, Math.round(targetRect.left - cardRect.left));
   toggles.style.paddingLeft = offset + 'px';
 }
 window.addEventListener('resize', () => { if (typeof alignScreenerToggles === 'function') alignScreenerToggles(); });
