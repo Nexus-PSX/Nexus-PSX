@@ -225,7 +225,6 @@
 
     alertsBtn.addEventListener('click', () => {
       dropdown.classList.add('hidden');
-      if (typeof window.applyNemiVisibility === 'function') window.applyNemiVisibility('');
       alertsPanel.classList.toggle('hidden');
       // Always re-render on open — show all current buy signals
       if (!alertsPanel.classList.contains('hidden')) {
@@ -522,6 +521,7 @@
       // the line before it (this previously caused the watchlist to never
       // sync to Firestore at all whenever checkFreshSignalsToday() threw).
       if (typeof window.wlOnSignIn === 'function') window.wlOnSignIn(user.uid, email);
+      window._psxCurrentEmail = email;
       if (typeof window.applyNemiVisibility === 'function') window.applyNemiVisibility(email);
       try { checkFreshSignalsToday(); } catch (e) { console.error('checkFreshSignalsToday failed:', e); }
       // Store the current UID for the push-permission button and register FCM
@@ -543,6 +543,8 @@
       const toast = document.getElementById('alertToast');
       if (toast) toast.remove();
       if (typeof window.wlOnSignOut === 'function') window.wlOnSignOut();
+      window._psxCurrentEmail = '';
+      if (typeof window.applyNemiVisibility === 'function') window.applyNemiVisibility('');
       window._currentFcmUid = null;
       syncPushButtonState();
     }

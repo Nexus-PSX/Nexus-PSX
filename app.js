@@ -2574,7 +2574,7 @@ function togglePerformance() {
 
 
 function applyNemiVisibility(email) {
-  const allowed = email === 'bilal.jamil@gmail.com';
+  const allowed = email === 'bilal1947@gmail.com';
   // NEMI filter chip
   const nemiMsel = document.getElementById('nemiMsel');
   if (nemiMsel) nemiMsel.style.display = allowed ? '' : 'none';
@@ -2586,6 +2586,19 @@ function applyNemiVisibility(email) {
   if (tbl && !allowed) tbl.classList.add('hide-nemi');
 }
 window.applyNemiVisibility = applyNemiVisibility;
+
+// Re-apply on init in case auth fired before app.js was ready
+(function() {
+  const _reapply = () => {
+    const email = window._psxCurrentEmail || '';
+    applyNemiVisibility(email);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _reapply);
+  } else {
+    _reapply();
+  }
+})();
 
 function toggleNemi() {
   const tbl = document.getElementById('screenerTable');
