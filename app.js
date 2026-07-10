@@ -1,3 +1,6 @@
+// Hoisted globals — must be defined before any inline HTML handlers fire.
+var dataMenuOpen = false;
+
 
         function toggleFiltersWrap() {
           const chips = document.getElementById('screenerFilterChips');
@@ -1591,6 +1594,15 @@ const mselRegistry = {
     oneLabel: v => (STATUS_OPTIONS.find(o=>o.value===v)||{}).label || v,
     manyLabel: n => `Signals`,
   },
+  nemi: {
+    options: () => STATUS_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'NEMI',
+    oneLabel: v => (STATUS_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `NEMI`,
+    onChange: () => filterScreener(),
+  },
   extra: {
     options: () => EXTRA_OPTIONS,
     selected: new Set(),
@@ -1821,7 +1833,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'status', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'status', 'nemi', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
@@ -1988,11 +2000,13 @@ function filterScreener() {
       if (!matched) return false;
     }
     if (selStatuses.size > 0 && !selStatuses.has(String(sigStatusCode(d['Signal Status'])))) return false;
+    const selNemi = mselRegistry.nemi.selected;
+    if (selNemi.size > 0 && !selNemi.has(String(sigStatusCode(d['NEMI Signal Status'])))) return false;
     return true;
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status'];
   const key = sortKeys[screenerSort.col];
   filteredScreener.sort((a,b) => {
   let av = a[key];
@@ -2007,12 +2021,12 @@ function filterScreener() {
   if (av == null) return 1;
   if (bv == null) return -1;
 
-  if (key === 'Signal Status') {
+  if (key === 'Signal Status' || key === 'NEMI Signal Status') {
     return ((sigStatusCode(av) ?? -Infinity) - (sigStatusCode(bv) ?? -Infinity)) * screenerSort.dir;
   }
 
   // columns that must be numeric
-  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %') {
+  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %' || key === 'NEMI Signal date' || key === 'NEMI Signal Price' || key === 'NEMI Signal Return %') {
     return (Number(av) - Number(bv)) * screenerSort.dir;
   }
 
@@ -2538,6 +2552,10 @@ function renderScreenerPage() {
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Current Month Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Current Month Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Past 3 Months Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Past 3 Months Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'YTD Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'YTD Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
+      <td class="mono screener-nemi-col">${fmtSignalDate(dget(d,'NEMI Signal date'))}</td>
+      <td class="mono screener-nemi-col">${(()=>{const n=toNum(dget(d,'NEMI Signal Price'));return n!=null?n.toFixed(2):'—'})()}</td>
+      <td class="mono screener-nemi-col ${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
+      <td class="mono screener-nemi-col">${(()=>{const raw=dget(d,'NEMI Signal Status');const s=sigStatusLabel(raw);if(s==null)return '\u2014';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td style="padding:4px 8px;"><button onclick="addToWatchlist('${String(d.Ticker)}')" title="Add to Watchlist" style="background:var(--accent3-dim); border:1px solid rgba(59,130,246,0.35); border-radius:4px; color:var(--accent3); width:26px; height:26px; font-size:16px; cursor:pointer; line-height:1; padding:0;">＋</button></td>
     `;
     tbody.appendChild(tr);
@@ -2551,6 +2569,29 @@ function togglePerformance() {
   const hidden = tbl.classList.toggle('hide-performance');
   btn.classList.toggle('active', !hidden);
   document.getElementById('perfToggleLabel').textContent = hidden ? 'Show Performance' : 'Hide Performance';
+}
+
+
+function applyNemiVisibility(email) {
+  const allowed = email === 'bilal.jamil@gmail.com';
+  // NEMI filter chip
+  const nemiMsel = document.getElementById('nemiMsel');
+  if (nemiMsel) nemiMsel.style.display = allowed ? '' : 'none';
+  // Show NEMI toggle button in toggles row
+  const nemiBtn = document.getElementById('nemiToggleBtn');
+  if (nemiBtn) nemiBtn.style.display = allowed ? '' : 'none';
+  // If not allowed, ensure columns stay hidden
+  const tbl = document.getElementById('screenerTable');
+  if (tbl && !allowed) tbl.classList.add('hide-nemi');
+}
+window.applyNemiVisibility = applyNemiVisibility;
+
+function toggleNemi() {
+  const tbl = document.getElementById('screenerTable');
+  const btn = document.getElementById('nemiToggleBtn');
+  const hidden = tbl.classList.toggle('hide-nemi');
+  btn.classList.toggle('active', !hidden);
+  document.getElementById('nemiToggleLabel').textContent = hidden ? 'Show NEMI' : 'Hide NEMI';
 }
 function renderPagination() {
   const total = filteredScreener.length;
@@ -3036,9 +3077,6 @@ function showModalError(title, body, detail) {
 }
 
 // ===== DATA MENU =====
-// var (not let) so dataMenuOpen is on window and reachable from inline
-// onmouseleave handlers in admin.html before app.js finishes executing.
-var dataMenuOpen = false;
 
 function positionDataMenuMobile(menu, btn) {
   // On narrow screens the header wraps, so the menu's normal CSS
