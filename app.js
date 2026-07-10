@@ -124,6 +124,11 @@ let screenerPage = 1;
 const PAGE_SIZE = 100;
 let screenerSort = {col: 14, dir: -1};
 let sectorSort = {col: 12, dir: -1};
+// Restore sort state from previous session
+try {
+  const _ss = sessionStorage.getItem('psx_screener_sort');
+  if (_ss) { const p = JSON.parse(_ss); screenerSort.col = p.col; screenerSort.dir = p.dir; }
+} catch(e) {}
 
 // ===== INIT =====
 // ===== ROLLING MARKET TICKER ====================================
@@ -2044,6 +2049,7 @@ window.addEventListener('resize', () => { if (typeof alignScreenerToggles === 'f
 
 function sortScreener(col) {
   if (screenerSort.col === col) screenerSort.dir *= -1; else { screenerSort.col = col; screenerSort.dir = -1; }
+  try { sessionStorage.setItem('psx_screener_sort', JSON.stringify(screenerSort)); } catch(e) {}
   filterScreener();
 }
 function toggleFinancials() {
@@ -3447,6 +3453,132 @@ updateKpiBadge();
 setInterval(updateKpiBadge, 800);
 window.addEventListener('load', updateKpiBadge);
 
+
+
+// ===== FILTER PRESETS =====
+const PRESET_KEY = 'psx_filter_presets';
+
+function getPresets() {
+  try { return JSON.parse(localStorage.getItem(PRESET_KEY) || '{}'); } catch(e) { return {}; }
+}
+
+function saveCurrentPreset() {
+  const nameEl = document.getElementById('presetNameInput');
+  const name = (nameEl?.value || '').trim();
+  if (!name) { nameEl?.focus(); return; }
+
+  // Capture current filter state
+  const state = { search: '', msels: {}, price: null };
+  const searchEl = document.getElementById('screenerSearch');
+  if (searchEl) state.search = searchEl.value;
+
+  // Save all screener msel selections (skip sector tab ones)
+  const screenerKeys = ['sector','index','ticker','score','status','extra','others','liquid','volPhase'];
+  screenerKeys.forEach(key => {
+    if (mselRegistry[key] && mselRegistry[key].selected.size > 0) {
+      state.msels[key] = [...mselRegistry[key].selected];
+    }
+  });
+
+  // Save price filter
+  const pf = getPriceFilter();
+  if (pf) {
+    const pd = document.getElementById('priceFilterDir');
+    state.price = { val: pf.val, dir: pf.dir };
+  }
+
+  const presets = getPresets();
+  presets[name] = state;
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(presets)); } catch(e) {}
+
+  if (nameEl) nameEl.value = '';
+  renderPresetList();
+}
+
+function loadPreset(name) {
+  const presets = getPresets();
+  const state = presets[name];
+  if (!state) return;
+
+  // Clear all first
+  clearAllFilters();
+
+  // Restore search
+  const searchEl = document.getElementById('screenerSearch');
+  if (searchEl && state.search) searchEl.value = state.search;
+
+  // Restore msel selections
+  Object.entries(state.msels || {}).forEach(([key, vals]) => {
+    if (mselRegistry[key]) {
+      vals.forEach(v => mselRegistry[key].selected.add(v));
+      mselUpdateLabel(key);
+    }
+  });
+
+  // Restore price filter
+  if (state.price) {
+    const pv = document.getElementById('priceFilterVal');
+    const pd = document.getElementById('priceFilterDir');
+    if (pv) pv.value = state.price.val;
+    if (pd) { pd.dataset.dir = state.price.dir; pd.textContent = state.price.dir === 'gt' ? '>' : '<'; }
+  }
+
+  filterScreener();
+  closePresetPanel();
+}
+
+function deletePreset(name, e) {
+  e.stopPropagation();
+  const presets = getPresets();
+  delete presets[name];
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(presets)); } catch(e) {}
+  renderPresetList();
+}
+
+function renderPresetList() {
+  const list = document.getElementById('presetList');
+  if (!list) return;
+  const presets = getPresets();
+  const names = Object.keys(presets);
+  if (names.length === 0) {
+    list.innerHTML = '<div style="padding:6px 4px;font-size:12px;color:var(--text3);">No presets saved yet.</div>';
+    return;
+  }
+  list.innerHTML = names.map(name => `
+    <div onclick="loadPreset('${name.replace(/'/g,"\'")}')"
+      style="display:flex;align-items:center;justify-content:space-between;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text);"
+      onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background=''">
+      <span style="font-weight:600;">${name}</span>
+      <button type="button" onclick="deletePreset('${name.replace(/'/g,"\'")}', event)" aria-label="Delete preset ${name}"
+        style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;"
+        onmouseenter="this.style.color='var(--danger)'" onmouseleave="this.style.color='var(--text3)'">×</button>
+    </div>`).join('');
+}
+
+function togglePresetPanel(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('presetPanel');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  if (isOpen) { panel.style.display = 'none'; return; }
+  renderPresetList();
+  panel.style.display = 'block';
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function _close(ev) {
+      const wrap = document.getElementById('presetWrap');
+      if (wrap && !wrap.contains(ev.target)) {
+        panel.style.display = 'none';
+        document.removeEventListener('click', _close);
+      }
+    });
+  }, 0);
+}
+
+function closePresetPanel() {
+  const panel = document.getElementById('presetPanel');
+  if (panel) panel.style.display = 'none';
+}
 
 // ===== THEME TOGGLE =====
 (function() {
