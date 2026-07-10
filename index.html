@@ -1,6 +1,7 @@
 <html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com https://www.googletagmanager.com https://apis.google.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.github.com wss://*.firebaseio.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://nexus-psx-dashboard-dev.firebaseapp.com;">
 <title>Nexus PSX — Where Value Meets Momentum</title>
 
 <!-- ── Open Graph (WhatsApp, LinkedIn, Facebook, iMessage, Telegram) ── -->
@@ -39,7 +40,7 @@
      so every document.getElementById(...) call inside it still finds
      its element exactly as before. Only the SDK *download* start time
      changes, not the execution order. -->
-<script type="module" src="auth.js?v=20260703x"></script>
+<script type="module" src="auth.js?v=20260710a"></script>
 <meta name="description" content="Nexus PSX — Where Value Meets Momentum. Track revenue, profit, EBITDA and market performance of Pakistan Stock Exchange listed companies with interactive charts and analytics.">
 
 <!-- Favicon / App Icons (real files, must be uploaded alongside index.html) -->
@@ -57,11 +58,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=20260703x">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<link rel="stylesheet" href="styles.css?v=20260710a">
 </head>
 <body class="authgate-locked">
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:999999;padding:8px 16px;background:var(--accent);color:#fff;border-radius:0 0 8px 8px;font-size:13px;font-weight:600;text-decoration:none;transition:top 0.2s;" onfocus="this.style.top='0'" onblur="this.style.top='-100px'">Skip to main content</a>
 
 <!-- Splash: shown immediately on every page load, covers both the auth gate
      and the dashboard while Firebase resolves the auth state. Dissolves once
@@ -88,7 +90,7 @@
 <style>
   @keyframes splashSpin { to { transform: rotate(360deg); } }
 </style>
-<link rel="stylesheet" href="auth-styles.css?v=20260703x">
+<link rel="stylesheet" href="auth-styles.css?v=20260710a">
 <div id="authOverlay">
   <div class="auth-card">
     <h1 id="authTitle">Sign in</h1>
@@ -108,7 +110,7 @@
 <div id="alertsPanel" class="alerts-panel hidden">
   <div class="alerts-panel-header">
     <span style="display:flex;align-items:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Current Buy Signals</span>
-    <button id="alertsPanelClose" class="alerts-panel-close">✕</button>
+    <button id="alertsPanelClose" class="alerts-panel-close" aria-label="Close alerts panel">✕</button>
   </div>
   <label style="display:flex; align-items:center; gap:6px; padding:8px 14px; font-size:11px; color:var(--text2); cursor:pointer; border-bottom:1px solid var(--border);">
     <input type="checkbox" id="alertsWatchlistOnlyToggle" style="margin:0;cursor:pointer;">
@@ -126,7 +128,7 @@
     <div class="badge" id="lastUploadedBadge" style="color: var(--accent); border-color: rgba(0, 212, 170, 0.3);">🕐 Updated: 20 Jun 2026 08:10</div>
     <div id="adminControls" style="display: none; align-items: center; gap: 12px; position: relative;">
       <!-- Data Menu Button -->
-      <button id="dataMenuBtn" onclick="toggleDataMenu()" title="Data options" style="display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border-color: var(--border); border-radius: var(--radius-sm); padding: 6px 13px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--text2); letter-spacing: 0.03em; transition: 0.2s; font-family: Inter, sans-serif; white-space: nowrap;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="if(!dataMenuOpen){this.style.borderColor='var(--border)';this.style.color='var(--text2)'}">
+      <button id="dataMenuBtn" aria-label="Data options menu" aria-haspopup="menu" onclick="toggleDataMenu()" title="Data options" style="display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border-color: var(--border); border-radius: var(--radius-sm); padding: 6px 13px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--text2); letter-spacing: 0.03em; transition: 0.2s; font-family: Inter, sans-serif; white-space: nowrap;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="if(!dataMenuOpen){this.style.borderColor='var(--border)';this.style.color='var(--text2)'}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
         Data
         <svg id="dataMenuChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -153,9 +155,9 @@
     <div id="uploadStatus" class="upload-status"></div>
     <button id="installAppBtn" class="install-btn" onclick="handleInstallClick()" title="Install Nexus PSX to your device"><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span><span>Install App</span></button>
     <a href="https://chat.whatsapp.com/DNe9IdTLI0l2oThYoFQyg2" target="_blank" rel="noopener noreferrer" id="whatsappGroupBtn" title="Join our WhatsApp group" style="display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text2); text-decoration: none; line-height: 1; transition: 0.2s; white-space: nowrap;" onmouseenter="this.style.borderColor=&quot;#25D366&quot;;this.style.color=&quot;#25D366&quot;" onmouseleave="this.style.borderColor=&quot;var(--border)&quot;;this.style.color=&quot;var(--text2)&quot;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path></svg><span>Join WhatsApp</span></a>
-    <button id="themeToggleBtn" onclick="toggleTheme()" title="Cycle theme: Dark → Light → Bloomberg → TradingView → Cream" style="background: var(--surface2); border-color: var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; padding: 5px 11px; line-height: 1; color: var(--text2); transition: 0.2s; display: flex; align-items: center; gap: 6px;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text2)'"><span id="themeIcon">🌙</span><span id="themeLabel">LIGHT</span></button>
+    <button id="themeToggleBtn" aria-label="Cycle colour theme" onclick="toggleTheme()" title="Cycle theme: Dark → Light → Bloomberg → TradingView → Cream" style="background: var(--surface2); border-color: var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; padding: 5px 11px; line-height: 1; color: var(--text2); transition: 0.2s; display: flex; align-items: center; gap: 6px;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text2)'"><span id="themeIcon">🌙</span><span id="themeLabel">LIGHT</span></button>
     <div id="authUserMenu" class="auth-user-menu">
-      <button id="authAvatarBtn" class="auth-avatar-btn">?<span id="authAlertBadge" class="auth-alert-badge hidden">0</span></button>
+      <button id="authAvatarBtn" class="auth-avatar-btn" aria-label="Open account menu">?<span id="authAlertBadge" class="auth-alert-badge hidden">0</span></button>
       <div id="authDropdown" class="auth-dropdown hidden">
         <div class="auth-dropdown-header">
           <div class="auth-avatar-lg" id="authAvatarLg">?</div>
@@ -166,7 +168,7 @@
         </div>
         <div class="auth-dropdown-sep"></div>
         <button class="auth-dropdown-item" id="authAlertsBtn"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Alerts</span><span id="authAlertsCount" class="auth-alerts-count hidden">0</span></button>
-        <button class="auth-dropdown-item" id="pushPermBtn" onclick="window.requestPushPermission && window.requestPushPermission()">
+        <button class="auth-dropdown-item" id="pushPermBtn" aria-label="Enable push notifications" onclick="window.requestPushPermission && window.requestPushPermission()">
           <span style="display:flex;align-items:center;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="2"/></svg>
             🔔 Enable Alerts
@@ -215,7 +217,7 @@
           <div class="info-value" style="display:flex;align-items:center;gap:8px;"><span id="ciName">National Bank of Pakistan</span><span id="ciTickerBadges"></span></div>
           <!-- Compact share icon below company name -->
           <div style="margin-top:7px;position:relative;display:inline-block;">
-            <button id="shareBtn" onclick="toggleShareMenu()" title="Share company view" style="background: rgba(77, 148, 255, 0.08); border: 1px solid rgba(77, 148, 255, 0.25); border-radius: 6px; color: var(--accent3); cursor: pointer; padding: 4px 9px; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; font-family: &quot;DM Sans&quot;, sans-serif; font-weight: 600; transition: 0.18s;" onmouseenter="this.style.background='rgba(77,148,255,0.18)';this.style.borderColor='var(--accent3)'" onmouseleave="this.style.background='rgba(77,148,255,0.08)';this.style.borderColor='rgba(77,148,255,0.25)'">
+            <button id="shareBtn" aria-label="Share company view" onclick="toggleShareMenu()" title="Share company view" style="background: rgba(77, 148, 255, 0.08); border: 1px solid rgba(77, 148, 255, 0.25); border-radius: 6px; color: var(--accent3); cursor: pointer; padding: 4px 9px; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; font-family: &quot;DM Sans&quot;, sans-serif; font-weight: 600; transition: 0.18s;" onmouseenter="this.style.background='rgba(77,148,255,0.18)';this.style.borderColor='var(--accent3)'" onmouseleave="this.style.background='rgba(77,148,255,0.08)';this.style.borderColor='rgba(77,148,255,0.25)'">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
               Share
             </button>
@@ -334,7 +336,7 @@
       <div class="chart-card">
         <div class="chart-title">KPI Summary vs Sector <span id="chartKpiLabel"><span id="kpiTickerBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent3)"></span><span id="kpiScoreBadge" style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-left:6px"></span></span></div>
         <div style="overflow-y:auto; overflow-x:auto; max-height: 360px; margin-top: 4px; position: relative; border-radius: 6px; border: 1px solid var(--border);">
-          <table class="kpi-table">
+          <table class="kpi-table" aria-label="Company financial KPIs">
             <thead>
               <tr id="kpiTableHead">
     <th>Metric</th>
@@ -422,7 +424,7 @@
         <div class="table-title">Sector Performance Summary</div>
         <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <div class="msel" id="sectorIndexMsel">
-            <button type="button" class="msel-btn" id="sectorIndexMselBtn" onclick="mselTogglePanel('sectorIndex', event)">
+            <button type="button" class="msel-btn" id="sectorIndexMselBtn" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
               <span id="sectorIndexMselLabel">All Indices</span>
               <span class="msel-caret">▼</span>
@@ -437,7 +439,7 @@
             </div>
           </div>
           <div class="msel" id="sectorFilterMsel">
-            <button type="button" class="msel-btn" id="sectorFilterMselBtn" onclick="mselTogglePanel('sectorFilter', event)">
+            <button type="button" class="msel-btn" id="sectorFilterMselBtn" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sectorFilter', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M3 3h18M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
               <span id="sectorFilterMselLabel">All Sectors</span>
               <span class="msel-caret">▼</span>
@@ -455,7 +457,7 @@
         </div>
       </div>
       <div class="scroll-table">
-      <table class="data-table" id="sectorTable">
+      <table class="data-table" id="sectorTable" aria-label="Sector performance summary">
           <thead>
             <tr id="sectorTableHead">
               <th onclick="sortSectorTable(0)">Sector</th>
@@ -1446,7 +1448,7 @@
           </div>
           <div id="screenerFilterChips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <div class="msel" id="indexMsel">
-            <button type="button" class="msel-btn" id="indexMselBtn" onclick="mselTogglePanel('index', event)">
+            <button type="button" class="msel-btn" id="indexMselBtn" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('index', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
               <span id="indexMselLabel">Indices</span>
               <span class="msel-caret">▼</span>
@@ -1461,7 +1463,7 @@
             </div>
           </div>
           <div class="msel" id="sectorMsel">
-            <button type="button" class="msel-btn" id="sectorMselBtn" onclick="mselTogglePanel('sector', event)">
+            <button type="button" class="msel-btn" id="sectorMselBtn" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sector', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
               <span id="sectorMselLabel">Sectors</span>
               <span class="msel-caret">▼</span>
@@ -1476,7 +1478,7 @@
             </div>
           </div>
           <div class="msel" id="tickerMsel">
-            <button type="button" class="msel-btn" id="tickerMselBtn" onclick="mselTogglePanel('ticker', event)">
+            <button type="button" class="msel-btn" id="tickerMselBtn" aria-label="Filter by comparison tickers" aria-haspopup="listbox" onclick="mselTogglePanel('ticker', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               <span id="tickerMselLabel">Comparison</span>
               <span class="msel-caret">▼</span>
@@ -1491,7 +1493,7 @@
             </div>
           </div>
           <div class="msel" id="extraMsel">
-            <button type="button" class="msel-btn" id="extraMselBtn" onclick="mselTogglePanel('extra', event)">
+            <button type="button" class="msel-btn" id="extraMselBtn" aria-label="Filter by market cap" aria-haspopup="listbox" onclick="mselTogglePanel('extra', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
               <span id="extraMselLabel">Market Cap</span>
               <span class="msel-caret">▼</span>
@@ -1505,7 +1507,7 @@
             </div>
           </div>
           <div class="msel" id="scoreMsel">
-            <button type="button" class="msel-btn" id="scoreMselBtn" onclick="mselTogglePanel('score', event)">
+            <button type="button" class="msel-btn" id="scoreMselBtn" aria-label="Filter by financial score" aria-haspopup="listbox" onclick="mselTogglePanel('score', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
               <span id="scoreMselLabel">Fin. Scores</span>
               <span class="msel-caret">▼</span>
@@ -1519,7 +1521,7 @@
             </div>
           </div>
           <div class="msel" id="statusMsel">
-            <button type="button" class="msel-btn" id="statusMselBtn" onclick="mselTogglePanel('status', event)">
+            <button type="button" class="msel-btn" id="statusMselBtn" aria-label="Filter by signal status" aria-haspopup="listbox" onclick="mselTogglePanel('status', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
               <span id="statusMselLabel">Signals</span>
               <span class="msel-caret">▼</span>
@@ -1533,7 +1535,7 @@
             </div>
           </div>
           <div class="msel" id="liquidMsel">
-            <button type="button" class="msel-btn" id="liquidMselBtn" onclick="mselTogglePanel('liquid', event)">
+            <button type="button" class="msel-btn" id="liquidMselBtn" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
               <span id="liquidMselLabel">Liquidity</span>
               <span class="msel-caret">▼</span>
@@ -1547,7 +1549,7 @@
             </div>
           </div>
           <div class="msel" id="volPhaseMsel">
-            <button type="button" class="msel-btn" id="volPhaseMselBtn" onclick="mselTogglePanel('volPhase', event)">
+            <button type="button" class="msel-btn" id="volPhaseMselBtn" aria-label="Filter by volume phase" aria-haspopup="listbox" onclick="mselTogglePanel('volPhase', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
               <span id="volPhaseMselLabel">Volume Phase</span>
               <span class="msel-caret">▼</span>
@@ -1561,7 +1563,7 @@
             </div>
           </div>
           <div class="msel" id="othersMsel">
-            <button type="button" class="msel-btn" id="othersMselBtn" onclick="mselTogglePanel('others', event)">
+            <button type="button" class="msel-btn" id="othersMselBtn" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
               <span id="othersMselLabel">Other Filters</span>
               <span class="msel-caret">▼</span>
@@ -1575,7 +1577,7 @@
             </div>
           </div>
           <div id="priceFilterWrap" style="display:inline-flex;align-items:center;gap:4px;padding:0 2px;">
-            <button type="button" id="priceFilterDir" data-dir="gt" onclick="togglePriceFilterDir()"
+            <button type="button" id="priceFilterDir" data-dir="gt" aria-label="Toggle price comparison direction" onclick="togglePriceFilterDir()"
               style="padding:5px 8px;border:1px solid var(--border);border-radius:7px 0 0 7px;background:var(--surface2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;min-width:28px;line-height:1;"
               title="Toggle greater/less than">></button>
             <input type="number" id="priceFilterVal" placeholder="Price" min="0" step="0.01"
@@ -1600,9 +1602,9 @@
           </span>
       </div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-      <script src="app.js?v=20260708a"></script>
+      <script src="app.js?v=20260710a"></script>
       <div class="scroll-table">
-        <table class="data-table hide-financials hide-performance hide-daily" id="screenerTable">
+        <table class="data-table hide-financials hide-performance hide-daily" id="screenerTable" aria-label="Stock screener results">
           <thead>
             <tr id="screenerTableHead">
               <th onclick="sortScreener(0)">Ticker</th>
@@ -4363,7 +4365,7 @@
         <div style="font-size:12px;">Click the ＋ button next to any stock in the Screener to add it here</div>
       </div>
       <div class="scroll-table">
-        <table class="data-table" id="watchlistTableGuest" style="">
+        <table class="data-table" id="watchlistTableGuest" aria-label="Guest watchlist" style="">
           <thead><tr id="wlHeadGuest">
             <th onclick="sortWatchlist(0,'guest')" style="cursor:pointer;user-select:none;">Ticker</th>
             <th onclick="sortWatchlist(1,'guest')" style="cursor:pointer;user-select:none;">Name</th>
@@ -4546,7 +4548,7 @@
         <div style="font-size:12px;">Click the ＋ button next to any stock in the Screener to add it here</div>
       </div>
       <div class="scroll-table">
-        <table class="data-table" id="watchlistTableGH" style="">
+        <table class="data-table" id="watchlistTableGH" aria-label="GitHub synced watchlist" style="">
           <thead><tr id="wlHeadGH">
             <th onclick="sortWatchlist(0,'github')" style="cursor:pointer;user-select:none;">Ticker</th>
             <th onclick="sortWatchlist(1,'github')" style="cursor:pointer;user-select:none;">Name</th>

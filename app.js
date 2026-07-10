@@ -3160,21 +3160,32 @@ function closeModal() {
 }
 
 // ===== STARTUP =====
-fetch('./data.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    SOURCE_DATA.length = 0;
-    (data.source || []).forEach(d => SOURCE_DATA.push(d));
-    computeSectorDataFromSource();
-    init();
-    updateDataBadges(data.updatedAt);
-    if (typeof window.checkFreshSignalsToday === 'function') window.checkFreshSignalsToday();
-  })
-  .catch(err => {
-    console.error('Failed to load data.json — dashboard will show with no data.', err);
-    init();
-    updateDataBadges();
-  });
+(function() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  fetch('./data.json?t=' + Date.now(), { signal: controller.signal })
+    .then(r => r.json())
+    .then(data => {
+      clearTimeout(timeout);
+      SOURCE_DATA.length = 0;
+      (data.source || []).forEach(d => SOURCE_DATA.push(d));
+      computeSectorDataFromSource();
+      init();
+      updateDataBadges(data.updatedAt);
+      if (typeof window.checkFreshSignalsToday === 'function') window.checkFreshSignalsToday();
+    })
+    .catch(err => {
+      clearTimeout(timeout);
+      const msg = err.name === 'AbortError'
+        ? 'Data load timed out — please refresh the page.'
+        : 'Failed to load data — please refresh the page.';
+      console.error(msg, err);
+      const el = document.getElementById('screenerCount');
+      if (el) el.textContent = msg;
+      init();
+      updateDataBadges();
+    });
+})();
 // ===== SHARE FUNCTIONALITY =====
 const PORTAL_URL = 'https://Nexus-PSX.github.io/Nexus-PSX/';
 
