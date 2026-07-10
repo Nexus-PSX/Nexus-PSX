@@ -1,12 +1,4 @@
 <html lang="en" data-theme="light"><head>
-<script>
-  // Apply saved theme immediately before first paint — prevents light flash
-  try {
-    var _t = localStorage.getItem('psx_theme');
-    var _m = {light:'light',bloomberg:'bloomberg',tradingview:'tradingview',cream:'cream',dark:''};
-    if (_t && _m.hasOwnProperty(_t)) document.documentElement.setAttribute('data-theme', _m[_t]);
-  } catch(e) {}
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com https://www.googletagmanager.com https://apis.google.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.github.com wss://*.firebaseio.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://nexus-psx-dashboard-dev.firebaseapp.com;">
@@ -1451,26 +1443,7 @@
         <div class="table-filters" style="gap: 8px; flex-wrap: wrap; align-items: center;">
           <div class="screener-search-row" style="display:flex; align-items:center; gap:6px; width:100%;">
             <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:1; min-width:0;">
-            <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"
-            <div id="presetWrap" style="position:relative;display:inline-flex;align-items:center;">
-              <button type="button" id="presetBtn" onclick="togglePresetPanel(event)" aria-label="Filter presets" title="Save or load filter presets"
-                style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                Presets
-              </button>
-              <div id="presetPanel" class="msel-panel" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;z-index:9999;padding:8px;">
-                <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:2px 4px 6px;font-weight:700;">Saved Presets</div>
-                <div id="presetList" style="max-height:180px;overflow-y:auto;"></div>
-                <div style="border-top:1px solid var(--border);margin:6px 0;"></div>
-                <div style="display:flex;gap:6px;align-items:center;">
-                  <input type="text" id="presetNameInput" placeholder="Preset name…" maxlength="30"
-                    style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:12px;outline:none;"
-                    onkeydown="if(event.key==='Enter')saveCurrentPreset()">
-                  <button type="button" onclick="saveCurrentPreset()" aria-label="Save current filters as preset"
-                    style="padding:5px 10px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
-                </div>
-              </div>
-            </div>><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
+            <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
             <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active filters" style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
           </div>
           <div id="screenerFilterChips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
