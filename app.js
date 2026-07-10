@@ -124,6 +124,11 @@ let screenerPage = 1;
 const PAGE_SIZE = 100;
 let screenerSort = {col: 14, dir: -1};
 let sectorSort = {col: 12, dir: -1};
+// Restore sort state from previous session
+try {
+  const _ss = sessionStorage.getItem('psx_screener_sort');
+  if (_ss) { const p = JSON.parse(_ss); screenerSort.col = p.col; screenerSort.dir = p.dir; }
+} catch(e) {}
 
 // ===== INIT =====
 // ===== ROLLING MARKET TICKER ====================================
@@ -2044,6 +2049,7 @@ window.addEventListener('resize', () => { if (typeof alignScreenerToggles === 'f
 
 function sortScreener(col) {
   if (screenerSort.col === col) screenerSort.dir *= -1; else { screenerSort.col = col; screenerSort.dir = -1; }
+  try { sessionStorage.setItem('psx_screener_sort', JSON.stringify(screenerSort)); } catch(e) {}
   filterScreener();
 }
 function toggleFinancials() {
@@ -3446,6 +3452,8 @@ function updateKpiBadge() {
 updateKpiBadge();
 setInterval(updateKpiBadge, 800);
 window.addEventListener('load', updateKpiBadge);
+
+
 
 
 // ===== THEME TOGGLE =====
