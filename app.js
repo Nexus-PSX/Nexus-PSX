@@ -269,6 +269,7 @@ function init() {
   renderScreener();
   initWatchlist();
   buildMarketTicker();
+  if (typeof applyNemiVisibility === 'function') applyNemiVisibility(window._psxCurrentEmail || '');
 }
 
 let acIndex = -1;
@@ -2041,6 +2042,11 @@ function filterScreener() {
   renderScreenerPage();
   alignScreenerToggles();
   updateClearAllBtn();
+  // Re-enforce NEMI visibility after every render
+  const _email = window._psxCurrentEmail || '';
+  if (_email !== 'bilal1947@gmail.com') {
+    document.querySelectorAll('.screener-nemi-col').forEach(el => { el.style.display = 'none'; });
+  }
 }
 
 function alignScreenerToggles() {
@@ -2575,30 +2581,39 @@ function togglePerformance() {
 
 function applyNemiVisibility(email) {
   const allowed = email === 'bilal1947@gmail.com';
-  // NEMI filter chip
+
+  // 1. Body class — drives CSS-based column visibility
+  document.body.classList.toggle('nemi-allowed', allowed);
+
+  // 2. Filter chip + toggle button
   const nemiMsel = document.getElementById('nemiMsel');
   if (nemiMsel) nemiMsel.style.display = allowed ? '' : 'none';
-  // Show NEMI toggle button in toggles row
   const nemiBtn = document.getElementById('nemiToggleBtn');
   if (nemiBtn) nemiBtn.style.display = allowed ? '' : 'none';
-  // If not allowed, ensure columns stay hidden
+
+  // 3. Directly hide/show all nemi column cells — belt-and-suspenders
+  //    in case the updated styles.css hasn't been deployed yet
+  const cells = document.querySelectorAll('.screener-nemi-col');
+  cells.forEach(el => {
+    el.style.display = allowed ? '' : 'none';
+  });
+
+  // 4. Ensure screenerTable has hide-nemi when not allowed
   const tbl = document.getElementById('screenerTable');
-  if (tbl && !allowed) tbl.classList.add('hide-nemi');
+  if (tbl) {
+    if (!allowed) {
+      tbl.classList.add('hide-nemi');
+    }
+    // Note: when allowed, hide-nemi stays — user must click Show NEMI to reveal
+  }
+
+  // 5. Clear nemi filter for non-allowed users
+  if (!allowed && window.mselRegistry && mselRegistry.nemi) {
+    mselRegistry.nemi.selected.clear();
+  }
 }
 window.applyNemiVisibility = applyNemiVisibility;
 
-// Re-apply on init in case auth fired before app.js was ready
-(function() {
-  const _reapply = () => {
-    const email = window._psxCurrentEmail || '';
-    applyNemiVisibility(email);
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _reapply);
-  } else {
-    _reapply();
-  }
-})();
 
 function toggleNemi() {
   const tbl = document.getElementById('screenerTable');
@@ -3051,6 +3066,7 @@ function reinitDashboard(filename) {
   buildSectorTable();
   buildMarketTicker();
   buildTopTab();
+  if (typeof applyNemiVisibility === 'function') applyNemiVisibility(window._psxCurrentEmail || '');
 }
 
 function showOverlay(msg) {

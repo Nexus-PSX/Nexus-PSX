@@ -464,6 +464,7 @@
   #screenerTable th.screener-tech-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(168,85,247,0.09), rgba(168,85,247,0.09)); }
   #screenerTable th.screener-daily-col { background-color: var(--surface2); background-image: linear-gradient(rgba(245,158,11,0.09), rgba(245,158,11,0.09)); }
   #screenerTable th.screener-perf-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(34,197,94,0.09), rgba(34,197,94,0.09)); }
+  #screenerTable th.screener-nemi-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(6,182,212,0.09), rgba(6,182,212,0.09)); }
   .data-table th {
     background: var(--surface2);
     background-color: var(--surface2);
@@ -755,6 +756,11 @@
   #screenerTable.hide-daily .screener-daily-col { display:none; }
   /* Hide technical columns (Signal Date, Signal Return%, Signal Status) when toggled */
   #screenerTable.hide-technical .screener-tech-col { display:none; }
+  /* NEMI columns: hidden by default globally, shown only when body has nemi-allowed class */
+  .screener-nemi-col { display:none !important; }
+  body.nemi-allowed .screener-nemi-col { display:table-cell !important; }
+  body.nemi-allowed #screenerTable.hide-nemi .screener-nemi-col { display:none !important; }
+  #screenerTable.hide-nemi .screener-nemi-col { display:none !important; }
 
 
 
