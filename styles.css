@@ -25,7 +25,7 @@
 
     --text:     #f0f4ff;
     --text2:    #8a9bc0;
-    --text3:    #4a5878;
+    --text3:    #5e6f8f;
 
     --shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
     --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
@@ -491,6 +491,11 @@
     transition: background 0.1s;
   }
   .data-table tr:last-child td { border-bottom: none; }
+  /* Dark theme explicit text colors — ensures readability in dark mode */
+  .data-table td { color: var(--text); }
+  .data-table td.mono { color: var(--text); }
+  .sector-name-cell { color: var(--text); }
+  .screener-sector-cell { color: var(--text2); }
   .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
   .positive { color: var(--success); }
   .negative { color: var(--danger); }
