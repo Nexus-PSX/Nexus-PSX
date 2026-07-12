@@ -2841,33 +2841,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const iconEl = document.querySelector('link[rel="apple-touch-icon"]');
   if (iconEl) APP_ICON_DATAURI = iconEl.href;
 
+  // Register service worker first — must be active before beforeinstallprompt fires
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(() => {
+      // After SW registered, check if prompt already captured
+      if (!deferredInstallPrompt && window._deferredInstallPrompt) {
+        deferredInstallPrompt = window._deferredInstallPrompt;
+        showInstallButton();
+      }
+    }).catch(() => {});
+  }
+
   if (isStandaloneMode()) { hideInstallButton(); return; }
 
   // iOS Safari — never fires beforeinstallprompt, show manual instructions button
   if (isIOSDevice() && isSafariBrowser()) { showInstallButton(); return; }
 
-  // Android Chrome — show button always (either prompt fires or we show manual steps)
+  // Android Chrome — show button; prompt will fire after SW is active
   if (isAndroidChrome()) { showInstallButton(); return; }
 
-  // Check if prompt was captured before app.js loaded
+  // Desktop — show if prompt already captured
   if (window._deferredInstallPrompt) {
     deferredInstallPrompt = window._deferredInstallPrompt;
     showInstallButton();
   }
-
-  // Register service worker — required for Android Chrome installability
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  }
 });
 
 function handleInstallClick() {
-  // Always sync from window-level capture in case app.js listener missed the event
+  // Sync from window-level capture
   if (!deferredInstallPrompt && window._deferredInstallPrompt) {
     deferredInstallPrompt = window._deferredInstallPrompt;
   }
 
-  // Android Chrome — fire the native prompt directly, no modal needed
+  // Android Chrome with prompt ready — fire directly, no modal
   if (isAndroidChrome() && deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     deferredInstallPrompt.userChoice.then(choice => {
@@ -2880,9 +2886,28 @@ function handleInstallClick() {
     return;
   }
 
+  // Android Chrome but prompt not yet ready — show instructions
+  if (isAndroidChrome()) {
+    const title = document.getElementById('installModalTitle');
+    const body = document.getElementById('installModalBody');
+    const steps = document.getElementById('installSteps');
+    const cancelBtn = document.getElementById('installCancelBtn');
+    const confirmBtn = document.getElementById('installConfirmBtn');
+    title.textContent = 'Install Nexus PSX';
+    body.textContent = 'Tap the menu button in Chrome and select:';
+    steps.style.display = 'block';
+    steps.innerHTML = '➊ Tap the <b>⋮ three-dot menu</b> in Chrome<br>'
+      + '➋ Tap <b>"Install app"</b> or <b>"Add to Home screen"</b><br><br>'
+      + 'The Nexus PSX icon will appear on your home screen and open full-screen.';
+    cancelBtn.style.display = 'none';
+    confirmBtn.textContent = 'Got it';
+    confirmBtn.onclick = closeInstallModal;
+    document.getElementById('installModal').classList.add('show');
+    return;
+  }
+
   const iconImg = document.getElementById('installIconPreview');
   if (iconImg) iconImg.src = APP_ICON_DATAURI;
-
   const title = document.getElementById('installModalTitle');
   const body = document.getElementById('installModalBody');
   const steps = document.getElementById('installSteps');
@@ -2891,18 +2916,17 @@ function handleInstallClick() {
 
   if (isIOSDevice()) {
     title.textContent = 'Add Nexus PSX to Home Screen';
-    body.textContent = "iOS doesn't allow apps to install themselves automatically — just follow these steps in Safari:";
+    body.textContent = "Follow these steps in Safari:";
     steps.style.display = 'block';
-    steps.innerHTML = '1. Tap the <b>Share</b> icon (square with an arrow) in Safari toolbar<br>'
-      + '2. Scroll down and tap <b>"Add to Home Screen"</b><br>'
-      + '3. Tap <b>"Add"</b> in the top-right corner<br><br>'
-      + 'The Nexus PSX icon will appear on your home screen.';
+    steps.innerHTML = '➊ Tap the <b>Share</b> icon (square with arrow) in Safari toolbar<br>'
+      + '➋ Scroll and tap <b>"Add to Home Screen"</b><br>'
+      + '➌ Tap <b>"Add"</b> in the top-right corner';
     cancelBtn.style.display = 'none';
     confirmBtn.textContent = 'Got it';
     confirmBtn.onclick = closeInstallModal;
   } else if (deferredInstallPrompt) {
     title.textContent = 'Install Nexus PSX?';
-    body.textContent = 'Add Nexus PSX to your home screen for quick, full-screen access.';
+    body.textContent = 'Add to your home screen for quick, full-screen access.';
     steps.style.display = 'none';
     cancelBtn.style.display = '';
     confirmBtn.textContent = 'Install';
@@ -2911,13 +2935,11 @@ function handleInstallClick() {
     title.textContent = 'Install Nexus PSX';
     body.textContent = "Use your browser's built-in install option:";
     steps.style.display = 'block';
-    steps.innerHTML = '<b>Android Chrome:</b> tap the ⋮ menu → "Install app" or "Add to Home screen".<br><br>'
-      + '<b>Desktop Chrome/Edge:</b> click the install icon (⊕) in the address bar.';
+    steps.innerHTML = '<b>Desktop Chrome/Edge:</b> click the install icon (⊕) in the address bar.';
     cancelBtn.style.display = 'none';
     confirmBtn.textContent = 'Got it';
     confirmBtn.onclick = closeInstallModal;
   }
-
   document.getElementById('installModal').classList.add('show');
 }
 
