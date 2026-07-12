@@ -2862,6 +2862,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function handleInstallClick() {
+  // Always sync from window-level capture in case app.js listener missed the event
+  if (!deferredInstallPrompt && window._deferredInstallPrompt) {
+    deferredInstallPrompt = window._deferredInstallPrompt;
+  }
+
+  // Android Chrome — fire the native prompt directly, no modal needed
+  if (isAndroidChrome() && deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        deferredInstallPrompt = null;
+        window._deferredInstallPrompt = null;
+        hideInstallButton();
+      }
+    });
+    return;
+  }
+
   const iconImg = document.getElementById('installIconPreview');
   if (iconImg) iconImg.src = APP_ICON_DATAURI;
 
@@ -2872,32 +2890,29 @@ function handleInstallClick() {
   const confirmBtn = document.getElementById('installConfirmBtn');
 
   if (isIOSDevice()) {
-    // iOS has no programmatic install API — guide the user manually.
     title.textContent = 'Add Nexus PSX to Home Screen';
-    body.textContent = 'iOS doesn\'t allow apps to install themselves automatically — just follow these steps in Safari:';
+    body.textContent = "iOS doesn't allow apps to install themselves automatically — just follow these steps in Safari:";
     steps.style.display = 'block';
-    steps.innerHTML = '1. Tap the <b>Share</b> icon (square with an arrow) in Safari\'s toolbar<br>'
+    steps.innerHTML = '1. Tap the <b>Share</b> icon (square with an arrow) in Safari toolbar<br>'
       + '2. Scroll down and tap <b>"Add to Home Screen"</b><br>'
       + '3. Tap <b>"Add"</b> in the top-right corner<br><br>'
-      + 'The Nexus PSX icon will then appear on your home screen.';
+      + 'The Nexus PSX icon will appear on your home screen.';
     cancelBtn.style.display = 'none';
     confirmBtn.textContent = 'Got it';
     confirmBtn.onclick = closeInstallModal;
   } else if (deferredInstallPrompt) {
-    // Chrome / Edge / Android — native install prompt available after confirmation.
     title.textContent = 'Install Nexus PSX?';
-    body.textContent = 'Add Nexus PSX to your home screen or desktop for quick, full-screen access — just like a native app.';
+    body.textContent = 'Add Nexus PSX to your home screen for quick, full-screen access.';
     steps.style.display = 'none';
     cancelBtn.style.display = '';
     confirmBtn.textContent = 'Install';
     confirmBtn.onclick = confirmInstall;
   } else {
-    // Browser supports installing but hasn't fired the event yet, or doesn't support it at all.
     title.textContent = 'Install Nexus PSX';
-    body.textContent = 'Use your browser\'s built-in install option to add Nexus PSX to your device:';
+    body.textContent = "Use your browser's built-in install option:";
     steps.style.display = 'block';
-    steps.innerHTML = '<b>Desktop Chrome/Edge:</b> click the install icon (⊕ or computer icon) in the address bar.<br><br>'
-      + '<b>Android Chrome:</b> open the ⋮ menu → "Install app" or "Add to Home screen".';
+    steps.innerHTML = '<b>Android Chrome:</b> tap the ⋮ menu → "Install app" or "Add to Home screen".<br><br>'
+      + '<b>Desktop Chrome/Edge:</b> click the install icon (⊕) in the address bar.';
     cancelBtn.style.display = 'none';
     confirmBtn.textContent = 'Got it';
     confirmBtn.onclick = closeInstallModal;
