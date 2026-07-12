@@ -6,6 +6,14 @@
     if (_t && _m.hasOwnProperty(_t)) document.documentElement.setAttribute('data-theme', _m[_t]);
   } catch(e) {}
 </script>
+<script>
+  // Capture beforeinstallprompt before app.js loads — Android Chrome fires it very early
+  window._deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    window._deferredInstallPrompt = e;
+  });
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com https://www.googletagmanager.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com https://api.github.com wss://*.firebaseio.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src 'self' https://fonts.gstatic.com; frame-src https://nexus-psx-dashboard-dev.firebaseapp.com https://accounts.google.com https://*.firebaseapp.com;">

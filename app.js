@@ -2788,7 +2788,8 @@ function trendIcon(curr, prev) {
 
 /* ===================== PWA INSTALL (Add to Home Screen) ===================== */
 let deferredInstallPrompt = null;
-const APP_ICON_DATAURI = document.querySelector('link[rel="apple-touch-icon"]') ? document.querySelector('link[rel="apple-touch-icon"]').href : '';
+// Defer icon URI lookup until DOM is ready — querySelector fails mid-parse
+let APP_ICON_DATAURI = '';
 
 function isIOSDevice() {
   const ua = navigator.userAgent || '';
@@ -2803,6 +2804,10 @@ function isSafariBrowser() {
   const ua = navigator.userAgent || '';
   return /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
 }
+function isAndroidChrome() {
+  const ua = navigator.userAgent || '';
+  return /android/i.test(ua) && /chrome/i.test(ua) && !/edg/i.test(ua);
+}
 
 function showInstallButton() {
   const btn = document.getElementById('installAppBtn');
@@ -2813,24 +2818,46 @@ function hideInstallButton() {
   if (btn) btn.classList.remove('show');
 }
 
+// Capture beforeinstallprompt as early as possible — before app.js fully loads
+// by also registering on window at module level AND storing on window immediately
+if (typeof window._deferredInstallPrompt !== 'undefined') {
+  // Event was captured by the early listener in index.html before app.js loaded
+  deferredInstallPrompt = window._deferredInstallPrompt;
+}
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
+  window._deferredInstallPrompt = e;
   showInstallButton();
 });
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
+  window._deferredInstallPrompt = null;
   hideInstallButton();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Resolve icon URI now that DOM is ready
+  const iconEl = document.querySelector('link[rel="apple-touch-icon"]');
+  if (iconEl) APP_ICON_DATAURI = iconEl.href;
+
   if (isStandaloneMode()) { hideInstallButton(); return; }
-  // iOS Safari never fires beforeinstallprompt — show our button so users
-  // can get manual "Add to Home Screen" instructions.
-  if (isIOSDevice() && isSafariBrowser()) showInstallButton();
-  // Register service worker (required by Chrome/Edge/Android for installability)
+
+  // iOS Safari — never fires beforeinstallprompt, show manual instructions button
+  if (isIOSDevice() && isSafariBrowser()) { showInstallButton(); return; }
+
+  // Android Chrome — show button always (either prompt fires or we show manual steps)
+  if (isAndroidChrome()) { showInstallButton(); return; }
+
+  // Check if prompt was captured before app.js loaded
+  if (window._deferredInstallPrompt) {
+    deferredInstallPrompt = window._deferredInstallPrompt;
+    showInstallButton();
+  }
+
+  // Register service worker — required for Android Chrome installability
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => { /* sw.js not hosted alongside index.html — install button still works on iOS */ });
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 });
 
