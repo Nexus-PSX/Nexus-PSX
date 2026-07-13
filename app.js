@@ -77,6 +77,9 @@ function computeSectorRowsFromCompanies(companies) {
     p1m:        avg(rows, 'Current Month Return %'),
     p3m:        avg(rows, 'Past 3 Months Return %'),
     pYTD:       avg(rows, 'YTD Return %'),
+    pRoll1m:    avg(rows, 'Rolling 1M%'),
+    pRoll3m:    avg(rows, 'Rolling 3M%'),
+    pRoll1y:    avg(rows, 'Rolling 1Y%'),
   }));
 }
 
@@ -116,6 +119,9 @@ function buildMarketAvgRowFromCompanies(companies, sectorRows) {
     p1m:        avg('Current Month Return %'),
     p3m:        avg('Past 3 Months Return %'),
     pYTD:       avg('YTD Return %'),
+    pRoll1m:    avg('Rolling 1M%'),
+    pRoll3m:    avg('Rolling 3M%'),
+    pRoll1y:    avg('Rolling 1Y%'),
   };
 }
 
@@ -1369,6 +1375,9 @@ function renderSectorTable(data) {
       <td style="text-align:center">${fmtChg(s.p1m)}</td>
       <td style="text-align:center">${fmtChg(s.p3m)}</td>
       <td style="text-align:center">${fmtChg(s.pYTD)}</td>
+      <td style="text-align:center">${fmtChg(s.pRoll1m)}</td>
+      <td style="text-align:center">${fmtChg(s.pRoll3m)}</td>
+      <td style="text-align:center">${fmtChg(s.pRoll1y)}</td>
     `;
     tbody.appendChild(tr);
   };
@@ -1444,7 +1453,7 @@ function filterSectorTable() {
   updateSectorClearBtn();
 }
 function sortSectorTable(col) {
-  const cols = ['sector','companies','epsQ','epsTTM','opMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD'];
+  const cols = ['sector','companies','epsQ','epsTTM','opMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll1y'];
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
@@ -2007,7 +2016,7 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 1Y%'];
   const key = sortKeys[screenerSort.col];
   filteredScreener.sort((a,b) => {
   let av = a[key];
@@ -2027,7 +2036,7 @@ function filterScreener() {
   }
 
   // columns that must be numeric
-  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %' || key === 'NEMI Signal date' || key === 'NEMI Signal Price' || key === 'NEMI Signal Return %') {
+  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %' || key === 'NEMI Signal date' || key === 'NEMI Signal Price' || key === 'NEMI Signal Return %' || key === 'Rolling 1M%' || key === 'Rolling 3M%' || key === 'Rolling 1Y%') {
     return (Number(av) - Number(bv)) * screenerSort.dir;
   }
 
@@ -2559,6 +2568,9 @@ function renderScreenerPage() {
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Current Month Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Current Month Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Past 3 Months Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Past 3 Months Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'YTD Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'YTD Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
+      <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Rolling 1M%'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Rolling 1M%'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
+      <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Rolling 3M%'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Rolling 3M%'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
+      <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Rolling 1Y%'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Rolling 1Y%'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-nemi-col">${fmtSignalDate(dget(d,'NEMI Signal date'))}</td>
       <td class="mono screener-nemi-col">${(()=>{const n=toNum(dget(d,'NEMI Signal Price'));return n!=null?n.toFixed(2):'—'})()}</td>
       <td class="mono screener-nemi-col ${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
