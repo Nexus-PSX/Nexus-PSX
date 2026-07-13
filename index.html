@@ -495,7 +495,8 @@
               <th onclick="sortSectorTable(17)" title="Year-to-Date Price Change" class="">YTD %</th>
               <th onclick="sortSectorTable(18)" title="Rolling 1-Month Return %">Roll 1M%</th>
               <th onclick="sortSectorTable(19)" title="Rolling 3-Month Return %">Roll 3M%</th>
-              <th onclick="sortSectorTable(20)" title="Rolling 1-Year Return %">Roll 1Y%</th>
+              <th onclick="sortSectorTable(20)" title="Rolling 6-Month Return %">Roll 6M%</th>
+              <th onclick="sortSectorTable(21)" title="Rolling 1-Year Return %">Roll 1Y%</th>
             </tr>
           </thead>
           <tbody id="sectorTableBody"><tr>
@@ -1668,13 +1669,14 @@
               <th class="screener-perf-col" onclick="sortScreener(25)">MTD %</th>
               <th class="screener-perf-col" onclick="sortScreener(26)">QTD %</th>
               <th class="screener-perf-col" onclick="sortScreener(27)">YTD %</th>
-              <th class="screener-perf-col" onclick="sortScreener(32)">Roll 1M%</th>
-              <th class="screener-perf-col" onclick="sortScreener(33)">Roll 3M%</th>
-              <th class="screener-perf-col" onclick="sortScreener(34)">Roll 1Y%</th>
-              <th class="screener-nemi-col" onclick="sortScreener(28)">NEMI Date</th>
-              <th class="screener-nemi-col" onclick="sortScreener(29)">NEMI Price</th>
-              <th class="screener-nemi-col" onclick="sortScreener(30)">NEMI Return%</th>
-              <th class="screener-nemi-col" onclick="sortScreener(31)">NEMI Status</th>
+              <th class="screener-perf-col" data-sort-col="32" onclick="sortScreener(32)">Roll 1M%</th>
+              <th class="screener-perf-col" data-sort-col="33" onclick="sortScreener(33)">Roll 3M%</th>
+              <th class="screener-perf-col" data-sort-col="34" onclick="sortScreener(34)">Roll 6M%</th>
+              <th class="screener-perf-col" data-sort-col="35" onclick="sortScreener(35)">Roll 1Y%</th>
+              <th class="screener-nemi-col" data-sort-col="28" onclick="sortScreener(28)">NEMI Date</th>
+              <th class="screener-nemi-col" data-sort-col="29" onclick="sortScreener(29)">NEMI Price</th>
+              <th class="screener-nemi-col" data-sort-col="30" onclick="sortScreener(30)">NEMI Return%</th>
+              <th class="screener-nemi-col" data-sort-col="31" onclick="sortScreener(31)">NEMI Status</th>
               <th style="width:36px;"></th>
             </tr>
           </thead>
