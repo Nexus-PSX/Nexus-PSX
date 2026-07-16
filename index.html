@@ -436,10 +436,11 @@
   <div id="tab-sector" class="tab-content">
     <div class="table-card">
       <div class="table-header">
-        <div class="table-title">Sector Performance Summary</div>
+        <div class="table-title" style="position:relative;">Sector Performance Summary</div>
         <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="fin-toggle-btn" style="position:relative;" active" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Hide Financials</span></button>
           <div class="msel" id="sectorIndexMsel">
-            <button type="button" class="msel-btn" id="sectorIndexMselBtn" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="sectorIndexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)" title="Index Filter: Narrows sector averages to only companies in the selected index (e.g. KSE 100).">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
               <span id="sectorIndexMselLabel">All Indices</span>
               <span class="msel-caret">▼</span>
@@ -454,7 +455,7 @@
             </div>
           </div>
           <div class="msel" id="sectorFilterMsel">
-            <button type="button" class="msel-btn" id="sectorFilterMselBtn" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sectorFilter', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="sectorFilterMselBtn" style="position:relative;" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sectorFilter', event)" title="Sector Filter: Show only selected sectors. Click any sector row to drill through to the Screener.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M3 3h18M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
               <span id="sectorFilterMselLabel">All Sectors</span>
               <span class="msel-caret">▼</span>
@@ -468,7 +469,7 @@
               <div class="msel-list" id="sectorFilterMselList"></div>
             </div>
           </div>
-          <button type="button" id="clearSectorFiltersBtn" onclick="clearSectorFilters()" title="Clear all sector filters" style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
+          <button type="button" id="clearSectorFiltersBtn" onclick="clearSectorFilters()" title="Clear all active sector filters." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
         </div>
       </div>
       <div class="scroll-table">
@@ -476,18 +477,18 @@
           <thead>
             <tr id="sectorTableHead">
               <th onclick="sortSectorTable(0)">Sector</th>
-              <th onclick="sortSectorTable(1)" class="sector-hide-mobile">Cos</th>
-              <th onclick="sortSectorTable(2)" class="sector-hide-mobile">Avg EPS (Q)</th>
-              <th onclick="sortSectorTable(3)" class="sector-hide-mobile">EPS (TTM)</th>
-              <th onclick="sortSectorTable(4)" class="sector-hide-mobile">Op Margin</th>
-              <th onclick="sortSectorTable(5)" class="sector-hide-mobile">ROE</th>
-              <th onclick="sortSectorTable(6)" class="sector-hide-mobile">D/E</th>
-              <th onclick="sortSectorTable(7)" class="sector-hide-mobile">CFO (mn)</th>
-              <th onclick="sortSectorTable(8)" class="sector-hide-mobile">Div Yield</th>
-              <th onclick="sortSectorTable(9)" class="sector-hide-mobile sort-desc">P/E Ratio</th>
-              <th onclick="sortSectorTable(10)" class="">Financial Score</th>
-              <th onclick="sortSectorTable(11)" title="Average Relative Volume vs Average" class="">Rel Vol</th>
-              <th onclick="sortSectorTable(12)" title="Average Discount Ratio" class="">Disc Ratio</th>
+              <th onclick="sortSectorTable(1)" class="sector-hide-mobile sector-fin-col">Cos</th>
+              <th onclick="sortSectorTable(2)" class="sector-hide-mobile sector-fin-col">Avg EPS (Q)</th>
+              <th onclick="sortSectorTable(3)" class="sector-hide-mobile sector-fin-col">EPS (TTM)</th>
+              <th onclick="sortSectorTable(4)" class="sector-hide-mobile sector-fin-col">Op Margin</th>
+              <th onclick="sortSectorTable(5)" class="sector-hide-mobile sector-fin-col">ROE</th>
+              <th onclick="sortSectorTable(6)" class="sector-hide-mobile sector-fin-col">D/E</th>
+              <th onclick="sortSectorTable(7)" class="sector-hide-mobile sector-fin-col">CFO</th>
+              <th onclick="sortSectorTable(8)" class="sector-hide-mobile sector-fin-col">Div Yield</th>
+              <th onclick="sortSectorTable(9)" class="sector-hide-mobile sector-fin-col sort-desc">P/E Ratio</th>
+              <th title="Financial Score: Composite score 0-100 reflecting sector average financial health and momentum." onclick="sortSectorTable(10)" class="" style="position:relative;">Financial Score</th>
+              <th onclick="sortSectorTable(11)" title="Average Relative Volume vs Average" class="" style="position:relative;">Rel Vol</th>
+              <th onclick="sortSectorTable(12)" title="Average Discount Ratio" class="" style="position:relative;">Disc Ratio</th>
               <th onclick="sortSectorTable(13)" title="1-Day Price Change" class="sector-hide-mobile">1D %</th>
               <th onclick="sortSectorTable(14)" title="Week-to-Date Price Change" class="sector-hide-mobile">WTD %</th>
               <th onclick="sortSectorTable(15)" title="Month-to-Date Price Change">MTD %</th>
@@ -1462,11 +1463,11 @@
           <div class="screener-search-row" style="display:flex; align-items:center; gap:6px; width:100%;">
             <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:1; min-width:0;">
             <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
-            <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active filters" style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
+            <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active screener filters and reset the search box." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
           </div>
           <div id="screenerFilterChips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <div class="msel" id="indexMsel">
-            <button type="button" class="msel-btn" id="indexMselBtn" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('index', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="indexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('index', event)" title="Indices: Filter by index membership — KSE 100, KSE 30, KMI 30 (Shariah), KSE All Share. Multi-select.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
               <span id="indexMselLabel">Indices</span>
               <span class="msel-caret">▼</span>
@@ -1481,7 +1482,7 @@
             </div>
           </div>
           <div class="msel" id="sectorMsel">
-            <button type="button" class="msel-btn" id="sectorMselBtn" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sector', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="sectorMselBtn" style="position:relative;" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sector', event)" title="Sectors: Filter by one or more of the 44+ PSX sectors. Multi-select.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
               <span id="sectorMselLabel">Sectors</span>
               <span class="msel-caret">▼</span>
@@ -1496,7 +1497,7 @@
             </div>
           </div>
           <div class="msel" id="tickerMsel">
-            <button type="button" class="msel-btn" id="tickerMselBtn" aria-label="Filter by comparison tickers" aria-haspopup="listbox" onclick="mselTogglePanel('ticker', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="tickerMselBtn" style="position:relative;" aria-label="Filter by comparison tickers" aria-haspopup="listbox" onclick="mselTogglePanel('ticker', event)" title="Comparison: Load specific tickers side by side for peer analysis.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               <span id="tickerMselLabel">Comparison</span>
               <span class="msel-caret">▼</span>
@@ -1525,7 +1526,7 @@
             </div>
           </div>
           <div class="msel" id="scoreMsel">
-            <button type="button" class="msel-btn" id="scoreMselBtn" aria-label="Filter by financial score" aria-haspopup="listbox" onclick="mselTogglePanel('score', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="scoreMselBtn" style="position:relative;" aria-label="Filter by financial score" aria-haspopup="listbox" onclick="mselTogglePanel('score', event)" title="Financial Score: Filter by score band (0-100). >80 = high quality, >60 = good, >40 = average.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
               <span id="scoreMselLabel">Fin. Scores</span>
               <span class="msel-caret">▼</span>
@@ -1539,7 +1540,7 @@
             </div>
           </div>
           <div class="msel" id="statusMsel">
-            <button type="button" class="msel-btn" id="statusMselBtn" aria-label="Filter by signal status" aria-haspopup="listbox" onclick="mselTogglePanel('status', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="statusMselBtn" style="position:relative;" aria-label="Filter by signal status" aria-haspopup="listbox" onclick="mselTogglePanel('status', event)" title="Signal Status: Filter by recommendation — Initial Buy, Continuation Buy, Hold, Cautious, Take Profit, Exit, No Trade.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
               <span id="statusMselLabel">Signals</span>
               <span class="msel-caret">▼</span>
@@ -1554,7 +1555,7 @@
           </div>
 
           <div class="msel" id="nemiMsel" style="display:none;">
-            <button type="button" class="msel-btn" id="nemiMselBtn" aria-label="Filter by NEMI signal status" aria-haspopup="listbox" onclick="mselTogglePanel('nemi', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="nemiMselBtn" style="position:relative;" aria-label="Filter by NEMI signal status" aria-haspopup="listbox" onclick="mselTogglePanel('nemi', event)" title="NEMI Signal: Separate proprietary signal filter. Restricted to authorised users only.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
               <span id="nemiMselLabel">NEMI</span>
               <span class="msel-caret">▼</span>
@@ -1568,7 +1569,7 @@
             </div>
           </div>
           <div class="msel" id="liquidMsel">
-            <button type="button" class="msel-btn" id="liquidMselBtn" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="liquidMselBtn" style="position:relative;" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)" title="Liquidity: Minimum average daily trading turnover threshold.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
               <span id="liquidMselLabel">Liquidity</span>
               <span class="msel-caret">▼</span>
@@ -1582,7 +1583,7 @@
             </div>
           </div>
           <div class="msel" id="volPhaseMsel">
-            <button type="button" class="msel-btn" id="volPhaseMselBtn" aria-label="Filter by volume phase" aria-haspopup="listbox" onclick="mselTogglePanel('volPhase', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="volPhaseMselBtn" style="position:relative;" aria-label="Filter by volume phase" aria-haspopup="listbox" onclick="mselTogglePanel('volPhase', event)" title="Volume Phase: Filter by volume behaviour — Accumulation, Breakout, Distribution, Contraction.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
               <span id="volPhaseMselLabel">Volume Phase</span>
               <span class="msel-caret">▼</span>
@@ -1596,7 +1597,7 @@
             </div>
           </div>
           <div class="msel" id="othersMsel">
-            <button type="button" class="msel-btn" id="othersMselBtn" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)">
+            <button type="button" class="msel-btn" style="position:relative;" id="othersMselBtn" style="position:relative;" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)" title="Other Filters: Circuit Breakers, Turnaround Candidates, NI > OI, Shariah-compliant stocks.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
               <span id="othersMselLabel">Other Filters</span>
               <span class="msel-caret">▼</span>
@@ -1612,11 +1613,11 @@
           <div id="priceFilterWrap" style="display:inline-flex;align-items:center;gap:4px;padding:0 2px;">
             <button type="button" id="priceFilterDir" data-dir="gt" aria-label="Toggle price comparison direction" onclick="togglePriceFilterDir()"
               style="padding:5px 8px;border:1px solid var(--border);border-radius:7px 0 0 7px;background:var(--surface2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;min-width:28px;line-height:1;"
-              title="Toggle greater/less than">></button>
-            <input type="number" id="priceFilterVal" placeholder="Price" min="0" step="0.01"
+              title="Price Filter: Toggle > (greater than) or < (less than), then enter a price value.">></button>
+            <input type="number" id="priceFilterVal" placeholder="Price" title="Enter price threshold. Use the > or < button to set direction." min="0" step="0.01"
               oninput="filterScreener()"
               style="width:72px;padding:5px 7px;border:1px solid var(--border);border-radius:0 7px 7px 0;border-left:none;background:var(--surface2);color:var(--text);font-size:12px;outline:none;"
-              title="Filter by price">
+              title="Enter price threshold. Combined with the > or < button to filter stocks by price.">
           </div>
           </div>
 
@@ -1624,10 +1625,10 @@
       </div>
       <div id="screenerTogglesRow" class="table-toggles" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border);">
           <button class="fin-toggle-btn" id="finToggleBtn" onclick="toggleFinancials()" title="Hide/show EPS, Revenue, Margins, CFO columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="finToggleLabel">Show Financials</span></button>
-          <button class="fin-toggle-btn active" id="techToggleBtn" onclick="toggleTechnical()" title="Hide/show Signal Date, Signal Return%, Signal Status columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 0 0 14.14"></path><path d="M7.76 7.76a6 6 0 0 0 0 8.48"></path><circle cx="12" cy="12" r="1"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.48"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><span id="techToggleLabel">Hide Technical</span></button>
-          <button class="fin-toggle-btn" id="dailyToggleBtn" onclick="toggleDaily()" title="Show Price, Rel Vol, Volume and 1D % columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span id="dailyToggleLabel">Show Daily Movement</span></button>
-          <button class="fin-toggle-btn" id="perfToggleBtn" onclick="togglePerformance()" title="Hide/show performance return columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span id="perfToggleLabel">Show Performance</span></button>
-          <button class="fin-toggle-btn" id="nemiToggleBtn" style="display:none;" onclick="toggleNemi()" title="Show/hide NEMI Signal Date, Price, Return%, Status columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span id="nemiToggleLabel">Show NEMI</span></button>
+          <button class="fin-toggle-btn" style="position:relative;" active" id="techToggleBtn" onclick="toggleTechnical()" title="Technical Columns: Signal Date, Signal Return %, Signal Status pill."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 0 0 14.14"></path><path d="M7.76 7.76a6 6 0 0 0 0 8.48"></path><circle cx="12" cy="12" r="1"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.48"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><span id="techToggleLabel">Hide Technical</span></button>
+          <button class="fin-toggle-btn" style="position:relative;"" id="dailyToggleBtn" onclick="toggleDaily()" title="Daily Movement: Price, Relative Volume (RVOL), Volume, Day Change %."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span id="dailyToggleLabel">Show Daily Movement</span></button>
+          <button class="fin-toggle-btn" style="position:relative;"" id="perfToggleBtn" onclick="togglePerformance()" title="Performance: WTD%, MTD%, QTD%, YTD%, Rolling 1M/3M/6M/1Y returns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span id="perfToggleLabel">Show Performance</span></button>
+          <button class="fin-toggle-btn" style="position:relative;"" id="nemiToggleBtn" style="display:none;" onclick="toggleNemi()" title="NEMI Columns: NEMI Signal Date, Entry Price, Return % since entry, NEMI Status."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span id="nemiToggleLabel">Show NEMI</span></button>
           <span id="screenerCount" style="font-size:11px; color: var(--text2); margin-left: 4px;">497 companies</span>
           <span style="font-size:10px; color: var(--text2); margin-left: 12px; display: inline-flex; align-items: center; gap: 10px;">
             <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
@@ -4770,5 +4771,11 @@
       <button id="installConfirmBtn" style="flex:2;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Install</button>
     </div>
   </div>
+</div>
+
+  <p id="infoPopBody" style="font-size:12px;color:var(--text2);margin:0;line-height:1.6;"></p>
+</div>
+
+  <p id="infoPopBody" style="font-size:12px;color:var(--text2);margin:0;line-height:1.65;"></p>
 </div>
 </body></html>

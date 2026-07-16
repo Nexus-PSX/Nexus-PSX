@@ -747,6 +747,18 @@
     transition: width 0.4s;
   }
 
+  /* Info icon */
+  .info-icon { opacity:0.55; transition:opacity 0.15s; }
+  .info-icon:hover { opacity:1; border-color:var(--accent); color:var(--accent); }
+
+  /* Info icon — absolute top-right inside its parent button */
+  .info-icon { opacity:0.55; transition:opacity 0.15s; }
+  .info-icon:hover { opacity:1; color:var(--accent) !important; border-color:var(--accent) !important; }
+  /* Ensure msel-btn and fin-toggle-btn can contain the absolute icon */
+  .msel-btn { position:relative; }
+  .fin-toggle-btn { position:relative; }
+  .tab { position:relative; }
+
   /* Sort indicator */
   .sort-asc::after { content: ' ↑'; color: var(--accent); font-weight: 700; }
   .sort-desc::after { content: ' ↓'; color: var(--accent); font-weight: 700; }
@@ -766,6 +778,7 @@
   body.nemi-allowed .screener-nemi-col { display:table-cell !important; }
   body.nemi-allowed #screenerTable.hide-nemi .screener-nemi-col { display:none !important; }
   #screenerTable.hide-nemi .screener-nemi-col { display:none !important; }
+  #sectorTable.hide-sector-fin .sector-fin-col { display:none; }
 
 
 

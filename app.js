@@ -1361,15 +1361,15 @@ function renderSectorTable(data) {
     }
     tr.innerHTML = `
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}</td>
-      <td class="sector-hide-mobile mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.roe)}">${fmtPct(s.roe)}</td>
-      <td class="sector-hide-mobile mono">${s.de!=null?fmt(s.de,2):'—'}</td>
-      <td class="sector-hide-mobile mono">${fmt(s.cfo,1)}</td>
-      <td class="sector-hide-mobile mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield):'—'}</td>
-      <td class="sector-hide-mobile mono">${s.peRatio!=null?fmt(s.peRatio,2):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.roe)}">${fmtPct(s.roe)}</td>
+      <td class="sector-hide-mobile sector-fin-col mono">${s.de!=null?fmt(s.de,2):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${s.cfo!=null&&s.cfo<0?'negative':s.cfo!=null&&s.cfo>0?'positive':''}">${fmtBig(s.cfo)}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono">${s.peRatio!=null?fmt(s.peRatio,2):'—'}</td>
       <td class="mono"><span class="${scoreColor(s.totalScore)}" style="font-weight:700">${fmt(s.totalScore,1)}</span>
         <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,s.totalScore)}%; background:${s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)'}"></div></div>
       </td>
@@ -2634,6 +2634,16 @@ function applyNemiVisibility(email) {
 window.applyNemiVisibility = applyNemiVisibility;
 
 
+function toggleSectorFinancials() {
+  const tbl = document.getElementById('sectorTable');
+  const btn = document.getElementById('sectorFinToggleBtn');
+  if (!tbl || !btn) return;
+  const hidden = tbl.classList.toggle('hide-sector-fin');
+  btn.classList.toggle('active', !hidden);
+  const lbl = document.getElementById('sectorFinToggleLabel');
+  if (lbl) lbl.textContent = hidden ? 'Show Financials' : 'Hide Financials';
+}
+
 function toggleNemi() {
   const tbl = document.getElementById('screenerTable');
   const btn = document.getElementById('nemiToggleBtn');
@@ -3603,6 +3613,10 @@ function updateKpiBadge() {
 updateKpiBadge();
 setInterval(updateKpiBadge, 800);
 window.addEventListener('load', updateKpiBadge);
+
+
+
+
 
 
 
