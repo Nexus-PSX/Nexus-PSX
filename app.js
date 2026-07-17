@@ -2519,9 +2519,16 @@ function showToast(msg) {
     t.className = 'wl-toast';
     document.body.appendChild(t);
   }
-  t.textContent = msg; t.style.opacity = '1';
+  t.textContent = msg;
+  // Force reflow so transition fires even if called immediately after previous
+  t.style.transition = 'none';
+  t.style.opacity = '0';
+  requestAnimationFrame(() => {
+    t.style.transition = 'opacity 0.3s';
+    t.style.opacity = '1';
+  });
   clearTimeout(t._timeout);
-  t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+  t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 2800);
 }
 function tickerBadges(d) {
   let badges = '';

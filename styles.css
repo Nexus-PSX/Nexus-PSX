@@ -753,6 +753,20 @@
     transition: width 0.4s;
   }
 
+  /* Watchlist toast notification */
+  .wl-toast {
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:var(--surface);border:1px solid var(--accent3);color:var(--text);
+    padding:9px 20px;border-radius:8px;font-size:13px;
+    font-family:"Inter",sans-serif;z-index:9999;transition:opacity 0.3s;
+    pointer-events:none;white-space:nowrap;opacity:0;
+    box-shadow:0 4px 16px rgba(0,0,0,0.15);
+  }
+  [data-theme="light"] .wl-toast  { background:#1e293b; color:#f1f5f9; border-color:#3b82f6; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+  [data-theme="cream"] .wl-toast  { background:#2d3748; color:#f7f3ec; border-color:#3d8c5c; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+  [data-theme="bloomberg"] .wl-toast { background:#1a1a1a; color:#e0e0e0; border-color:#ff6600; }
+  [data-theme="tradingview"] .wl-toast { background:#1e222d; color:#d1d4dc; border-color:#2962ff; }
+
   /* Info icon */
   .info-icon { opacity:0.55; transition:opacity 0.15s; }
   .info-icon:hover { opacity:1; border-color:var(--accent); color:var(--accent); }
