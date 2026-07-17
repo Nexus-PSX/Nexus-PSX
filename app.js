@@ -246,7 +246,7 @@ function init() {
   // Build ticker list
   allTickers = SOURCE_DATA
     .filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0)
-    .map(d => ({ticker: String(d.Ticker), name: String(d.Name || ''), score: d['total improvement'] || 0}))
+    .map(d => ({ticker: String(d.Ticker), name: String(d.Name || ''), score: d['total improvement'] || 0, raw: d}))
     .sort((a,b) => b.score - a.score);
 
   // Populate sector & index filters (multi-select)
@@ -308,7 +308,7 @@ function renderAC() {
     const score = t.score;
     const sc = score >= 80 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
     return `<div class="ac-item ${i===acIndex?'selected':''}" onmousedown="pickTicker('${t.ticker}')">
-      <span class="ac-ticker">${t.ticker}</span>
+      <span class="ac-ticker">${t.ticker}${t.raw ? tickerBadges(t.raw) : ''}</span>
       <span class="ac-score" style="color:${sc}">${score || '—'}</span>
       <div class="ac-name">${t.name || ''}</div>
     </div>`;
@@ -3112,7 +3112,7 @@ function reinitDashboard(filename) {
   buildColMap(SOURCE_DATA);
   allTickers = SOURCE_DATA
     .filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0)
-    .map(d => ({ticker: String(d.Ticker), name: String(d.Name || ''), score: d['total improvement'] || 0}))
+    .map(d => ({ticker: String(d.Ticker), name: String(d.Name || ''), score: d['total improvement'] || 0, raw: d}))
     .sort((a,b) => b.score - a.score);
 
   updateDataBadges();
