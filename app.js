@@ -2516,7 +2516,7 @@ function showToast(msg) {
   let t = document.getElementById('wlToast');
   if (!t) {
     t = document.createElement('div'); t.id = 'wlToast';
-    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1e2d45;border:1px solid var(--accent3);color:var(--text);padding:9px 20px;border-radius:8px;font-size:13px;font-family:"Inter",sans-serif;z-index:9999;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4)';
+    t.className = 'wl-toast';
     document.body.appendChild(t);
   }
   t.textContent = msg; t.style.opacity = '1';
