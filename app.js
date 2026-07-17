@@ -3779,9 +3779,8 @@ function buildHomeTab() {
   const scoreCircle = v => {
     const n = toN(v);
     if (n == null) return '—';
-    const bg = n >= 70 ? 'rgba(34,197,94,0.2)' : n >= 50 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)';
-    const tc = n >= 70 ? 'var(--success)' : n >= 50 ? 'var(--warn)' : 'var(--danger)';
-    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${bg};color:${tc};font-size:12px;font-weight:700;">${Math.round(n)}</span>`;
+    const cls = n >= 70 ? 'score-high' : n >= 50 ? 'score-mid' : 'score-low';
+    return `<span class="score-circle ${cls}">${Math.round(n)}</span>`;
   };
 
   const signalsSection = `

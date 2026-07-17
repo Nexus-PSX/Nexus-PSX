@@ -465,6 +465,7 @@
   #screenerTable th.screener-daily-col { background-color: var(--surface2); background-image: linear-gradient(rgba(245,158,11,0.09), rgba(245,158,11,0.09)); }
   #screenerTable th.screener-perf-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(34,197,94,0.09), rgba(34,197,94,0.09)); }
   #screenerTable th.screener-nemi-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(6,182,212,0.09), rgba(6,182,212,0.09)); }
+  #sectorTable th.sector-perf-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(34,197,94,0.07), rgba(34,197,94,0.07)); }
   .data-table th {
     background: var(--surface2);
     background-color: var(--surface2);
@@ -496,6 +497,11 @@
   .data-table td.mono { color: var(--text); }
   .sector-name-cell { color: var(--text); }
   .screener-sector-cell { color: var(--text2); }
+  /* Positive/negative must win over the td color rules */
+  .data-table td .positive, .data-table td.positive,
+  .data-table .positive { color: var(--success) !important; }
+  .data-table td .negative, .data-table td.negative,
+  .data-table .negative { color: var(--danger) !important; }
   .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
   .positive { color: var(--success); }
   .negative { color: var(--danger); }
@@ -758,6 +764,16 @@
   .msel-btn { position:relative; }
   .fin-toggle-btn { position:relative; }
   .tab { position:relative; }
+
+  /* Score circle — used in Home tab signals table and Company View */
+  .score-circle {
+    display:inline-flex;align-items:center;justify-content:center;
+    width:32px;height:32px;border-radius:50%;
+    font-size:12px;font-weight:700;
+  }
+  .score-circle.score-high { background:rgba(34,197,94,0.15); color:var(--success); }
+  .score-circle.score-mid  { background:rgba(245,158,11,0.15); color:var(--warn); }
+  .score-circle.score-low  { background:rgba(239,68,68,0.15); color:var(--danger); }
 
   /* Sort indicator */
   .sort-asc::after { content: ' ↑'; color: var(--accent); font-weight: 700; }
@@ -1180,6 +1196,12 @@
   [data-theme="bloomberg"] .data-table td.mono {
     color: #e8d5b0;
   }
+  
+  [data-theme="bloomberg"] .score-circle.score-high { background:rgba(0,204,68,0.15); color:#00cc44; }
+  [data-theme="bloomberg"] .score-circle.score-mid  { background:rgba(255,153,0,0.15); color:#ff9900; }
+  [data-theme="bloomberg"] .score-circle.score-low  { background:rgba(255,51,51,0.15); color:#ff3333; }
+  [data-theme="bloomberg"] .data-table .positive { color: #00cc44 !important; }
+  [data-theme="bloomberg"] .data-table .negative { color: #ff3333 !important; }
   [data-theme="bloomberg"] .data-table tr:hover td {
     background: rgba(255,102,0,0.09) !important;
   }
@@ -1314,6 +1336,8 @@
   }
 
   [data-theme="light"] .data-table td { color: #1e293b; }
+  [data-theme="light"] .data-table .positive { color: #16a34a !important; }
+  [data-theme="light"] .data-table .negative { color: #dc2626 !important; }
   [data-theme="light"] .data-table td.mono { color: #1e293b; }
   [data-theme="light"] .sector-name-cell { color: #0f172a !important; }
   [data-theme="light"] .screener-sector-cell { color: #475569 !important; }
@@ -1408,6 +1432,9 @@
   [data-theme="tradingview"] .pill-good { background: rgba(8,153,129,0.15); color: #089981; border-color: rgba(8,153,129,0.35); }
   [data-theme="tradingview"] .pill-bad { background: rgba(242,54,69,0.15); color: #f23645; border-color: rgba(242,54,69,0.35); }
   [data-theme="tradingview"] .pill-neutral { background: rgba(255,152,0,0.15); color: #ff9800; border-color: rgba(255,152,0,0.35); }
+  
+  [data-theme="tradingview"] .score-circle.score-high { background:rgba(8,153,129,0.15); color:#089981; }
+  [data-theme="tradingview"] .score-circle.score-low  { background:rgba(242,54,69,0.15);  color:#f23645; }
   [data-theme="tradingview"] .positive { color: #089981 !important; }
   [data-theme="tradingview"] .negative { color: #f23645 !important; }
   [data-theme="tradingview"] .scroll-table { scrollbar-color: #2962ff #2a2e39; }
@@ -1566,6 +1593,10 @@
   [data-theme="cream"] .kpi-card.orange::before { background: #c47c2b; }
   [data-theme="cream"] .kpi-name { color: #6b5c42; }
   [data-theme="cream"] .kpi-value { color: #2c2416; }
+  
+  [data-theme="cream"] .score-circle.score-high { background:rgba(45,125,70,0.15); color:#2d7d46; }
+  [data-theme="cream"] .score-circle.score-mid  { background:rgba(180,100,0,0.15);  color:#b46400; }
+  [data-theme="cream"] .score-circle.score-low  { background:rgba(192,57,43,0.15);  color:#c0392b; }
   [data-theme="cream"] .kpi-trend.positive { color: #2d7d46 !important; }
   [data-theme="cream"] .kpi-trend.negative { color: #c0392b !important; }
 
@@ -1992,8 +2023,15 @@
   [data-theme="tradingview"] .mobile-nav-item.active .mobile-nav-label { color: #2962ff; }
   [data-theme="tradingview"] .mnav-center-icon { background: #2a2e39; border-color: #363a45; }
   [data-theme="light"] .mobile-nav { background: #fff; border-top-color: #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.07); }
+  [data-theme="light"] .mobile-nav-item.active .mobile-nav-icon-wrap { background: rgba(14,165,233,0.1); color: var(--accent); }
+  [data-theme="light"] .mobile-nav-item.active .mnav-active-pill { background: var(--accent); }
   [data-theme="light"] .mobile-nav-item.active .mobile-nav-label { color: var(--accent); }
   [data-theme="light"] .mnav-center-icon { background: #f1f5f9; border-color: #e2e8f0; }
+  [data-theme="cream"] .mobile-nav { background: #f5f0e8; border-top-color: #d4c9b0; }
+  [data-theme="cream"] .mobile-nav-item.active .mobile-nav-icon-wrap { background: rgba(61,140,92,0.12); color: #3d8c5c; }
+  [data-theme="cream"] .mobile-nav-item.active .mnav-active-pill { background: #3d8c5c; }
+  [data-theme="cream"] .mobile-nav-item.active .mobile-nav-label { color: #3d8c5c; }
+  [data-theme="cream"] .mnav-center-icon { background: #ede8df; border-color: #d4c9b0; }
 
 
 /* ===== TOP TAB STYLES ===== */
