@@ -277,6 +277,7 @@ function init() {
   renderScreener();
   initWatchlist();
   buildMarketTicker();
+  setTimeout(buildHomeTab, 0);
   if (typeof applyNemiVisibility === 'function') applyNemiVisibility(window._psxCurrentEmail || '');
 }
 
@@ -1539,7 +1540,7 @@ const SCORE_OPTIONS = [
   {value:'-Infinity,20',  label:'Fin. Scores < 20'}
 ];
 const STATUS_OPTIONS = [
-  {value:'2', label:'Continuation Buy Signal'},
+  {value:'1.7', label:'Continuation Buy Signal'},
   {value:'2.5', label:'Extended Buy Signal (Cautious)'},
   {value:'1.5', label:'Initial Buy Signal'},
   {value:'1', label:'Hold Trade'},
@@ -2671,13 +2672,14 @@ function renderScreener() { filteredScreener = [...screenerData]; filterScreener
 
 // ===== TABS =====
 function switchTab(name) {
-  const tabNames = ['company','sector','screener','watchlist','top'];
+  const tabNames = ['home','company','sector','screener','watchlist','top'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabNames[i]===name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   const el = document.getElementById('tab-'+name);
   if (el) el.classList.add('active');
   if (name === 'watchlist') showWatchlistPanel();
   if (name === 'top') buildTopTab();
+  if (name === 'home') buildHomeTab();
   if (name === 'screener') setTimeout(alignScreenerToggles, 0);
   // sync mobile nav
   tabNames.forEach(t => {
@@ -2735,7 +2737,7 @@ const SIGNAL_STATUS_MAP = {
   4: 'Be cautious',
   3: 'Take some profit',
   2.5: 'Extended buy signal (cautious)',
-  2: 'Continuation buy signal',
+  1.7: 'Continuation buy signal',
   1.5: 'Initial buy signal',
   1: 'Hold trade',
   0: 'No trade'
@@ -2750,8 +2752,8 @@ const LEGACY_SIGNAL_STATUS_TO_CODE = {
   'Initial buy signal': 1.5,
   // code 2 — has gone by several names; map them all
   'Fresh buy signal': 2,
-  'Fresh signal in an initial buy call': 2,
-  'Continuation buy signal': 2,
+  'Fresh signal in an initial buy call': 1.7,
+  'Continuation buy signal': 1.7,
   // code 2.5 — cautious variant of the above
   'Fresh buy signal (cautious)': 2.5,
   'Fresh signal in an initial buy call (cautious)': 2.5,
@@ -2772,7 +2774,7 @@ function sigStatusLabel(code) {
 }
 function sigStatusPillClass(code) {
   const v = sigStatusCode(code);
-  if (v === 1.5 || v === 2 || v === 1) return 'pill-good';   // Initial buy, Continuation buy, Hold trade
+  if (v === 1.5 || v === 1.7 || v === 1) return 'pill-good';   // Initial buy, Continuation buy, Hold trade
   if (v === 2.5 || v === 4 || v === 9) return 'pill-bad';     // Extended buy (cautious), Be cautious, Buy call closed
   return 'pill-neutral'; // 0 (No trade), 3 (Take some profit), and unrecognized values — orange
 }
@@ -3159,6 +3161,7 @@ function reinitDashboard(filename) {
   buildSectorTable();
   buildMarketTicker();
   buildTopTab();
+  setTimeout(buildHomeTab, 0);
   if (typeof applyNemiVisibility === 'function') applyNemiVisibility(window._psxCurrentEmail || '');
 }
 
@@ -3620,6 +3623,223 @@ window.addEventListener('load', updateKpiBadge);
 
 
 
+
+
+// ===== HOME TAB =====
+// ===== HOME TAB =====
+function buildHomeTab() {
+  const el = document.getElementById('tab-home');
+  if (!el) return;
+  if (!SOURCE_DATA || !SOURCE_DATA.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text2);">Loading data…</div>';
+    return;
+  }
+
+  const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const fmtPct  = v => v == null ? '—' : (v>=0?'+':'') + v.toFixed(2) + '%';
+  const fmtChgA = v => v == null ? '—' : (v>=0?'+':'') + v.toFixed(2);
+  const fmtPx   = v => v == null ? '—' : v.toFixed(2);
+  const clr     = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
+  const mono    = "font-family:'IBM Plex Mono',monospace;";
+  const avg = (arr, field) => {
+    const vals = arr.map(d => toN(d[field])).filter(v => v !== null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  };
+  function idxAvg(names, field) {
+    const mem = SOURCE_DATA.filter(d => names.some(n => String(d.Index||'').includes(n)));
+    return avg(mem, field);
+  }
+  const valid = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+
+  // ── Row 1: Market Pulse ───────────────────────────────────────────────────
+  const kse100_1d  = idxAvg(['KSE 100','KSE100'], 'Day Change %');
+  const kse30_1d   = idxAvg(['KSE 30','KSE30'],   'Day Change %');
+  const kmi30_1d   = idxAvg(['KMI 30','KMI30','KMI'], 'Day Change %');
+  const kse100_chg = idxAvg(['KSE 100','KSE100'], 'Day Change');
+  const kse30_chg  = idxAvg(['KSE 30','KSE30'],   'Day Change');
+  const kmi30_chg  = idxAvg(['KMI 30','KMI30','KMI'], 'Day Change');
+  const kse100_px  = idxAvg(['KSE 100','KSE100'], 'Price');
+  const kse30_px   = idxAvg(['KSE 30','KSE30'],   'Price');
+  const kmi30_px   = idxAvg(['KMI 30','KMI30','KMI'], 'Price');
+  const advances   = valid.filter(d => toN(d['Day Change %']) > 0).length;
+  const declines   = valid.filter(d => toN(d['Day Change %']) < 0).length;
+
+  const idxCard = (label, px, chg, pct, sub) => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;flex:1;min-width:160px;">
+      <div style="font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">${label}</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);${mono}margin-bottom:4px;">${px}</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;color:${clr(pct)};${mono}">${fmtChgA(chg)}</span>
+        <span style="font-size:13px;font-weight:700;color:${clr(pct)};${mono}">${fmtPct(pct)}</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;">${sub}</div>
+    </div>`;
+
+  const pulseCard = (label, val, color, sub='') => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;min-width:110px;flex:1;">
+      <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${label}</div>
+      <div style="font-size:22px;font-weight:700;color:${color};${mono}">${val}</div>
+      ${sub ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${sub}</div>` : ''}
+    </div>`;
+
+  const pulseRow = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      ${idxCard('KSE 100', fmtPx(kse100_px), kse100_chg, kse100_1d, 'KSE 100 Index')}
+      ${idxCard('KSE 30',  fmtPx(kse30_px),  kse30_chg,  kse30_1d,  'KSE 30 Index')}
+      ${idxCard('KMI 30',  fmtPx(kmi30_px),  kmi30_chg,  kmi30_1d,  'Shariah Index')}
+      ${pulseCard('Advances', advances, 'var(--success)', 'Stocks up today')}
+      ${pulseCard('Declines', declines, 'var(--danger)',  'Stocks down today')}
+    </div>`;
+
+  // ── Row 2: Sector Bar Chart + Top 5 cards ────────────────────────────────
+  const companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+  const bySector = {};
+  companies.forEach(d => {
+    const s = (d.Sector||'').trim();
+    if (!s) return;
+    if (!bySector[s]) bySector[s] = [];
+    bySector[s].push(d);
+  });
+  const sectorData = Object.entries(bySector).map(([s, rows]) => ({
+    name: s,
+    day:   avg(rows, 'Day Change %'),
+    score: avg(rows, 'total improvement'),
+    cos:   rows.length,
+    ytd:   avg(rows, 'YTD Return %'),
+  })).sort((a,b) => (b.day||0) - (a.day||0));
+
+  const top5 = sectorData.slice(0, 5);
+  const top5Cards = top5.map(s => `
+    <div onclick="drillSectorToScreener('${s.name.replace(/'/g,"\\'")}');switchTab('screener')"
+      style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-left:4px solid ${s.day>=0?'var(--success)':'var(--danger)'};border-radius:10px;padding:12px 14px;flex:1;min-width:130px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${s.name}</div>
+      <div style="font-size:17px;font-weight:700;color:${clr(s.day)};${mono}">${fmtPct(s.day)}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">Score ${s.score!=null?s.score.toFixed(0):'—'} · ${s.cos} cos</div>
+    </div>`).join('');
+
+
+  const sectorRow = `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">Top 5 Sectors — Day Change %</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${top5Cards}</div>
+    </div>`;
+
+
+  // ── Row 3: Active Signals table (Initial Buy, Continuation, Extended) ─────
+  // Sort state for the home signals table
+  if (!window._homeSignalSort) window._homeSignalSort = { col: 'score', dir: -1 };
+
+  // Active signals: Initial Buy (1.5), Continuation Buy (1.7), Extended Cautious (2.5)
+  const activeSignals = [...valid]
+    .filter(d => {
+      const s = sigStatusCode(d['Signal Status']);
+      return s === 1.5 || s === 1.7 || s === 2.5;
+    });
+
+  function sortHomeSignals(col) {
+    if (window._homeSignalSort.col === col) window._homeSignalSort.dir *= -1;
+    else { window._homeSignalSort.col = col; window._homeSignalSort.dir = -1; }
+    buildHomeTab();
+  }
+  window.sortHomeSignals = sortHomeSignals;
+
+  const sortCol = window._homeSignalSort.col;
+  const sortDir = window._homeSignalSort.dir;
+  const sortedSignals = [...activeSignals].sort((a,b) => {
+    let av, bv;
+    if (sortCol === 'ticker')   { av = a.Ticker||'';           bv = b.Ticker||''; return av.localeCompare(bv) * sortDir; }
+    if (sortCol === 'name')     { av = a.Name||'';             bv = b.Name||''; return av.localeCompare(bv) * sortDir; }
+    if (sortCol === 'sector')   { av = a.Sector||'';           bv = b.Sector||''; return av.localeCompare(bv) * sortDir; }
+    if (sortCol === 'score')    { av = toN(a['total improvement'])||0; bv = toN(b['total improvement'])||0; }
+    if (sortCol === 'date')     { av = toN(a['Signal date'])||0;      bv = toN(b['Signal date'])||0; }
+    if (sortCol === 'price')    { av = toN(a['Signal Price'])||0;     bv = toN(b['Signal Price'])||0; }
+    if (sortCol === 'ret')      { av = toN(a['Signal Return %'])||0;  bv = toN(b['Signal Return %'])||0; }
+    if (sortCol === 'status')   { av = sigStatusCode(a['Signal Status'])||0; bv = sigStatusCode(b['Signal Status'])||0; }
+    if (sortCol === 'day')      { av = toN(a['Day Change %'])||0;     bv = toN(b['Day Change %'])||0; }
+    return ((av||0) - (bv||0)) * sortDir;
+  });
+
+  const arrow = col => col === sortCol ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
+
+  const thStyle = "padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;";
+  const thR = col => `style="${thStyle}text-align:right;" onclick="sortHomeSignals('${col}')"`;
+  const thL = col => `style="${thStyle}text-align:left;"  onclick="sortHomeSignals('${col}')"`;
+
+  const pillMap = {
+    1.5: ['Initial Buy',          'rgba(34,197,94,0.15)',  'var(--success)', 'rgba(34,197,94,0.3)'],
+    1.7: ['Continuation Buy',     'rgba(59,130,246,0.15)', 'var(--accent)',  'rgba(59,130,246,0.3)'],
+    2.5: ['Extended (Cautious)',  'rgba(245,158,11,0.15)', 'var(--warn)',    'rgba(245,158,11,0.3)'],
+  };
+  const pill = raw => {
+    const code = sigStatusCode(raw);
+    const p = pillMap[code];
+    if (!p) return sigStatusLabel(raw)||'';
+    return `<span style="background:${p[1]};color:${p[2]};border:1px solid ${p[3]};border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">${p[0]}</span>`;
+  };
+  const scoreCircle = v => {
+    const n = toN(v);
+    if (n == null) return '—';
+    const bg = n >= 70 ? 'rgba(34,197,94,0.2)' : n >= 50 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)';
+    const tc = n >= 70 ? 'var(--success)' : n >= 50 ? 'var(--warn)' : 'var(--danger)';
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${bg};color:${tc};font-size:12px;font-weight:700;">${Math.round(n)}</span>`;
+  };
+
+  const signalsSection = `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">
+        Active Buy Signals
+        <span style="font-size:11px;font-weight:400;color:var(--text3);">— ${sortedSignals.length} stocks · Initial Buy, Continuation Buy, Extended (Cautious) · click row to open Company View</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:700px;">
+            <thead style="background:var(--surface2);position:sticky;top:0;z-index:2;">
+              <tr>
+                <th ${thL('ticker')}>TICKER${arrow('ticker')}</th>
+                <th ${thL('name')}>NAME${arrow('name')}</th>
+                <th ${thL('sector')}>SECTOR${arrow('sector')}</th>
+                <th ${thR('score')}>FINANCIAL SCORE${arrow('score')}</th>
+                <th ${thR('date')}>SIGNAL DATE${arrow('date')}</th>
+                <th ${thR('price')}>SIGNAL PRICE${arrow('price')}</th>
+                <th ${thR('ret')}>SIGNAL RETURN%${arrow('ret')}</th>
+                <th ${thL('status')}>SIGNAL STATUS${arrow('status')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedSignals.map((d,i) => {
+                const ret = toN(d['Signal Return %']);
+                const bg  = i%2===0 ? 'transparent' : 'var(--surface2)';
+                return `<tr onclick="switchTab('company');pickTicker('${(d.Ticker||'').replace(/'/g,"\\'")}');"
+                  style="cursor:pointer;background:${bg};"
+                  onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background='${bg}'">
+                  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;">${d.Ticker||'—'}${tickerBadges(d)}</td>
+                  <td style="padding:8px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(d.Name||'').substring(0,28)}</td>
+                  <td style="padding:8px 12px;font-size:11px;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;font-weight:600;font-size:10px;">${(d.Sector||'—').substring(0,18)}</td>
+                  <td style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);">${scoreCircle(d['total improvement'])}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);white-space:nowrap;${mono}">${fmtSignalDate(d['Signal date'])}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);${mono}">${toN(d['Signal Price'])!=null?toN(d['Signal Price']).toFixed(2):'—'}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);${mono}color:${clr(ret)};">${ret!=null?(ret>=0?'+':'')+ret.toFixed(1)+'%':'—'}</td>
+                  <td style="padding:8px 12px;border-bottom:1px solid var(--border);">${pill(d['Signal Status'])}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Assemble ──────────────────────────────────────────────────────────────
+  el.innerHTML = `
+    <div style="padding:16px;max-width:1400px;">
+      ${pulseRow}
+      ${sectorRow}
+      ${signalsSection}
+    </div>`;
+
+  // Rebuild chart after innerHTML
+}
+
+// ===== END HOME TAB =====
 
 // ===== THEME TOGGLE =====
 (function() {
