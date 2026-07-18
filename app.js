@@ -966,7 +966,7 @@ function buildLineChart(id, labels, data1, data2, label1, label2, isPercent) {
           border: { display: false },
           ticks: {
             color: th.tick, font: { size: 10, family: CHART_FONT },
-            callback: v => isPercent ? (v*100).toFixed(0) + '%' : v
+            callback: v => isPercent ? (v*100).toFixed(0) + '%' : (v == null ? '' : parseFloat(v.toFixed(2)))
           },
           afterBuildTicks: axis => {
             if (!axis.ticks.find(t => t.value === 0)) axis.ticks.push({ value: 0 });
@@ -3866,11 +3866,11 @@ const FAQ_DATA = [
     items: [
       {
         q: 'What is Nexus PSX?',
-        a: 'Nexus PSX is a browser-based market intelligence portal built specifically for Pakistan Stock Exchange (PSX) investors. It covers 500+ listed companies across 44+ sectors and transforms raw financial and price data into actionable intelligence — giving you a Bloomberg-style view of PSX markets without the subscription cost.'
+        a: 'Nexus PSX is a browser-based market intelligence portal built specifically for Pakistan Stock Exchange (PSX) investors. It covers 500+ listed companies across 44+ sectors and transforms raw financial and price data into actionable intelligence.\n\nFundamental/Financial Score: To understand the health of each company, Nexus studies the financial statements to find out the health and growth based on revenue growth, earnings quarter on quarter and trailing twelve months, operating and net margin growth, turnaround companies, loss recovery stage, liquidity status, volume phases — and summarises it with the Financial Score to save your valuable time.\n\nTechnicals: Nexus takes the burden off your shoulders to learn Technical Analysis — without even seeing a chart, EMAs, Support/Resistance, trend lines or Fibonacci. Nexus not only finds companies with financial health but also guides you on when to act with Buy Signals.'
       },
       {
         q: 'How do I access the portal?',
-        a: 'Open your browser and go to nexus-psx.github.io/Nexus-PSX. No installation required. Works on Chrome, Edge, Safari and Firefox on both desktop and mobile. You can also install it as a home screen app (PWA) — tap the Install App button in the header.'
+        a: 'Open your browser and go to nexus-psx.github.io/Nexus-PSX. No installation required. Works on Chrome, Edge, Safari and Firefox on both desktop and mobile. You can also install it as a desktop or mobile app with a tap on the Install App button in the header.'
       },
       {
         q: 'How do I sign in?',
@@ -3878,7 +3878,7 @@ const FAQ_DATA = [
       },
       {
         q: 'How often is the data updated?',
-        a: 'Data is updated weekly by the administrator after the latest financial and price data is processed. The header shows the last update date and time. The portal always displays the most recently uploaded dataset.'
+        a: 'The technical data is updated on a daily basis while the latest financial data is updated on a weekly basis. The portal header always displays the most recently uploaded dataset for quick reference.'
       },
     ]
   },
@@ -3895,11 +3895,11 @@ const FAQ_DATA = [
       },
       {
         q: 'What is the Financial Score (0-100)?',
-        a: 'A proprietary composite score measuring a company\'s financial health, profitability trend and momentum. It combines EPS trend, revenue growth, operating income, ROE, debt levels, cash flow and other factors. Higher is better: >80 = high quality, >60 = good, >40 = average, <40 = weak. Use it to quickly rank companies within a sector.'
+        a: "A proprietary composite score measuring a company's financial health, profitability trend and momentum. It combines EPS trend, revenue growth, operating income, ROE, debt levels, cash flow and other factors. Higher is better: >80 = high quality, >60 = good, >40 = average, <40 = weak. Use it to quickly rank companies within a sector."
       },
       {
         q: 'How do I sort columns?',
-        a: 'Click any column header to sort ascending. Click again to sort descending. A ↑ or ↓ arrow shows the active sort column. The screener remembers your sort preference for the session. You can sort by Financial Score, Signal Return, Price, Volume, and all performance columns.'
+        a: 'Click any column header to sort ascending. Click again to sort descending. An up or down arrow shows the active sort column. The screener remembers your sort preference for the session. You can sort by Financial Score, Signal Return, Price, Volume, and all performance columns.'
       },
       {
         q: 'What do the toggle buttons above the table do?',
@@ -3912,7 +3912,7 @@ const FAQ_DATA = [
     items: [
       {
         q: 'What do the small badges next to tickers mean?',
-        a: 'Badges give instant context about a stock without opening its profile. Five badge types exist: KMI (teal mosque icon) = Shariah-compliant KMI Index member. N (green) = Net Income exceeds Operating Income — strong financial quality. T (amber) = Turnaround Candidate — losses are narrowing. 💧 (blue drop) = Liquid Stock — sufficient daily trading volume for easy entry/exit. V (indigo) = High Volume Accumulation Phase — stock is in active accumulation by buyers.'
+        a: 'Badges give instant context about a stock. Five badge types exist: KMI (teal mosque icon) = Shariah-compliant KMI Index member. N (green) = Net Income exceeds Operating Income. T (amber) = Turnaround Candidate — losses are narrowing. Drop icon (blue) = Liquid Stock — where the average volume is greater than 10k per day. V (indigo) = the company is in High Volume Accumulation Phase.'
       },
     ]
   },
@@ -3921,15 +3921,11 @@ const FAQ_DATA = [
     items: [
       {
         q: 'What are Signal Statuses and what do they mean?',
-        a: 'Signal Status reflects the current buy/hold/exit recommendation for each stock. Values: Initial Buy (1.5) = fresh entry signal. Continuation Buy (1.7) = trend confirmed, adding to position is valid. Hold Trade = keep existing position. Extended/Cautious = stock has moved significantly, caution on new entries. Take Some Profit = consider partial exit. Be Cautious = deteriorating conditions. Buy Call Closed = exit signal. No Trade = no active coverage.'
+        a: 'Signal Status reflects the current buy/hold/exit recommendation. Values: Initial Buy = fresh entry signal. Continuation Buy = trend confirmed, adding to position is valid. Hold Trade = keep existing position. Extended/Cautious = stock has moved significantly, caution on new entries. Take Some Profit = consider partial exit. Be Cautious = deteriorating conditions. Buy Call Closed = exit signal. No Trade = no active coverage.'
       },
       {
         q: 'What is Signal Return %?',
-        a: 'The percentage gain or loss from the Signal Date price to the current price. For example, if a stock had an Initial Buy signal at price 50 and is now at 65, Signal Return % = +30%. This shows how much profit has been made since the signal was issued — regardless of how long ago it was.'
-      },
-      {
-        q: 'What is NEMI Signal?',
-        a: 'NEMI is a separate proprietary signal system with its own Signal Date, Entry Price, Return %, and Status. It runs independently from the main Signal and may give different entry/exit points. NEMI columns and filter are visible only to authorised users.'
+        a: 'The percentage gain or loss from the Signal Date price to the current price. For example, if a stock had an Initial Buy signal at price 50 and is now at 65, Signal Return % = +30%. This shows how much profit has been made since the signal was issued.'
       },
     ]
   },
@@ -3946,7 +3942,7 @@ const FAQ_DATA = [
       },
       {
         q: 'How does the sector drill-through work?',
-        a: 'Click any sector name in the Sector Analysis table to instantly switch to the Screener tab pre-filtered to show only companies in that sector. If you also have an Index filter active (e.g. KSE 100 + Cement), the drill-through loads only KSE 100 Cement companies — giving you precisely the stocks you were analysing.'
+        a: 'Click any sector name in the Sector Analysis table to instantly switch to the Screener tab pre-filtered to show only companies in that sector. If you also have an Index filter active, the drill-through loads only those companies — giving you precisely the stocks you were analysing.'
       },
     ]
   },
@@ -3959,11 +3955,11 @@ const FAQ_DATA = [
       },
       {
         q: 'What is Relative Volume (RVOL)?',
-        a: 'RVOL = today\'s volume ÷ 20-day average volume. RVOL >1 means above-average activity today. RVOL >2 signals significantly elevated institutional interest and is often a precursor to a price move. The Top tab shows all stocks with RVOL >1, ranked highest first.'
+        a: "RVOL = today's volume divided by the 10-day average volume. RVOL >1 means above-average activity today. RVOL >2 signals significantly elevated institutional interest and is often a precursor to a price move. The Top tab shows all stocks with RVOL >1, ranked highest first."
       },
       {
         q: 'What are Circuit Breakers?',
-        a: 'PSX imposes daily price move limits (circuit breakers). Stocks hitting the Upper Cap have reached the maximum allowed gain for the day — extreme buying pressure. Stocks hitting the Lower Cap have reached the maximum allowed loss — extreme selling. These are important signals of unusual market activity.'
+        a: 'PSX imposes daily price move limits (circuit breakers). Stocks hitting the Upper Cap have reached the maximum allowed gain for the day — extreme buying pressure. Stocks hitting the Lower Cap have reached the maximum allowed loss — extreme selling pressure.'
       },
     ]
   },
@@ -3974,10 +3970,6 @@ const FAQ_DATA = [
         q: 'How do I add a stock to my Watchlist?',
         a: 'Two ways: (1) Click the + button on any row in the Screener — the stock is added immediately. (2) Go to the Watchlist tab and use the search box to find and add stocks. When adding, enter your purchase price to track your return % from entry.'
       },
-      {
-        q: 'What is the difference between Local and GitHub Sync?',
-        a: 'Local mode stores your watchlist in the browser only — fast and private but lost if you clear browser data or switch devices. GitHub Sync stores your watchlist in a private GitHub Gist — persists across all your devices and browsers. To enable GitHub Sync, generate a GitHub Personal Access Token with "gist" scope and paste it in the Watchlist tab.'
-      },
     ]
   },
   {
@@ -3985,24 +3977,22 @@ const FAQ_DATA = [
     items: [
       { q: 'WTD% / MTD% / QTD% / YTD%', a: 'Week-to-Date, Month-to-Date, Quarter-to-Date, Year-to-Date return percentages. Measures price change from the start of the respective period to the current price.' },
       { q: 'Rolling 1M% / 3M% / 6M% / 1Y%', a: 'Rolling return over the past 1, 3, 6 or 12 months from today — unlike MTD/QTD which reset at calendar boundaries, rolling periods always look back a fixed number of months.' },
-      { q: 'Discount Ratio', a: 'How far a stock\'s current price is below its estimated intrinsic/fair value. Negative = trading at a discount (undervalued). More negative = deeper discount. A stock at -30% Discount Ratio is trading 30% below its estimated fair value.' },
-      { q: 'CFO (Cash Flow from Operations)', a: 'Actual cash generated by the business from its core operations — excludes investment and financing activities. Positive and growing CFO is one of the strongest signs of financial health. Shown in B (billions), M (millions), K (thousands).' },
-      { q: 'ROE (Return on Equity)', a: 'Net profit as a percentage of shareholders\' equity. Measures how efficiently management uses equity capital to generate profit. Higher ROE = better use of equity. Compare within the same sector for meaningful analysis.' },
-      { q: 'D/E (Debt to Equity)', a: 'Total debt divided by shareholders\' equity. Measures financial leverage. Lower is generally more conservative. A D/E >2 means the company has more than twice as much debt as equity — higher risk in downturns.' },
-      { q: 'P/E Ratio (Price to Earnings)', a: 'Current stock price divided by annual earnings per share. Used for valuation comparison. A lower P/E vs sector peers may indicate undervaluation. Compare within the same sector only — P/E varies significantly across industries.' },
-      { q: 'Market Cap', a: 'Total market value of all shares outstanding = share price × number of shares. Shown in B (billions) or M (millions). Larger market cap companies tend to be more liquid and less volatile.' },
-      { q: 'NI > OI (Net Income > Operating Income)', a: 'When a company\'s Net Income exceeds its Operating Income, it means significant non-operating income (investment gains, asset sales, etc.) is boosting the bottom line. Flagged with the N badge.' },
-      { q: 'Loss Narrow (Turnaround)', a: 'A positive Loss Narrow score means a company\'s losses are shrinking quarter-over-quarter — an early-stage recovery signal before profitability is fully restored. Flagged with the T badge.' },
-      { q: 'KMI (Karachi Meezan Index)', a: 'Shariah-compliant index of PSX stocks screened and certified by Meezan Bank. KMI members are free of interest-based transactions, prohibited business activities and excessive debt. Flagged with the teal mosque icon badge.' },
+      { q: 'Discount Ratio', a: 'Discount Ratio is calculated based on the Financial Score divided by the performance of each stock. For example, a company with a high score but still showing little or negative performance (say -15%) means it still has a good chance of performing — it is undervalued relative to its financial quality.' },
+      { q: 'CFO (Cash Flow from Operations)', a: 'Actual cash generated by the business from its core operations. Positive and growing CFO is one of the strongest signs of financial health. Shown in B (billions), M (millions), K (thousands).' },
+      { q: 'ROE (Return on Equity)', a: "Net profit as a percentage of shareholders' equity. Higher ROE = better use of equity capital. Compare within the same sector for meaningful analysis." },
+      { q: 'D/E (Debt to Equity)', a: 'Total debt divided by shareholders equity. Measures financial leverage. Lower is generally more conservative. A D/E >2 means the company has more than twice as much debt as equity.' },
+      { q: 'P/E Ratio (Price to Earnings)', a: 'Current stock price divided by annual earnings per share. A lower P/E vs sector peers may indicate undervaluation. Compare within the same sector only.' },
+      { q: 'Market Cap', a: 'Total market value of all shares outstanding = share price x number of shares. Shown in B (billions) or M (millions).' },
+      { q: 'NI > OI (Net Income > Operating Income)', a: "When a company's Net Income exceeds its Operating Income, it means significant non-operating income is boosting the bottom line. Flagged with the N badge." },
+      { q: 'Loss Narrow (Turnaround)', a: "A positive Loss Narrow score means a company's losses are shrinking quarter-over-quarter — an early-stage recovery signal. Flagged with the T badge." },
+      { q: 'KMI (Karachi Meezan Index)', a: 'Shariah-compliant index of PSX stocks screened and certified by Meezan Bank. KMI members are free of interest-based transactions and prohibited business activities. Flagged with the teal mosque icon badge.' },
     ]
   },
 ];
 
 function buildFaqTab() {
   const el = document.getElementById('tab-faq');
-  if (!el) { console.error('tab-faq not found'); return; }
-  // Always rebuild to ensure fresh content
-  el.innerHTML = '';
+  if (!el) return;
 
   let html = `
     <div style="max-width:860px;margin:0 auto;padding:20px 16px 40px;">
