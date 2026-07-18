@@ -189,6 +189,7 @@
             🔔 Enable Alerts
           </span>
         </button>
+        <button class="auth-dropdown-item" onclick="switchTab('faq');document.getElementById('authUserMenu').classList.add('hidden');" style="display:flex;align-items:center;gap:7px;width:100%;border:none;background:none;cursor:pointer;color:var(--text);padding:8px 10px;border-radius:6px;font-size:12px;text-align:left;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>FAQ / Help</button>
         <button class="auth-dropdown-item" id="authSignOutItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sign out</span></button>
       </div>
     </div>
@@ -4765,12 +4766,6 @@
       </div>
       <span class="mobile-nav-label">Top</span>
       <div class="mnav-active-pill"></div>
-    </button>
-    <button class="mobile-nav-item" id="mnav-faq" onclick="switchTab('faq')" aria-label="FAQ">
-      <div class="mobile-nav-icon-wrap">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-      </div>
-      <span class="mobile-nav-label">FAQ</span>
     </button>
 
   </div>
