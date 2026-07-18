@@ -2685,14 +2685,19 @@ function renderScreener() { filteredScreener = [...screenerData]; filterScreener
 
 // ===== TABS =====
 function switchTab(name) {
-  const tabNames = ['home','company','sector','screener','watchlist','top'];
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabNames[i]===name));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const el = document.getElementById('tab-'+name);
-  if (el) el.classList.add('active');
+  const tabNames = ['home','company','sector','screener','watchlist','top','faq'];
+  document.querySelectorAll('.tab').forEach(t => {
+    const match = tabNames.find(n => t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + n + "'"));
+    if (match !== undefined) t.classList.toggle('active', match === name);
+  });
+  // Build tab content FIRST, then show
   if (name === 'watchlist') showWatchlistPanel();
   if (name === 'top') buildTopTab();
   if (name === 'home') buildHomeTab();
+  if (name === 'faq') buildFaqTab();
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('tab-'+name);
+  if (el) el.classList.add('active');
   if (name === 'screener') setTimeout(alignScreenerToggles, 0);
   // sync mobile nav
   tabNames.forEach(t => {
@@ -3852,6 +3857,199 @@ function buildHomeTab() {
 }
 
 // ===== END HOME TAB =====
+
+
+// ===== FAQ TAB =====
+const FAQ_DATA = [
+  {
+    section: '🏠 Getting Started',
+    items: [
+      {
+        q: 'What is Nexus PSX?',
+        a: 'Nexus PSX is a browser-based market intelligence portal built specifically for Pakistan Stock Exchange (PSX) investors. It covers 500+ listed companies across 44+ sectors and transforms raw financial and price data into actionable intelligence — giving you a Bloomberg-style view of PSX markets without the subscription cost.'
+      },
+      {
+        q: 'How do I access the portal?',
+        a: 'Open your browser and go to nexus-psx.github.io/Nexus-PSX. No installation required. Works on Chrome, Edge, Safari and Firefox on both desktop and mobile. You can also install it as a home screen app (PWA) — tap the Install App button in the header.'
+      },
+      {
+        q: 'How do I sign in?',
+        a: 'Click the Sign In button and use your Google account. Once signed in your session persists — you will not need to sign in again on the same device. Only authorised Google accounts can access the portal.'
+      },
+      {
+        q: 'How often is the data updated?',
+        a: 'Data is updated weekly by the administrator after the latest financial and price data is processed. The header shows the last update date and time. The portal always displays the most recently uploaded dataset.'
+      },
+    ]
+  },
+  {
+    section: '📊 Stock Screener',
+    items: [
+      {
+        q: 'What is the Stock Screener?',
+        a: 'The Screener is the core of Nexus PSX. It shows all 500+ PSX-listed companies in a sortable, filterable table with financial scores, signal data, price performance and technical columns side by side. It is the fastest way to find investment candidates matching your criteria.'
+      },
+      {
+        q: 'How do I use the filters?',
+        a: 'Click the Filters button to expand the filter panel. You can filter by: Index (KSE100, KSE30, KMI30), Sector (44+ sectors), Comparison (specific tickers), Financial Score band, Signal Status, Liquidity, Volume Phase, Price, and Other special criteria. All filters work together instantly — results update as you select. Click Clear All to reset.'
+      },
+      {
+        q: 'What is the Financial Score (0-100)?',
+        a: 'A proprietary composite score measuring a company\'s financial health, profitability trend and momentum. It combines EPS trend, revenue growth, operating income, ROE, debt levels, cash flow and other factors. Higher is better: >80 = high quality, >60 = good, >40 = average, <40 = weak. Use it to quickly rank companies within a sector.'
+      },
+      {
+        q: 'How do I sort columns?',
+        a: 'Click any column header to sort ascending. Click again to sort descending. A ↑ or ↓ arrow shows the active sort column. The screener remembers your sort preference for the session. You can sort by Financial Score, Signal Return, Price, Volume, and all performance columns.'
+      },
+      {
+        q: 'What do the toggle buttons above the table do?',
+        a: 'They show/hide column groups to manage screen space: Show Financials (EPS, Revenue, ROE, D/E, CFO, P/E), Hide Technical (Signal Date, Return, Status), Show Daily Movement (Price, RVOL, Volume, Day Change%), Show Performance (WTD%, MTD%, QTD%, YTD%, Rolling returns), Show NEMI (restricted users only).'
+      },
+    ]
+  },
+  {
+    section: '🔖 Ticker Badges',
+    items: [
+      {
+        q: 'What do the small badges next to tickers mean?',
+        a: 'Badges give instant context about a stock without opening its profile. Five badge types exist: KMI (teal mosque icon) = Shariah-compliant KMI Index member. N (green) = Net Income exceeds Operating Income — strong financial quality. T (amber) = Turnaround Candidate — losses are narrowing. 💧 (blue drop) = Liquid Stock — sufficient daily trading volume for easy entry/exit. V (indigo) = High Volume Accumulation Phase — stock is in active accumulation by buyers.'
+      },
+    ]
+  },
+  {
+    section: '📡 Signal Status',
+    items: [
+      {
+        q: 'What are Signal Statuses and what do they mean?',
+        a: 'Signal Status reflects the current buy/hold/exit recommendation for each stock. Values: Initial Buy (1.5) = fresh entry signal. Continuation Buy (1.7) = trend confirmed, adding to position is valid. Hold Trade = keep existing position. Extended/Cautious = stock has moved significantly, caution on new entries. Take Some Profit = consider partial exit. Be Cautious = deteriorating conditions. Buy Call Closed = exit signal. No Trade = no active coverage.'
+      },
+      {
+        q: 'What is Signal Return %?',
+        a: 'The percentage gain or loss from the Signal Date price to the current price. For example, if a stock had an Initial Buy signal at price 50 and is now at 65, Signal Return % = +30%. This shows how much profit has been made since the signal was issued — regardless of how long ago it was.'
+      },
+      {
+        q: 'What is NEMI Signal?',
+        a: 'NEMI is a separate proprietary signal system with its own Signal Date, Entry Price, Return %, and Status. It runs independently from the main Signal and may give different entry/exit points. NEMI columns and filter are visible only to authorised users.'
+      },
+    ]
+  },
+  {
+    section: '🏭 Sector Analysis',
+    items: [
+      {
+        q: 'What does the Sector Analysis tab show?',
+        a: 'Sector-level averages computed from all companies in each sector: average EPS, Revenue, Op Margin, ROE, D/E, CFO, Dividend Yield, P/E Ratio, Financial Score, Relative Volume, Discount Ratio, and all performance returns (WTD% through Rolling 1Y%). Use it to identify which sectors are leading or lagging the market.'
+      },
+      {
+        q: 'What is the Market Average row?',
+        a: 'Always pinned at the bottom of the sector table. Shows the average across all currently visible sectors. It updates dynamically — filter to KSE 100 and the Market Average reflects only KSE 100 companies. This gives you a true benchmark for comparing any sector against the broader market.'
+      },
+      {
+        q: 'How does the sector drill-through work?',
+        a: 'Click any sector name in the Sector Analysis table to instantly switch to the Screener tab pre-filtered to show only companies in that sector. If you also have an Index filter active (e.g. KSE 100 + Cement), the drill-through loads only KSE 100 Cement companies — giving you precisely the stocks you were analysing.'
+      },
+    ]
+  },
+  {
+    section: '🏆 Top Tab',
+    items: [
+      {
+        q: 'What is the Top tab?',
+        a: 'Pre-built ranked lists that update automatically after every data upload. Tables include: Daily Upper/Lower Circuit Breakers, Top Relative Volume (RVOL >1), Top Volume >1M shares, Turnaround Candidates, Top 10 Most Discounted stocks, Weekly Top Gainers and Losers, and Top scoring stock per sector.'
+      },
+      {
+        q: 'What is Relative Volume (RVOL)?',
+        a: 'RVOL = today\'s volume ÷ 20-day average volume. RVOL >1 means above-average activity today. RVOL >2 signals significantly elevated institutional interest and is often a precursor to a price move. The Top tab shows all stocks with RVOL >1, ranked highest first.'
+      },
+      {
+        q: 'What are Circuit Breakers?',
+        a: 'PSX imposes daily price move limits (circuit breakers). Stocks hitting the Upper Cap have reached the maximum allowed gain for the day — extreme buying pressure. Stocks hitting the Lower Cap have reached the maximum allowed loss — extreme selling. These are important signals of unusual market activity.'
+      },
+    ]
+  },
+  {
+    section: '⭐ Watchlist',
+    items: [
+      {
+        q: 'How do I add a stock to my Watchlist?',
+        a: 'Two ways: (1) Click the + button on any row in the Screener — the stock is added immediately. (2) Go to the Watchlist tab and use the search box to find and add stocks. When adding, enter your purchase price to track your return % from entry.'
+      },
+      {
+        q: 'What is the difference between Local and GitHub Sync?',
+        a: 'Local mode stores your watchlist in the browser only — fast and private but lost if you clear browser data or switch devices. GitHub Sync stores your watchlist in a private GitHub Gist — persists across all your devices and browsers. To enable GitHub Sync, generate a GitHub Personal Access Token with "gist" scope and paste it in the Watchlist tab.'
+      },
+    ]
+  },
+  {
+    section: '📖 Glossary',
+    items: [
+      { q: 'WTD% / MTD% / QTD% / YTD%', a: 'Week-to-Date, Month-to-Date, Quarter-to-Date, Year-to-Date return percentages. Measures price change from the start of the respective period to the current price.' },
+      { q: 'Rolling 1M% / 3M% / 6M% / 1Y%', a: 'Rolling return over the past 1, 3, 6 or 12 months from today — unlike MTD/QTD which reset at calendar boundaries, rolling periods always look back a fixed number of months.' },
+      { q: 'Discount Ratio', a: 'How far a stock\'s current price is below its estimated intrinsic/fair value. Negative = trading at a discount (undervalued). More negative = deeper discount. A stock at -30% Discount Ratio is trading 30% below its estimated fair value.' },
+      { q: 'CFO (Cash Flow from Operations)', a: 'Actual cash generated by the business from its core operations — excludes investment and financing activities. Positive and growing CFO is one of the strongest signs of financial health. Shown in B (billions), M (millions), K (thousands).' },
+      { q: 'ROE (Return on Equity)', a: 'Net profit as a percentage of shareholders\' equity. Measures how efficiently management uses equity capital to generate profit. Higher ROE = better use of equity. Compare within the same sector for meaningful analysis.' },
+      { q: 'D/E (Debt to Equity)', a: 'Total debt divided by shareholders\' equity. Measures financial leverage. Lower is generally more conservative. A D/E >2 means the company has more than twice as much debt as equity — higher risk in downturns.' },
+      { q: 'P/E Ratio (Price to Earnings)', a: 'Current stock price divided by annual earnings per share. Used for valuation comparison. A lower P/E vs sector peers may indicate undervaluation. Compare within the same sector only — P/E varies significantly across industries.' },
+      { q: 'Market Cap', a: 'Total market value of all shares outstanding = share price × number of shares. Shown in B (billions) or M (millions). Larger market cap companies tend to be more liquid and less volatile.' },
+      { q: 'NI > OI (Net Income > Operating Income)', a: 'When a company\'s Net Income exceeds its Operating Income, it means significant non-operating income (investment gains, asset sales, etc.) is boosting the bottom line. Flagged with the N badge.' },
+      { q: 'Loss Narrow (Turnaround)', a: 'A positive Loss Narrow score means a company\'s losses are shrinking quarter-over-quarter — an early-stage recovery signal before profitability is fully restored. Flagged with the T badge.' },
+      { q: 'KMI (Karachi Meezan Index)', a: 'Shariah-compliant index of PSX stocks screened and certified by Meezan Bank. KMI members are free of interest-based transactions, prohibited business activities and excessive debt. Flagged with the teal mosque icon badge.' },
+    ]
+  },
+];
+
+function buildFaqTab() {
+  const el = document.getElementById('tab-faq');
+  if (!el) { console.error('tab-faq not found'); return; }
+  // Always rebuild to ensure fresh content
+  el.innerHTML = '';
+
+  let html = `
+    <div style="max-width:860px;margin:0 auto;padding:20px 16px 40px;">
+      <div style="margin-bottom:24px;">
+        <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 6px;">Frequently Asked Questions</h2>
+        <p style="font-size:13px;color:var(--text2);margin:0;">Everything you need to know about Nexus PSX. Click any question to expand.</p>
+      </div>`;
+
+  FAQ_DATA.forEach((section, si) => {
+    html += `
+      <div style="margin-bottom:24px;">
+        <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border);">${section.section}</div>`;
+    section.items.forEach((item, ii) => {
+      const key = `faq-${si}-${ii}`;
+      html += `
+        <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;">
+          <button onclick="toggleFaq('${key}')" style="width:100%;text-align:left;padding:12px 16px;background:var(--surface);border:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;"
+            onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='var(--surface)'">
+            <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;">${item.q}</span>
+            <span id="${key}-icon" style="font-size:16px;color:var(--text3);flex-shrink:0;transition:transform 0.2s;">▾</span>
+          </button>
+          <div id="${key}" style="display:none;padding:0 16px 14px;background:var(--surface);">
+            <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:8px 0 0;">${item.a}</p>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `
+      <div style="margin-top:32px;padding:16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);text-align:center;">
+        <p style="font-size:12px;color:var(--text2);margin:0;">Have a question not listed here? Contact the administrator to suggest additions to this FAQ.</p>
+      </div>
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+window.toggleFaq = function(key) {
+  const panel = document.getElementById(key);
+  const icon  = document.getElementById(key + '-icon');
+  if (!panel || !icon) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  icon.style.transform = open ? '' : 'rotate(-180deg)';
+};
+// ===== END FAQ TAB =====
 
 // ===== THEME TOGGLE =====
 (function() {
