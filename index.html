@@ -1,4 +1,11 @@
 <html lang="en" data-theme="light"><head>
+<script>
+  try {
+    var _t = localStorage.getItem('psx_theme');
+    var _m = {light:'light',bloomberg:'bloomberg',tradingview:'tradingview',cream:'cream',dark:''};
+    if (_t && _m.hasOwnProperty(_t)) document.documentElement.setAttribute('data-theme', _m[_t]);
+  } catch(e) {}
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com https://www.googletagmanager.com https://apis.google.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.github.com wss://*.firebaseio.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://nexus-psx-dashboard-dev.firebaseapp.com;">
@@ -427,6 +434,7 @@
       <div class="table-header">
         <div class="table-title">Sector Performance Summary</div>
         <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="fin-toggle-btn active" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Hide Financials</span></button>
           <div class="msel" id="sectorIndexMsel">
             <button type="button" class="msel-btn" id="sectorIndexMselBtn" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
@@ -1538,6 +1546,21 @@
               <div class="msel-list" id="statusMselList"></div>
             </div>
           </div>
+
+          <div class="msel" id="nemiMsel" style="display:none;">
+            <button type="button" class="msel-btn" id="nemiMselBtn" aria-label="Filter by NEMI signal status" aria-haspopup="listbox" onclick="mselTogglePanel('nemi', event)" title="NEMI Signal: Separate proprietary signal filter. Restricted to authorised users only.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span id="nemiMselLabel">NEMI</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="nemiMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('nemi')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('nemi')">Clear</button>
+              </div>
+              <div class="msel-list" id="nemiMselList" style="max-height:220px;overflow-y:auto;"></div>
+            </div>
+          </div>
           <div class="msel" id="liquidMsel">
             <button type="button" class="msel-btn" id="liquidMselBtn" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
@@ -1598,6 +1621,7 @@
           <button class="fin-toggle-btn active" id="techToggleBtn" onclick="toggleTechnical()" title="Hide/show Signal Date, Signal Return%, Signal Status columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 0 0 14.14"></path><path d="M7.76 7.76a6 6 0 0 0 0 8.48"></path><circle cx="12" cy="12" r="1"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.48"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><span id="techToggleLabel">Hide Technical</span></button>
           <button class="fin-toggle-btn" id="dailyToggleBtn" onclick="toggleDaily()" title="Show Price, Rel Vol, Volume and 1D % columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span id="dailyToggleLabel">Show Daily Movement</span></button>
           <button class="fin-toggle-btn" id="perfToggleBtn" onclick="togglePerformance()" title="Hide/show performance return columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span id="perfToggleLabel">Show Performance</span></button>
+          <button class="fin-toggle-btn" id="nemiToggleBtn" style="display:none;" onclick="toggleNemi()" title="NEMI Columns: NEMI Signal Date, Entry Price, Return % since entry, NEMI Status."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span id="nemiToggleLabel">Show NEMI</span></button>
           <span id="screenerCount" style="font-size:11px; color: var(--text2); margin-left: 4px;">497 companies</span>
           <span style="font-size:10px; color: var(--text2); margin-left: 12px; display: inline-flex; align-items: center; gap: 10px;">
             <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
@@ -4735,4 +4759,18 @@
 
 
 
+
+<!-- ===== INSTALL APP MODAL ===== -->
+<div class="modal-backdrop" id="installModal">
+  <div class="modal" style="max-width:380px;width:calc(100% - 32px);">
+    <div class="modal-icon">📲</div>
+    <div class="modal-title" id="installModalTitle" style="color:var(--accent);">Install Nexus PSX</div>
+    <div class="modal-body" id="installModalBody">Add to your home screen for quick, full-screen access.</div>
+    <div id="installSteps" style="display:none;background:var(--surface2);border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.8;text-align:left;"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button id="installCancelBtn" onclick="closeInstallModal()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;">Cancel</button>
+      <button id="installConfirmBtn" style="flex:2;padding:10px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Install</button>
+    </div>
+  </div>
+</div>
 </body></html>
