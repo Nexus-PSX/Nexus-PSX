@@ -2541,6 +2541,12 @@ function tickerBadges(d) {
   if ((parseFloat(d['Loss narrow'])||0) > 0) {
     badges += '<span class="ticker-badge ticker-badge-turn" title="Turnaround Candidate">T</span>';
   }
+  if ((parseFloat(d['Liquid Stock'])||0) > 0) {
+    badges += '<span class="ticker-badge ticker-badge-liquid" title="Liquid Stock">💧</span>';
+  }
+  if ((parseFloat(d['Accumulation'])||0) > 0) {
+    badges += '<span class="ticker-badge ticker-badge-vol" title="High Volume Accumulation Phase">V</span>';
+  }
   return badges;
 }
 
