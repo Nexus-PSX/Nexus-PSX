@@ -517,7 +517,7 @@
   .ticker-badge-ni { background: #22c55e; }
   .ticker-badge-kmi    { background: none; width: auto; height: auto; color: #0d9e7e; }
   .ticker-badge-liquid { background: none; font-size: 11px; width: auto; height: auto; padding: 0; }
-  .ticker-badge-vol    { background: #6366f1; }
+  .ticker-badge-vol    { background: #9ca3af; }
   .ticker-link:hover { text-decoration: underline; color: var(--accent); }
 
   /* SECTOR TABLE — frozen first column */
