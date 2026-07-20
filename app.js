@@ -183,9 +183,12 @@ function buildMarketTicker() {
     </span><span class="tk-sep">·</span>`;
   }
 
-  const kse100_1d  = indexAvg(['KSE 100','KSE100'], 'Day Change %');
-  const kse30_1d   = indexAvg(['KSE 30', 'KSE30'],  'Day Change %');
-  const kmi30_1d   = indexAvg(['KMI 30', 'KMI30', 'KMI'], 'Day Change %');
+  const _t100 = SOURCE_DATA.find(d => String(d.Ticker||'').toUpperCase() === 'KSE100');
+  const _t30  = SOURCE_DATA.find(d => String(d.Ticker||'').toUpperCase() === 'KSE30');
+  const _tkmi = SOURCE_DATA.find(d => String(d.Ticker||'').toUpperCase() === 'KMI30');
+  const kse100_1d = _t100 ? parseFloat(_t100['Day Change %']||0) : null;
+  const kse30_1d  = _t30  ? parseFloat(_t30['Day Change %']||0)  : null;
+  const kmi30_1d  = _tkmi ? parseFloat(_tkmi['Day Change %']||0) : null;
 
   // ── Top 20 KSE 100 gainers & top 20 losers ───────────────────
   const kse100members = SOURCE_DATA.filter(d =>
@@ -3656,29 +3659,40 @@ function buildHomeTab() {
   const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
   const fmtPct  = v => v == null ? '—' : (v>=0?'+':'') + v.toFixed(2) + '%';
   const fmtChgA = v => v == null ? '—' : (v>=0?'+':'') + v.toFixed(2);
-  const fmtPx   = v => v == null ? '—' : v.toFixed(2);
+  const fmtPx   = v => v == null ? '—' : Number(v.toFixed(2)).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   const clr     = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
   const mono    = "font-family:'IBM Plex Mono',monospace;";
   const avg = (arr, field) => {
     const vals = arr.map(d => toN(d[field])).filter(v => v !== null);
     return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
   };
-  function idxAvg(names, field) {
-    const mem = SOURCE_DATA.filter(d => names.some(n => String(d.Index||'').includes(n)));
-    return avg(mem, field);
+  // Look up index tickers directly from SOURCE_DATA rows
+  function getIdx(ticker) {
+    return SOURCE_DATA.find(d => String(d.Ticker||'').toUpperCase() === ticker.toUpperCase()) || null;
   }
   const valid = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
 
   // ── Row 1: Market Pulse ───────────────────────────────────────────────────
-  const kse100_1d  = idxAvg(['KSE 100','KSE100'], 'Day Change %');
-  const kse30_1d   = idxAvg(['KSE 30','KSE30'],   'Day Change %');
-  const kmi30_1d   = idxAvg(['KMI 30','KMI30','KMI'], 'Day Change %');
-  const kse100_chg = idxAvg(['KSE 100','KSE100'], 'Day Change');
-  const kse30_chg  = idxAvg(['KSE 30','KSE30'],   'Day Change');
-  const kmi30_chg  = idxAvg(['KMI 30','KMI30','KMI'], 'Day Change');
-  const kse100_px  = idxAvg(['KSE 100','KSE100'], 'Price');
-  const kse30_px   = idxAvg(['KSE 30','KSE30'],   'Price');
-  const kmi30_px   = idxAvg(['KMI 30','KMI30','KMI'], 'Price');
+  const _kse100 = getIdx('KSE100');
+  const _kse30  = getIdx('KSE30');
+  const _kmi30  = getIdx('KMI30');
+  const _psxdiv = getIdx('PSXDIV20');
+
+  const kse100_px  = toN(_kse100?.['Price']);
+  const kse100_chg = toN(_kse100?.['Day Change']);
+  const kse100_1d  = toN(_kse100?.['Day Change %']);
+
+  const kse30_px   = toN(_kse30?.['Price']);
+  const kse30_chg  = toN(_kse30?.['Day Change']);
+  const kse30_1d   = toN(_kse30?.['Day Change %']);
+
+  const kmi30_px   = toN(_kmi30?.['Price']);
+  const kmi30_chg  = toN(_kmi30?.['Day Change']);
+  const kmi30_1d   = toN(_kmi30?.['Day Change %']);
+
+  const psxdiv_px  = toN(_psxdiv?.['Price']);
+  const psxdiv_chg = toN(_psxdiv?.['Day Change']);
+  const psxdiv_1d  = toN(_psxdiv?.['Day Change %']);
   const advances   = valid.filter(d => toN(d['Day Change %']) > 0).length;
   const declines   = valid.filter(d => toN(d['Day Change %']) < 0).length;
 
@@ -3702,9 +3716,10 @@ function buildHomeTab() {
 
   const pulseRow = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-      ${idxCard('KSE 100', fmtPx(kse100_px), kse100_chg, kse100_1d, 'KSE 100 Index')}
-      ${idxCard('KSE 30',  fmtPx(kse30_px),  kse30_chg,  kse30_1d,  'KSE 30 Index')}
-      ${idxCard('KMI 30',  fmtPx(kmi30_px),  kmi30_chg,  kmi30_1d,  'Shariah Index')}
+      ${idxCard('KSE 100',   fmtPx(kse100_px),  kse100_chg,  kse100_1d,  'KSE 100 Index')}
+      ${idxCard('KSE 30',    fmtPx(kse30_px),   kse30_chg,   kse30_1d,   'KSE 30 Index')}
+      ${idxCard('KMI 30',    fmtPx(kmi30_px),   kmi30_chg,   kmi30_1d,   'Shariah Index')}
+      ${idxCard('PSX DIV 20',fmtPx(psxdiv_px),  psxdiv_chg,  psxdiv_1d,  'Dividend Index')}
       ${pulseCard('Advances', advances, 'var(--success)', 'Stocks up today')}
       ${pulseCard('Declines', declines, 'var(--danger)',  'Stocks down today')}
     </div>`;
