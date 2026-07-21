@@ -189,7 +189,6 @@
             🔔 Enable Alerts
           </span>
         </button>
-        <button class="auth-dropdown-item" onclick="switchTab('faq');document.getElementById('authUserMenu').classList.add('hidden');" style="display:flex;align-items:center;gap:7px;width:100%;border:none;background:none;cursor:pointer;color:var(--text);padding:8px 10px;border-radius:6px;font-size:12px;text-align:left;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>FAQ / Help</button>
         <button class="auth-dropdown-item" id="authSignOutItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sign out</span></button>
       </div>
     </div>
@@ -443,7 +442,7 @@
       <div class="table-header">
         <div class="table-title" style="position:relative;">Sector Performance Summary</div>
         <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button class="fin-toggle-btn" style="position:relative;" active" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Hide Financials</span></button>
+          <button class="fin-toggle-btn" style="position:relative;" active" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, Net Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Hide Financials</span></button>
           <div class="msel" id="sectorIndexMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="sectorIndexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)" title="Index Filter: Narrows sector averages to only companies in the selected index (e.g. KSE 100).">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
@@ -486,23 +485,24 @@
               <th onclick="sortSectorTable(2)" class="sector-hide-mobile sector-fin-col">Avg EPS (Q)</th>
               <th onclick="sortSectorTable(3)" class="sector-hide-mobile sector-fin-col">EPS (TTM)</th>
               <th onclick="sortSectorTable(4)" class="sector-hide-mobile sector-fin-col">Op Margin</th>
-              <th onclick="sortSectorTable(5)" class="sector-hide-mobile sector-fin-col">ROE</th>
-              <th onclick="sortSectorTable(6)" class="sector-hide-mobile sector-fin-col">D/E</th>
-              <th onclick="sortSectorTable(7)" class="sector-hide-mobile sector-fin-col">CFO</th>
-              <th onclick="sortSectorTable(8)" class="sector-hide-mobile sector-fin-col">Div Yield</th>
-              <th onclick="sortSectorTable(9)" class="sector-hide-mobile sector-fin-col sort-desc">P/E Ratio</th>
-              <th title="Financial Score: Composite score 0-100 reflecting sector average financial health and momentum." onclick="sortSectorTable(10)" class="" style="position:relative;">Financial Score</th>
-              <th onclick="sortSectorTable(11)" title="Average Relative Volume vs Average" class="" style="position:relative;">Rel Vol</th>
-              <th onclick="sortSectorTable(12)" title="Average Discount Ratio" class="" style="position:relative;">Disc Ratio</th>
-              <th onclick="sortSectorTable(13)" title="1-Day Price Change" class="sector-hide-mobile sector-perf-col">1D %</th>
-              <th onclick="sortSectorTable(14)" title="Week-to-Date Price Change" class="sector-hide-mobile sector-perf-col">WTD %</th>
-              <th onclick="sortSectorTable(15)" title="Month-to-Date Price Change" class="sector-perf-col">MTD %</th>
-              <th onclick="sortSectorTable(16)" title="Quarter-to-Date Price Change" class="sector-perf-col">QTD %</th>
-              <th onclick="sortSectorTable(17)" title="Year-to-Date Price Change" class="sector-perf-col">YTD %</th>
-              <th onclick="sortSectorTable(18)" title="Rolling 1-Month Return %" class="sector-perf-col">Roll 1M%</th>
-              <th onclick="sortSectorTable(19)" title="Rolling 3-Month Return %" class="sector-perf-col">Roll 3M%</th>
-              <th onclick="sortSectorTable(20)" title="Rolling 6-Month Return %" class="sector-perf-col">Roll 6M%</th>
-              <th onclick="sortSectorTable(21)" title="Rolling 1-Year Return %" class="sector-perf-col">Roll 1Y%</th>
+              <th onclick="sortSectorTable(5)" class="sector-hide-mobile sector-fin-col">Net Margin</th>
+              <th onclick="sortSectorTable(6)" class="sector-hide-mobile sector-fin-col">ROE</th>
+              <th onclick="sortSectorTable(7)" class="sector-hide-mobile sector-fin-col">D/E</th>
+              <th onclick="sortSectorTable(8)" class="sector-hide-mobile sector-fin-col">CFO</th>
+              <th onclick="sortSectorTable(9)" class="sector-hide-mobile sector-fin-col">Div Yield</th>
+              <th onclick="sortSectorTable(10)" class="sector-hide-mobile sector-fin-col sort-desc">P/E Ratio</th>
+              <th title="Financial Score: Composite score 0-100 reflecting sector average financial health and momentum." onclick="sortSectorTable(11)" class="" style="position:relative;">Financial Score</th>
+              <th onclick="sortSectorTable(12)" title="Average Relative Volume vs Average" class="" style="position:relative;">Rel Vol</th>
+              <th onclick="sortSectorTable(13)" title="Average Discount Ratio" class="" style="position:relative;">Disc Ratio</th>
+              <th onclick="sortSectorTable(14)" title="1-Day Price Change" class="sector-hide-mobile sector-perf-col">1D %</th>
+              <th onclick="sortSectorTable(15)" title="Week-to-Date Price Change" class="sector-hide-mobile sector-perf-col">WTD %</th>
+              <th onclick="sortSectorTable(16)" title="Month-to-Date Price Change" class="sector-perf-col">MTD %</th>
+              <th onclick="sortSectorTable(17)" title="Quarter-to-Date Price Change" class="sector-perf-col">QTD %</th>
+              <th onclick="sortSectorTable(18)" title="Year-to-Date Price Change" class="sector-perf-col">YTD %</th>
+              <th onclick="sortSectorTable(19)" title="Rolling 1-Month Return %" class="sector-perf-col">Roll 1M%</th>
+              <th onclick="sortSectorTable(20)" title="Rolling 3-Month Return %" class="sector-perf-col">Roll 3M%</th>
+              <th onclick="sortSectorTable(21)" title="Rolling 6-Month Return %" class="sector-perf-col">Roll 6M%</th>
+              <th onclick="sortSectorTable(22)" title="Rolling 1-Year Return %" class="sector-perf-col">Roll 1Y%</th>
             </tr>
           </thead>
           <tbody id="sectorTableBody"><tr>
@@ -4766,6 +4766,12 @@
       </div>
       <span class="mobile-nav-label">Top</span>
       <div class="mnav-active-pill"></div>
+    </button>
+    <button class="mobile-nav-item" id="mnav-faq" onclick="switchTab('faq')" aria-label="FAQ">
+      <div class="mobile-nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      </div>
+      <span class="mobile-nav-label">FAQ</span>
     </button>
 
   </div>
