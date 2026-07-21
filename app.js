@@ -62,6 +62,7 @@ function computeSectorRowsFromCompanies(companies) {
     epsQ:       avg(rows, 'Latest EPS  Q'),
     epsTTM:     avg(rows, 'Latest TTM EPS Q'),
     opMargin:   avg(rows, 'Op Income-Q'),
+    netMargin:  avg(rows, 'Net Income -Q'),
     roe:        avg(rows, 'ROE 2026-Q1'),
     de:         avg(rows, 'Debt/Equity 2026-Q1'),
     cfo:        avg(rows, 'CFO 2026-Q1'),
@@ -105,6 +106,7 @@ function buildMarketAvgRowFromCompanies(companies, sectorRows) {
     epsQ:       avg('Latest EPS  Q'),
     epsTTM:     avg('Latest TTM EPS Q'),
     opMargin:   avg('Op Income-Q'),
+    netMargin:  avg('Net Income -Q'),
     roe:        avg('ROE 2026-Q1'),
     de:         avg('Debt/Equity 2026-Q1'),
     cfo:        avg('CFO 2026-Q1'),
@@ -1369,6 +1371,7 @@ function renderSectorTable(data) {
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.roe)}">${fmtPct(s.roe)}</td>
       <td class="sector-hide-mobile sector-fin-col mono">${s.de!=null?fmt(s.de,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${s.cfo!=null&&s.cfo<0?'negative':s.cfo!=null&&s.cfo>0?'positive':''}">${fmtBig(s.cfo)}</td>
@@ -1463,7 +1466,7 @@ function filterSectorTable() {
   updateSectorClearBtn();
 }
 function sortSectorTable(col) {
-  const cols = ['sector','companies','epsQ','epsTTM','opMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y'];
+  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y'];
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
@@ -3949,7 +3952,7 @@ const FAQ_DATA = [
     items: [
       {
         q: 'What does the Sector Analysis tab show?',
-        a: 'Sector-level averages computed from all companies in each sector: average EPS, Revenue, Op Margin, ROE, D/E, CFO, Dividend Yield, P/E Ratio, Financial Score, Relative Volume, Discount Ratio, and all performance returns (WTD% through Rolling 1Y%). Use it to identify which sectors are leading or lagging the market.'
+        a: 'Sector-level averages computed from all companies in each sector: average EPS, Revenue, Op Margin, Net Margin, ROE, D/E, CFO, Dividend Yield, P/E Ratio, Financial Score, Relative Volume, Discount Ratio, and all performance returns (WTD% through Rolling 1Y%). Use it to identify which sectors are leading or lagging the market.'
       },
       {
         q: 'What is the Market Average row?',
