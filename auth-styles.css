@@ -75,6 +75,10 @@
   }
   .auth-dropdown-item:hover { background: var(--surface2); }
   .auth-dropdown-item { position: relative; display: flex; align-items: center; justify-content: space-between; }
+  /* Items that only belong in the dropdown on mobile — e.g. FAQ, which lives
+     in the bottom mobile-nav bar on desktop/tablet but is moved up here on
+     mobile to free up space in the bottom nav (see @media block below). */
+  .auth-dropdown-item.mobile-only { display: none; }
   .auth-alert-badge {
     position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 3px;
     border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700;
@@ -141,4 +145,5 @@
     left: 10px !important;
     width: auto !important;
   }
+  .auth-dropdown-item.mobile-only { display: flex; }
 }

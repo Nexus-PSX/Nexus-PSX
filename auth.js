@@ -171,7 +171,7 @@
   // runs before the body is parsed (it's in <head>), so querying immediately
   // would return null for most elements.
   let overlay, userMenu, avatarBtn, dropdown, avatarLg, dropdownName,
-      dropdownEmail, alertsBtn, alertsPanel, signOutItem,
+      dropdownEmail, alertsBtn, alertsPanel, signOutItem, faqItem,
       emailEl, passEl, errEl, submitBtn, toggleBtn, titleEl, subEl;
 
   function getAllCurrentBuySignals() {
@@ -213,6 +213,7 @@
     alertsBtn    = document.getElementById('authAlertsBtn');
     alertsPanel  = document.getElementById('alertsPanel');
     signOutItem  = document.getElementById('authSignOutItem');
+    faqItem      = document.getElementById('authFaqItem');
     emailEl      = document.getElementById('authEmail');
     passEl       = document.getElementById('authPassword');
     errEl        = document.getElementById('authError');
@@ -320,6 +321,10 @@
       if (userMenu && !userMenu.contains(e.target)) dropdown?.classList.add('hidden');
     });
     signOutItem?.addEventListener('click', () => { dropdown?.classList.add('hidden'); signOut(auth); });
+    faqItem?.addEventListener('click', () => {
+      dropdown?.classList.add('hidden');
+      if (typeof window.switchTab === 'function') window.switchTab('faq');
+    });
   });
 
   // ===== Buy-signal alerts: fires when a stock's status CHANGES into the
