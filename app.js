@@ -1371,7 +1371,7 @@ function renderSectorTable(data) {
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}</td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct3(s.epsQG):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin):'—'}</td>
@@ -2573,7 +2573,7 @@ function renderScreenerPage() {
       <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:500">${d.Name||'—'}</td>
       <td class="screener-sector-cell" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">${d.Sector||'—'}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),3)}</td>
-      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%')):'—'}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct3(dget(d,'EPS Q G%')):'—'}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),3)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtBig(dget(d,'Revenue - Q'))}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Op Income-Q'))}">${fmtPct(dget(d,'Op Income-Q'))}</td>
@@ -2828,6 +2828,13 @@ function fmtPct(v) {
   const n = toNum(v);
   if (n == null) return '—';
   return (n * 100).toFixed(1) + '%';
+}
+// Same as fmtPct but with 3 decimal places and comma thousand-separators —
+// used for EPS Q G% columns, since quarterly EPS growth % can swing large.
+function fmtPct3(v) {
+  const n = toNum(v);
+  if (n == null) return '—';
+  return (n * 100).toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '%';
 }
 function valColor(v) {
   const n = toNum(v);

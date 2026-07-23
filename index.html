@@ -481,30 +481,30 @@
       <table class="data-table" id="sectorTable" aria-label="Sector performance summary">
           <thead>
             <tr id="sectorTableHead">
-              <th onclick="sortSectorTable(0)">Sector</th>
-              <th onclick="sortSectorTable(1)" class="sector-hide-mobile sector-fin-col">Cos</th>
-              <th onclick="sortSectorTable(2)" class="sector-hide-mobile sector-fin-col">Avg EPS (Q)</th>
-              <th onclick="sortSectorTable(23)" class="sector-hide-mobile sector-fin-col">AVG EPS (QG%)</th>
-              <th onclick="sortSectorTable(3)" class="sector-hide-mobile sector-fin-col">EPS (TTM)</th>
-              <th onclick="sortSectorTable(4)" class="sector-hide-mobile sector-fin-col">Op Margin</th>
-              <th onclick="sortSectorTable(5)" class="sector-hide-mobile sector-fin-col">Net Margin</th>
-              <th onclick="sortSectorTable(6)" class="sector-hide-mobile sector-fin-col">ROE</th>
-              <th onclick="sortSectorTable(7)" class="sector-hide-mobile sector-fin-col">D/E</th>
-              <th onclick="sortSectorTable(8)" class="sector-hide-mobile sector-fin-col">CFO</th>
-              <th onclick="sortSectorTable(9)" class="sector-hide-mobile sector-fin-col">Div Yield</th>
-              <th onclick="sortSectorTable(10)" class="sector-hide-mobile sector-fin-col sort-desc">P/E Ratio</th>
-              <th title="Financial Score: Composite score 0-100 reflecting sector average financial health and momentum." onclick="sortSectorTable(11)" class="" style="position:relative;">Financial Score</th>
-              <th onclick="sortSectorTable(12)" title="Average Relative Volume vs Average" class="" style="position:relative;">Rel Vol</th>
-              <th onclick="sortSectorTable(13)" title="Average Discount Ratio" class="" style="position:relative;">Disc Ratio</th>
-              <th onclick="sortSectorTable(14)" title="1-Day Price Change" class="sector-hide-mobile sector-perf-col">1D %</th>
-              <th onclick="sortSectorTable(15)" title="Week-to-Date Price Change" class="sector-hide-mobile sector-perf-col">WTD %</th>
-              <th onclick="sortSectorTable(16)" title="Month-to-Date Price Change" class="sector-perf-col">MTD %</th>
-              <th onclick="sortSectorTable(17)" title="Quarter-to-Date Price Change" class="sector-perf-col">QTD %</th>
-              <th onclick="sortSectorTable(18)" title="Year-to-Date Price Change" class="sector-perf-col">YTD %</th>
-              <th onclick="sortSectorTable(19)" title="Rolling 1-Month Return %" class="sector-perf-col">Roll 1M%</th>
-              <th onclick="sortSectorTable(20)" title="Rolling 3-Month Return %" class="sector-perf-col">Roll 3M%</th>
-              <th onclick="sortSectorTable(21)" title="Rolling 6-Month Return %" class="sector-perf-col">Roll 6M%</th>
-              <th onclick="sortSectorTable(22)" title="Rolling 1-Year Return %" class="sector-perf-col">Roll 1Y%</th>
+              <th data-sort-col="0" onclick="sortSectorTable(0)">Sector</th>
+              <th data-sort-col="1" onclick="sortSectorTable(1)" class="sector-hide-mobile sector-fin-col">Cos</th>
+              <th data-sort-col="2" onclick="sortSectorTable(2)" class="sector-hide-mobile sector-fin-col">Avg EPS (Q)</th>
+              <th data-sort-col="23" onclick="sortSectorTable(23)" class="sector-hide-mobile sector-fin-col">AVG EPS (QG%)</th>
+              <th data-sort-col="3" onclick="sortSectorTable(3)" class="sector-hide-mobile sector-fin-col">EPS (TTM)</th>
+              <th data-sort-col="4" onclick="sortSectorTable(4)" class="sector-hide-mobile sector-fin-col">Op Margin</th>
+              <th data-sort-col="5" onclick="sortSectorTable(5)" class="sector-hide-mobile sector-fin-col">Net Margin</th>
+              <th data-sort-col="6" onclick="sortSectorTable(6)" class="sector-hide-mobile sector-fin-col">ROE</th>
+              <th data-sort-col="7" onclick="sortSectorTable(7)" class="sector-hide-mobile sector-fin-col">D/E</th>
+              <th data-sort-col="8" onclick="sortSectorTable(8)" class="sector-hide-mobile sector-fin-col">CFO</th>
+              <th data-sort-col="9" onclick="sortSectorTable(9)" class="sector-hide-mobile sector-fin-col">Div Yield</th>
+              <th data-sort-col="10" onclick="sortSectorTable(10)" class="sector-hide-mobile sector-fin-col sort-desc">P/E Ratio</th>
+              <th title="Financial Score: Composite score 0-100 reflecting sector average financial health and momentum." data-sort-col="11" onclick="sortSectorTable(11)" class="" style="position:relative;">Financial Score</th>
+              <th data-sort-col="12" onclick="sortSectorTable(12)" title="Average Relative Volume vs Average" class="" style="position:relative;">Rel Vol</th>
+              <th data-sort-col="13" onclick="sortSectorTable(13)" title="Average Discount Ratio" class="" style="position:relative;">Disc Ratio</th>
+              <th data-sort-col="14" onclick="sortSectorTable(14)" title="1-Day Price Change" class="sector-hide-mobile sector-perf-col">1D %</th>
+              <th data-sort-col="15" onclick="sortSectorTable(15)" title="Week-to-Date Price Change" class="sector-hide-mobile sector-perf-col">WTD %</th>
+              <th data-sort-col="16" onclick="sortSectorTable(16)" title="Month-to-Date Price Change" class="sector-perf-col">MTD %</th>
+              <th data-sort-col="17" onclick="sortSectorTable(17)" title="Quarter-to-Date Price Change" class="sector-perf-col">QTD %</th>
+              <th data-sort-col="18" onclick="sortSectorTable(18)" title="Year-to-Date Price Change" class="sector-perf-col">YTD %</th>
+              <th data-sort-col="19" onclick="sortSectorTable(19)" title="Rolling 1-Month Return %" class="sector-perf-col">Roll 1M%</th>
+              <th data-sort-col="20" onclick="sortSectorTable(20)" title="Rolling 3-Month Return %" class="sector-perf-col">Roll 3M%</th>
+              <th data-sort-col="21" onclick="sortSectorTable(21)" title="Rolling 6-Month Return %" class="sector-perf-col">Roll 6M%</th>
+              <th data-sort-col="22" onclick="sortSectorTable(22)" title="Rolling 1-Year Return %" class="sector-perf-col">Roll 1Y%</th>
             </tr>
           </thead>
           <tbody id="sectorTableBody"><tr>
@@ -1692,35 +1692,35 @@
         <table class="data-table hide-financials hide-performance hide-daily hide-nemi" id="screenerTable" aria-label="Stock screener results">
           <thead>
             <tr id="screenerTableHead">
-              <th onclick="sortScreener(0)">Ticker</th>
-              <th onclick="sortScreener(1)">Name</th>
-              <th onclick="sortScreener(2)">Sector</th>
-              <th class="screener-fin-col" onclick="sortScreener(3)">EPS (Q)</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(36)">EPS Q G%</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(4)">EPS (TTM)</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(5)">Revenue (Q)</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(6)">Op Margin</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(7)">Net Margin</th>
-              <th class="screener-fin-col" onclick="sortScreener(8)">ROE</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(9)">D/E</th>
-              <th class="screener-hide-mobile screener-fin-col" onclick="sortScreener(10)">CFO</th>
-              <th class="screener-fin-col" onclick="sortScreener(11)">Div Yield</th>
-              <th class="screener-fin-col sort-desc" onclick="sortScreener(12)">P/E Ratio</th>
-              <th class="screener-fin-col" onclick="sortScreener(13)" title="Market Capitalization (PKR)">Market Cap</th>
-              <th onclick="sortScreener(14)" class="">Financial Score</th>
-              <th onclick="sortScreener(15)" class="screener-tech-col">Signal Date</th>
-              <th onclick="sortScreener(16)" class="screener-tech-col">Signal Price</th>
-              <th onclick="sortScreener(17)" class="screener-tech-col">Signal Return%</th>
-              <th onclick="sortScreener(18)" class="screener-tech-col">Signal Status</th>
-              <th class="screener-daily-col" onclick="sortScreener(19)" title="Current Market Price (PKR)">Price</th>
-              <th class="screener-daily-col" onclick="sortScreener(20)" title="Day Change in PKR">Day Change</th>
-              <th class="screener-daily-col" onclick="sortScreener(21)" title="Relative Volume vs Average">Rel Vol</th>
-              <th class="screener-daily-col" onclick="sortScreener(22)" title="Volume">Volume</th>
-              <th class="screener-daily-col" onclick="sortScreener(23)">1D %</th>
-              <th class="screener-perf-col" onclick="sortScreener(24)">WTD %</th>
-              <th class="screener-perf-col" onclick="sortScreener(25)">MTD %</th>
-              <th class="screener-perf-col" onclick="sortScreener(26)">QTD %</th>
-              <th class="screener-perf-col" onclick="sortScreener(27)">YTD %</th>
+              <th data-sort-col="0" onclick="sortScreener(0)">Ticker</th>
+              <th data-sort-col="1" onclick="sortScreener(1)">Name</th>
+              <th data-sort-col="2" onclick="sortScreener(2)">Sector</th>
+              <th class="screener-fin-col" data-sort-col="3" onclick="sortScreener(3)">EPS (Q)</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="36" onclick="sortScreener(36)">EPS Q G%</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="4" onclick="sortScreener(4)">EPS (TTM)</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="5" onclick="sortScreener(5)">Revenue (Q)</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="6" onclick="sortScreener(6)">Op Margin</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="7" onclick="sortScreener(7)">Net Margin</th>
+              <th class="screener-fin-col" data-sort-col="8" onclick="sortScreener(8)">ROE</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="9" onclick="sortScreener(9)">D/E</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="10" onclick="sortScreener(10)">CFO</th>
+              <th class="screener-fin-col" data-sort-col="11" onclick="sortScreener(11)">Div Yield</th>
+              <th class="screener-fin-col sort-desc" data-sort-col="12" onclick="sortScreener(12)">P/E Ratio</th>
+              <th class="screener-fin-col" data-sort-col="13" onclick="sortScreener(13)" title="Market Capitalization (PKR)">Market Cap</th>
+              <th data-sort-col="14" onclick="sortScreener(14)" class="">Financial Score</th>
+              <th data-sort-col="15" onclick="sortScreener(15)" class="screener-tech-col">Signal Date</th>
+              <th data-sort-col="16" onclick="sortScreener(16)" class="screener-tech-col">Signal Price</th>
+              <th data-sort-col="17" onclick="sortScreener(17)" class="screener-tech-col">Signal Return%</th>
+              <th data-sort-col="18" onclick="sortScreener(18)" class="screener-tech-col">Signal Status</th>
+              <th class="screener-daily-col" data-sort-col="19" onclick="sortScreener(19)" title="Current Market Price (PKR)">Price</th>
+              <th class="screener-daily-col" data-sort-col="20" onclick="sortScreener(20)" title="Day Change in PKR">Day Change</th>
+              <th class="screener-daily-col" data-sort-col="21" onclick="sortScreener(21)" title="Relative Volume vs Average">Rel Vol</th>
+              <th class="screener-daily-col" data-sort-col="22" onclick="sortScreener(22)" title="Volume">Volume</th>
+              <th class="screener-daily-col" data-sort-col="23" onclick="sortScreener(23)">1D %</th>
+              <th class="screener-perf-col" data-sort-col="24" onclick="sortScreener(24)">WTD %</th>
+              <th class="screener-perf-col" data-sort-col="25" onclick="sortScreener(25)">MTD %</th>
+              <th class="screener-perf-col" data-sort-col="26" onclick="sortScreener(26)">QTD %</th>
+              <th class="screener-perf-col" data-sort-col="27" onclick="sortScreener(27)">YTD %</th>
               <th class="screener-perf-col" data-sort-col="32" onclick="sortScreener(32)">Roll 1M%</th>
               <th class="screener-perf-col" data-sort-col="33" onclick="sortScreener(33)">Roll 3M%</th>
               <th class="screener-perf-col" data-sort-col="34" onclick="sortScreener(34)">Roll 6M%</th>
