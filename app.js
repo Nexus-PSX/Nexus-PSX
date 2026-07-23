@@ -60,6 +60,7 @@ function computeSectorRowsFromCompanies(companies) {
     sector,
     companies:  rows.length,
     epsQ:       avg(rows, 'Latest EPS  Q'),
+    epsQG:      avg(rows, 'EPS Q G%'),
     epsTTM:     avg(rows, 'Latest TTM EPS Q'),
     opMargin:   avg(rows, 'Op Income-Q'),
     netMargin:  avg(rows, 'Net Income -Q'),
@@ -104,6 +105,7 @@ function buildMarketAvgRowFromCompanies(companies, sectorRows) {
     sector:     'MARKET AVERAGE',
     companies:  companies.length,
     epsQ:       avg('Latest EPS  Q'),
+    epsQG:      avg('EPS Q G%'),
     epsTTM:     avg('Latest TTM EPS Q'),
     opMargin:   avg('Op Income-Q'),
     netMargin:  avg('Net Income -Q'),
@@ -1369,6 +1371,7 @@ function renderSectorTable(data) {
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}</td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin):'—'}</td>
@@ -1466,7 +1469,7 @@ function filterSectorTable() {
   updateSectorClearBtn();
 }
 function sortSectorTable(col) {
-  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y'];
+  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y','epsQG'];
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
@@ -2029,7 +2032,7 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%'];
   const key = sortKeys[screenerSort.col];
   filteredScreener.sort((a,b) => {
   let av = a[key];
@@ -2049,7 +2052,7 @@ function filterScreener() {
   }
 
   // columns that must be numeric
-  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %' || key === 'NEMI Signal date' || key === 'NEMI Signal Price' || key === 'NEMI Signal Return %' || key === 'Rolling 1M%' || key === 'Rolling 3M%' || key === 'Rolling 6M%' || key === 'Rolling 1Y%') {
+  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %' || key === 'NEMI Signal date' || key === 'NEMI Signal Price' || key === 'NEMI Signal Return %' || key === 'Rolling 1M%' || key === 'Rolling 3M%' || key === 'Rolling 6M%' || key === 'Rolling 1Y%' || key === 'EPS Q G%') {
     return (Number(av) - Number(bv)) * screenerSort.dir;
   }
 
@@ -2570,6 +2573,7 @@ function renderScreenerPage() {
       <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:500">${d.Name||'—'}</td>
       <td class="screener-sector-cell" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">${d.Sector||'—'}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),3)}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%')):'—'}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),3)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtBig(dget(d,'Revenue - Q'))}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Op Income-Q'))}">${fmtPct(dget(d,'Op Income-Q'))}</td>
