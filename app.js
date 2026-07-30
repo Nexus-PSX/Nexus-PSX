@@ -1903,6 +1903,9 @@ function clearAllFilters() {
   if (pv) pv.value = '';
   const pd = document.getElementById('priceFilterDir');
   if (pd) { pd.textContent = '>'; pd.dataset.dir = 'gt'; }
+  screenerColFilters = {};
+  closeColFilter();
+  updateColFilterIcons();
   resetMselFilters();
   filterScreener();
 }
@@ -1923,6 +1926,127 @@ function getPriceFilter() {
   return { val, dir };
 }
 
+// ===== SCREENER PER-COLUMN NUMERIC FILTERS =====
+// Clicking the small funnel icon next to a numeric header opens a shared
+// popover where typing a value plus a > / < toggle filters that column.
+// Covers every numeric column (financial, technical, daily, performance,
+// NEMI) — Signal Status and NEMI Signal Status are excluded since they're
+// categorical pills, not something a > / < comparison applies to.
+// Multiple column filters combine with AND, alongside every other active
+// screener filter (search, price, multi-selects, etc).
+let screenerColFilters = {}; // { [dataKey]: {op:'gt'|'lt', val:number} } — val is always in the
+                              // underlying data's own scale (see PERCENT_COL_FILTER_KEYS below)
+let activeColFilterKey = null;
+// Columns whose underlying data is a raw fraction (e.g. 0.05) displayed as "5.00%".
+// For these, the filter box accepts a plain percent number (e.g. "5") and we convert
+// to/from the fraction under the hood, so typing "5" means 5% rather than 500%.
+const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q']);
+// Signal date / NEMI Signal date are stored as an 8-digit YYYYMMDD number — still
+// perfectly comparable with > / <, but the filter box gets a format hint for these.
+const DATE_COL_FILTER_KEYS = new Set(['Signal date', 'NEMI Signal date']);
+
+function openColFilter(event, key, label) {
+  event.stopPropagation();
+  const popover = document.getElementById('colFilterPopover');
+  if (!popover) return;
+  // Re-clicking the same column's icon toggles the popover closed
+  if (activeColFilterKey === key && !popover.classList.contains('hidden')) {
+    closeColFilter();
+    return;
+  }
+  activeColFilterKey = key;
+  const titleEl = document.getElementById('colFilterPopoverTitle');
+  if (titleEl) titleEl.textContent = 'Filter: ' + label;
+  const isPct = PERCENT_COL_FILTER_KEYS.has(key);
+  const existing = screenerColFilters[key];
+  const dirBtn = document.getElementById('colFilterDir');
+  const valInput = document.getElementById('colFilterVal');
+  dirBtn.dataset.dir = existing ? existing.op : 'gt';
+  dirBtn.textContent = dirBtn.dataset.dir === 'gt' ? '>' : '<';
+  valInput.value = existing != null ? (isPct ? existing.val * 100 : existing.val) : '';
+  valInput.placeholder = isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
+
+  popover.classList.remove('hidden');
+  // Position just below the clicked icon, clamped so it never spills off-screen
+  const btn = event.currentTarget;
+  const r = btn.getBoundingClientRect();
+  const pw = 190;
+  let left = r.left;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (left < 8) left = 8;
+  popover.style.left = left + 'px';
+  popover.style.top = (r.bottom + 6) + 'px';
+
+  valInput.focus();
+}
+
+function closeColFilter() {
+  const popover = document.getElementById('colFilterPopover');
+  if (popover) popover.classList.add('hidden');
+  activeColFilterKey = null;
+}
+
+function toggleColFilterDir() {
+  const dirBtn = document.getElementById('colFilterDir');
+  if (!dirBtn) return;
+  const isGt = dirBtn.dataset.dir !== 'lt';
+  dirBtn.dataset.dir = isGt ? 'lt' : 'gt';
+  dirBtn.textContent = isGt ? '<' : '>';
+  applyColFilterInput();
+}
+
+function applyColFilterInput() {
+  if (!activeColFilterKey) return;
+  const dirBtn = document.getElementById('colFilterDir');
+  const valInput = document.getElementById('colFilterVal');
+  const raw = parseFloat(valInput.value);
+  if (isNaN(raw)) {
+    delete screenerColFilters[activeColFilterKey];
+  } else {
+    const val = PERCENT_COL_FILTER_KEYS.has(activeColFilterKey) ? raw / 100 : raw;
+    screenerColFilters[activeColFilterKey] = { op: dirBtn.dataset.dir || 'gt', val };
+  }
+  updateColFilterIcons();
+  filterScreener();
+}
+
+function clearColFilterActive() {
+  if (!activeColFilterKey) return;
+  delete screenerColFilters[activeColFilterKey];
+  const valInput = document.getElementById('colFilterVal');
+  if (valInput) valInput.value = '';
+  updateColFilterIcons();
+  filterScreener();
+  closeColFilter();
+}
+
+function updateColFilterIcons() {
+  document.querySelectorAll('.col-filter-icon').forEach(icon => {
+    const key = icon.dataset.filterKey;
+    const f = screenerColFilters[key];
+    icon.classList.toggle('active', !!f);
+    if (f) {
+      const isPct = PERCENT_COL_FILTER_KEYS.has(key);
+      const shown = isPct ? (f.val * 100) : f.val;
+      icon.title = `Filtered: ${f.op === 'gt' ? '>' : '<'} ${shown}${isPct ? '%' : ''}`;
+    } else {
+      icon.title = icon.dataset.baseTitle || 'Filter this column';
+    }
+  });
+}
+
+// Close the popover on outside click or Escape
+document.addEventListener('click', (e) => {
+  const popover = document.getElementById('colFilterPopover');
+  if (!popover || popover.classList.contains('hidden')) return;
+  if (popover.contains(e.target)) return;
+  if (e.target.closest && e.target.closest('.col-filter-icon')) return;
+  closeColFilter();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeColFilter();
+});
+
 function updateClearAllBtn() {
   const btn = document.getElementById('clearAllFiltersBtn');
   if (!btn) return;
@@ -1930,7 +2054,8 @@ function updateClearAllBtn() {
   const hasSearch = searchEl && searchEl.value.trim().length > 0;
   const hasMsel = Object.keys(mselRegistry).some(key => mselRegistry[key].selected.size > 0);
   const hasPrice = !!getPriceFilter();
-  btn.style.display = (hasSearch || hasMsel || hasPrice) ? '' : 'none';
+  const hasColFilters = Object.keys(screenerColFilters).length > 0;
+  btn.style.display = (hasSearch || hasMsel || hasPrice || hasColFilters) ? '' : 'none';
 }
 
 function filterScreener() {
@@ -2028,6 +2153,18 @@ function filterScreener() {
     if (selStatuses.size > 0 && !selStatuses.has(String(sigStatusCode(d['Signal Status'])))) return false;
     const selNemi = mselRegistry.nemi.selected;
     if (selNemi.size > 0 && !selNemi.has(String(sigStatusCode(d['NEMI Signal Status'])))) return false;
+    // Per-column numeric filters (EPS (Q) through Market Cap, and beyond) — set
+    // via the funnel icon in each header. AND'd together with each other and
+    // with every other active filter above.
+    for (const fkey in screenerColFilters) {
+      const f = screenerColFilters[fkey];
+      // "Relative Vol" data is stored under either header depending on the sheet
+      const rawVal = fkey === 'Relative Vol' ? (dget(d, 'Relative Vol') ?? dget(d, 'Rel Vol')) : dget(d, fkey);
+      const v = toNum(rawVal);
+      if (v == null) return false;
+      if (f.op === 'gt' && v <= f.val) return false;
+      if (f.op === 'lt' && v >= f.val) return false;
+    }
     return true;
   });
 
