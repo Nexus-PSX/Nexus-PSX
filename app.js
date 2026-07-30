@@ -1371,20 +1371,20 @@ function renderSectorTable(data) {
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}</td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct3(s.epsQG):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin):'—'}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin):'—'}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.roe)}">${fmtPct(s.roe)}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin,2):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin,2):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.roe)}">${fmtPct(s.roe,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono">${s.de!=null?fmt(s.de,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${s.cfo!=null&&s.cfo<0?'negative':s.cfo!=null&&s.cfo>0?'positive':''}">${fmtBig(s.cfo)}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono">${s.peRatio!=null?fmt(s.peRatio,2):'—'}</td>
-      <td class="mono"><span class="${scoreColor(s.totalScore)}" style="font-weight:700">${fmt(s.totalScore,1)}</span>
+      <td class="mono"><span class="${scoreColor(s.totalScore)}" style="font-weight:700">${fmt(s.totalScore,2)}</span>
         <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,s.totalScore)}%; background:${s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)'}"></div></div>
       </td>
       <td class="mono" style="text-align:center">${s.relVol!=null?fmt(s.relVol,2):'—'}</td>
-      <td class="mono ${s.discRatio!=null?(s.discRatio>0?'positive':'negative'):''}" style="text-align:center">${s.discRatio!=null?fmt(s.discRatio,1)+'%':'—'}</td>
+      <td class="mono ${s.discRatio!=null?(s.discRatio>0?'positive':'negative'):''}" style="text-align:center">${s.discRatio!=null?fmt(s.discRatio,2)+'%':'—'}</td>
       <td class="sector-hide-mobile" style="text-align:center">${fmtChg(s.p1d)}</td>
       <td class="sector-hide-mobile" style="text-align:center">${fmtChg(s.p1w)}</td>
       <td style="text-align:center">${fmtChg(s.p1m)}</td>
@@ -2584,22 +2584,22 @@ function renderScreenerPage() {
       <td class="ticker-link" onclick="switchTab('company');pickTicker('${String(d.Ticker)}')">${d.Ticker}${tickerBadges(d)}</td>
       <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:500">${d.Name||'—'}</td>
       <td class="screener-sector-cell" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">${d.Sector||'—'}</td>
-      <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),3)}</td>
-      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct3(dget(d,'EPS Q G%')):'—'}</td>
-      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),3)}</td>
+      <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),2)}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%'),2):'—'}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtBig(dget(d,'Revenue - Q'))}</td>
-      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Op Income-Q'))}">${fmtPct(dget(d,'Op Income-Q'))}</td>
-      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Net Income -Q'))}">${fmtPct(dget(d,'Net Income -Q'))}</td>
-      <td class="screener-fin-col mono ${valColor(dget(d,'ROE 2026-Q1'))}">${fmtPct(dget(d,'ROE 2026-Q1'))}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Op Income-Q'))}">${fmtPct(dget(d,'Op Income-Q'),2)}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Net Income -Q'))}">${fmtPct(dget(d,'Net Income -Q'),2)}</td>
+      <td class="screener-fin-col mono ${valColor(dget(d,'ROE 2026-Q1'))}">${fmtPct(dget(d,'ROE 2026-Q1'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmt(dget(d,'Debt/Equity 2026-Q1'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'CFO 2026-Q1'))}">${fmtBig(dget(d,'CFO 2026-Q1'))}</td>
-      <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'))}</td>
+      <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
       <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
-      <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(1)+'%':'—'})()}</td>
+      <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Day Change'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
@@ -2836,17 +2836,10 @@ function fmtBig(v) {
   if (abs >= 1e3)  return (n/1e3).toFixed(1)  + 'K';
   return n.toFixed(0);
 }
-function fmtPct(v) {
+function fmtPct(v, dec=1) {
   const n = toNum(v);
   if (n == null) return '—';
-  return (n * 100).toFixed(1) + '%';
-}
-// Same as fmtPct but with 3 decimal places and comma thousand-separators —
-// used for EPS Q G% columns, since quarterly EPS growth % can swing large.
-function fmtPct3(v) {
-  const n = toNum(v);
-  if (n == null) return '—';
-  return (n * 100).toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '%';
+  return (n * 100).toFixed(dec) + '%';
 }
 function valColor(v) {
   const n = toNum(v);
