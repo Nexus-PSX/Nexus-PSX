@@ -2034,6 +2034,9 @@ function filterScreener() {
   // Sort
   const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%'];
   const key = sortKeys[screenerSort.col];
+  // Keys that must be compared numerically. Kept as a Set (built once per call is
+  // cheap here) so the comparator below can do a single, fast lookup.
+  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%']);
   filteredScreener.sort((a,b) => {
   let av = a[key];
   let bv = b[key];
@@ -2044,18 +2047,27 @@ function filterScreener() {
     if (bv === 0 || bv === '0' || bv === '') bv = null;
   }
 
-  if (av == null) return 1;
-  if (bv == null) return -1;
-
   if (key === 'Signal Status' || key === 'NEMI Signal Status') {
+    if (av == null) return 1;
+    if (bv == null) return -1;
     return ((sigStatusCode(av) ?? -Infinity) - (sigStatusCode(bv) ?? -Infinity)) * screenerSort.dir;
   }
 
-  // columns that must be numeric
-  if (key === 'Signal date' || key === 'Signal Price' || key === 'Signal Return %' || key === 'Latest EPS  Q' || key === 'Latest TTM EPS Q' || key === 'Revenue - Q' || key === 'ROE 2026-Q1' || key === 'Debt/Equity 2026-Q1' || key === 'CFO 2026-Q1' || key === 'Latest Div Y Q' || key === 'P/E Ratio' || key === 'Market Cap' || key === 'total improvement' || key === 'Price' || key === 'Day Change' || key === 'Relative Vol' || key === 'Relative Volume' || key === 'Rel Vol' || key === 'Volume' || key === 'Day Change %' || key === 'Current Week Return %' || key === 'Current Month Return %' || key === 'Past 3 Months Return %' || key === 'YTD Return %' || key === 'NEMI Signal date' || key === 'NEMI Signal Price' || key === 'NEMI Signal Return %' || key === 'Rolling 1M%' || key === 'Rolling 3M%' || key === 'Rolling 6M%' || key === 'Rolling 1Y%' || key === 'EPS Q G%') {
-    return (Number(av) - Number(bv)) * screenerSort.dir;
+  // Numeric columns: use toNum() (not a raw Number() cast) so blanks, "-", "N/A"
+  // and similar non-numeric placeholders never produce NaN — Array.sort()'s
+  // ordering becomes unreliable the moment a comparator can return NaN, which
+  // was corrupting the sort for any column with even one such value. Missing
+  // values always sink to the bottom, regardless of sort direction.
+  if (NUMERIC_SORT_KEYS.has(key)) {
+    const an = toNum(av), bn = toNum(bv);
+    if (an == null && bn == null) return 0;
+    if (an == null) return 1;
+    if (bn == null) return -1;
+    return (an - bn) * screenerSort.dir;
   }
 
+  if (av == null) return 1;
+  if (bv == null) return -1;
   // default string sort
   return String(av).localeCompare(String(bv)) * screenerSort.dir;
 });
