@@ -191,7 +191,13 @@
   }
 
   /* LAYOUT */
-  .dashboard { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+  .dashboard { padding: 20px 24px; max-width: 1900px; margin: 0 auto; }
+  /* On very wide/ultra-wide monitors, scale past the fixed cap so the extra
+     space (e.g. the Stock Screener's wide table) keeps getting used instead
+     of sitting as empty margin on either side. */
+  @media (min-width: 2000px) {
+    .dashboard { max-width: 96vw; }
+  }
 
   /* CONTROLS */
   .controls {

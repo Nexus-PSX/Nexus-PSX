@@ -1541,13 +1541,6 @@ let allSectors = [];
 let allIndicesList = [];
 let allTickersList = [];
 
-const SCORE_OPTIONS = [
-  {value:'80,Infinity',   label:'Fin. Scores > 80'},
-  {value:'60,80',         label:'Fin. Scores > 60 to 80'},
-  {value:'40,60',         label:'Fin. Scores > 40 to 60'},
-  {value:'20,40',         label:'Fin. Scores > 20 to 40'},
-  {value:'-Infinity,20',  label:'Fin. Scores < 20'}
-];
 const STATUS_OPTIONS = [
   {value:'1.7', label:'Continuation Buy Signal'},
   {value:'2.5', label:'Extended Buy Signal (Cautious)'},
@@ -1557,12 +1550,6 @@ const STATUS_OPTIONS = [
   {value:'4', label:'Be Cautious'},
   {value:'9', label:'Buy Call Closed'},
   {value:'0', label:'No Trade'}
-];
-const EXTRA_OPTIONS = [
-  {value:'mcap_gt_1b',     label:'Market Cap > 1 Billion'},
-  {value:'mcap_gt_500m',   label:'Market Cap > 500 Million'},
-  {value:'mcap_gt_250m',   label:'Market Cap > 250 Million'},
-  {value:'mcap_lt_250m',   label:'Market Cap < 250 Million'}
 ];
 const OTHERS_OPTIONS = [
   {value:'watchlist',  label:'⭐ My Watchlist'},
@@ -1604,14 +1591,6 @@ const mselRegistry = {
     oneLabel: v => v,
     manyLabel: n => `Comparison`,
   },
-  score: {
-    options: () => SCORE_OPTIONS,
-    selected: new Set(),
-    searchable: false,
-    allLabel: 'Fin. Scores',
-    oneLabel: v => (SCORE_OPTIONS.find(o=>o.value===v)||{}).label || v,
-    manyLabel: n => `Fin. Scores`,
-  },
   status: {
     options: () => STATUS_OPTIONS,
     selected: new Set(),
@@ -1628,14 +1607,6 @@ const mselRegistry = {
     oneLabel: v => (STATUS_OPTIONS.find(o=>o.value===v)||{}).label || v,
     manyLabel: n => `NEMI`,
     onChange: () => filterScreener(),
-  },
-  extra: {
-    options: () => EXTRA_OPTIONS,
-    selected: new Set(),
-    searchable: false,
-    allLabel: 'Market Cap',
-    oneLabel: v => (EXTRA_OPTIONS.find(o=>o.value===v)||{}).label || v,
-    manyLabel: n => `Filters`,
   },
   others: {
     options: () => OTHERS_OPTIONS,
@@ -1859,7 +1830,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'status', 'nemi', 'others', 'volPhase', 'scores', 'extra', 'liquidity']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'status', 'nemi', 'others', 'volPhase', 'liquidity']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
@@ -1899,31 +1870,11 @@ function resetMselFilters() {
 function clearAllFilters() {
   const searchEl = document.getElementById('screenerSearch');
   if (searchEl) searchEl.value = '';
-  const pv = document.getElementById('priceFilterVal');
-  if (pv) pv.value = '';
-  const pd = document.getElementById('priceFilterDir');
-  if (pd) { pd.textContent = '>'; pd.dataset.dir = 'gt'; }
   screenerColFilters = {};
   closeColFilter();
   updateColFilterIcons();
   resetMselFilters();
   filterScreener();
-}
-
-function togglePriceFilterDir() {
-  const btn = document.getElementById('priceFilterDir');
-  if (!btn) return;
-  const isGt = !btn.dataset.dir || btn.dataset.dir === 'gt';
-  btn.dataset.dir = isGt ? 'lt' : 'gt';
-  btn.textContent = isGt ? '＜' : '＞';
-  filterScreener();
-}
-
-function getPriceFilter() {
-  const val = parseFloat(document.getElementById('priceFilterVal')?.value);
-  if (isNaN(val)) return null;
-  const dir = document.getElementById('priceFilterDir')?.dataset.dir || 'gt';
-  return { val, dir };
 }
 
 // ===== SCREENER PER-COLUMN NUMERIC FILTERS =====
@@ -2053,34 +2004,19 @@ function updateClearAllBtn() {
   const searchEl = document.getElementById('screenerSearch');
   const hasSearch = searchEl && searchEl.value.trim().length > 0;
   const hasMsel = Object.keys(mselRegistry).some(key => mselRegistry[key].selected.size > 0);
-  const hasPrice = !!getPriceFilter();
   const hasColFilters = Object.keys(screenerColFilters).length > 0;
-  btn.style.display = (hasSearch || hasMsel || hasPrice || hasColFilters) ? '' : 'none';
+  btn.style.display = (hasSearch || hasMsel || hasColFilters) ? '' : 'none';
 }
 
 function filterScreener() {
-  const priceF = getPriceFilter();
   const q = document.getElementById('screenerSearch').value.toLowerCase();
   const selLiquid = mselRegistry.liquid.selected;
   const selVolPhase = mselRegistry.volPhase.selected;
   const selSectors = mselRegistry.sector.selected;
   const selIndices = mselRegistry.index.selected;
   const selTickers = mselRegistry.ticker.selected;
-  const selScores = mselRegistry.score.selected;
   const selStatuses = mselRegistry.status.selected;
-  const selExtra = mselRegistry.extra.selected;
   const selOthers = mselRegistry.others.selected;
-
-  const matchesExtra = (d, v) => {
-    const mcap = parseFloat(d['Market Cap']) || 0;
-    switch (v) {
-      case 'mcap_gt_1b':   return mcap > 1000000000;
-      case 'mcap_gt_500m': return mcap > 500000000;
-      case 'mcap_gt_250m': return mcap > 250000000;
-      case 'mcap_lt_250m': return mcap < 250000000;
-      default: return false;
-    }
-  };
 
   const matchesOthers = (d, v) => {
     switch (v) {
@@ -2093,17 +2029,6 @@ function filterScreener() {
 
   filteredScreener = screenerData.filter(d => {
     if (q && !String(d.Ticker||'').toLowerCase().includes(q) && !String(d.Name||'').toLowerCase().includes(q)) return false;
-    if (priceF) {
-      const price = parseFloat(d['Price']);
-      if (isNaN(price)) return false;
-      if (priceF.dir === 'gt' && price <= priceF.val) return false;
-      if (priceF.dir === 'lt' && price >= priceF.val) return false;
-    }
-    if (selExtra.size > 0) {
-      let matched = false;
-      for (const v of selExtra) { if (matchesExtra(d, v)) { matched = true; break; } }
-      if (!matched) return false;
-    }
     // Others + Comparison (ticker) are evaluated together when "My Watchlist"
     // is active, using OR logic: show the stock if it passes any Others filter
     // OR if it's manually selected in Comparison. This lets the user extend
@@ -2129,15 +2054,6 @@ function filterScreener() {
       const dIdx = String(d.Index||'');
       let matched = false;
       for (const v of selIndices) { if (dIdx.includes(v)) { matched = true; break; } }
-      if (!matched) return false;
-    }
-    if (selScores.size > 0) {
-      const score = d['total improvement'] || 0;
-      let matched = false;
-      for (const v of selScores) {
-        const [min, max] = v.split(',').map(Number);
-        if (score > min && score <= max) { matched = true; break; }
-      }
       if (!matched) return false;
     }
     if (selLiquid.size > 0) {

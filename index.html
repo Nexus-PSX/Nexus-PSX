@@ -1559,34 +1559,8 @@
               <div class="msel-list" id="tickerMselList"></div>
             </div>
           </div>
-          <div class="msel" id="extraMsel">
-            <button type="button" class="msel-btn" id="extraMselBtn" aria-label="Filter by market cap" aria-haspopup="listbox" onclick="mselTogglePanel('extra', event)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-              <span id="extraMselLabel">Market Cap</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="extraMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('extra')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('extra')">Clear</button>
-              </div>
-              <div class="msel-list" id="extraMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="scoreMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="scoreMselBtn" style="position:relative;" aria-label="Filter by financial score" aria-haspopup="listbox" onclick="mselTogglePanel('score', event)" title="Financial Score: Filter by score band (0-100). >80 = high quality, >60 = good, >40 = average.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-              <span id="scoreMselLabel">Fin. Scores</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="scoreMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('score')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('score')">Clear</button>
-              </div>
-              <div class="msel-list" id="scoreMselList"></div>
-            </div>
-          </div>
+          
+          
           <div class="msel" id="statusMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="statusMselBtn" style="position:relative;" aria-label="Filter by signal status" aria-haspopup="listbox" onclick="mselTogglePanel('status', event)" title="Signal Status: Filter by recommendation — Initial Buy, Continuation Buy, Hold, Cautious, Take Profit, Exit, No Trade.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
@@ -1658,15 +1632,7 @@
               <div class="msel-list" id="othersMselList"></div>
             </div>
           </div>
-          <div id="priceFilterWrap" style="display:inline-flex;align-items:center;gap:4px;padding:0 2px;">
-            <button type="button" id="priceFilterDir" data-dir="gt" aria-label="Toggle price comparison direction" onclick="togglePriceFilterDir()"
-              style="padding:5px 8px;border:1px solid var(--border);border-radius:7px 0 0 7px;background:var(--surface2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;min-width:28px;line-height:1;"
-              title="Price Filter: Toggle > (greater than) or < (less than), then enter a price value.">></button>
-            <input type="number" id="priceFilterVal" placeholder="Price" title="Enter price threshold. Use the > or < button to set direction." min="0" step="0.01"
-              oninput="filterScreener()"
-              style="width:72px;padding:5px 7px;border:1px solid var(--border);border-radius:0 7px 7px 0;border-left:none;background:var(--surface2);color:var(--text);font-size:12px;outline:none;"
-              title="Enter price threshold. Combined with the > or < button to filter stocks by price.">
-          </div>
+          
           </div>
 
         </div>
