@@ -1508,8 +1508,17 @@
     <div class="table-card">
       <div class="table-header">
         <div class="table-filters" style="gap: 8px; flex-wrap: wrap; align-items: center;">
-          <div class="screener-search-row" style="display:flex; align-items:center; gap:6px; width:100%;">
-            <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:1; min-width:0;">
+          <div class="screener-search-row" style="display:flex; align-items:center; gap:10px; width:100%;">
+            <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:0 1 280px; min-width:160px;">
+            <span id="screenerCount" style="font-size:11px; color: var(--text2); white-space:nowrap;">497 companies</span>
+            <span style="font-size:10px; color: var(--text2); display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
+              <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-ni" style="margin-left:0;">N</span>Net Inc&gt;Op Inc</span>
+              <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-turn" style="margin-left:0;">T</span>Turnaround</span>
+              <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-liquid" style="margin-left:0;">💧</span>Liquid Stock</span>
+              <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-vol" style="margin-left:0;">V</span>High Vol Phase</span>
+            </span>
+            <div style="flex:1; min-width:8px;"></div>
             <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
             <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active screener filters and reset the search box." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
           </div>
@@ -1632,25 +1641,15 @@
               <div class="msel-list" id="othersMselList"></div>
             </div>
           </div>
-          
-          </div>
-
-        </div>
-      </div>
-      <div id="screenerTogglesRow" class="table-toggles" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border);">
           <button class="fin-toggle-btn" id="finToggleBtn" onclick="toggleFinancials()" title="Hide/show EPS, Revenue, Margins, CFO columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="finToggleLabel">Show Financials</span></button>
           <button class="fin-toggle-btn" style="position:relative;" active" id="techToggleBtn" onclick="toggleTechnical()" title="Technical Columns: Signal Date, Signal Return %, Signal Status pill."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 0 0 14.14"></path><path d="M7.76 7.76a6 6 0 0 0 0 8.48"></path><circle cx="12" cy="12" r="1"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.48"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><span id="techToggleLabel">Hide Technical</span></button>
           <button class="fin-toggle-btn" style="position:relative;"" id="dailyToggleBtn" onclick="toggleDaily()" title="Daily Movement: Price, Relative Volume (RVOL), Volume, Day Change %."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span id="dailyToggleLabel">Show Daily Movement</span></button>
           <button class="fin-toggle-btn" style="position:relative;"" id="perfToggleBtn" onclick="togglePerformance()" title="Performance: WTD%, MTD%, QTD%, YTD%, Rolling 1M/3M/6M/1Y returns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span id="perfToggleLabel">Show Performance</span></button>
           <button class="fin-toggle-btn" style="position:relative;"" id="nemiToggleBtn" style="display:none;" onclick="toggleNemi()" title="NEMI Columns: NEMI Signal Date, Entry Price, Return % since entry, NEMI Status."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span id="nemiToggleLabel">Show NEMI</span></button>
-          <span id="screenerCount" style="font-size:11px; color: var(--text2); margin-left: 4px;">497 companies</span>
-          <span style="font-size:10px; color: var(--text2); margin-left: 12px; display: inline-flex; align-items: center; gap: 10px;">
-            <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
-            <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-ni" style="margin-left:0;">N</span>Net Inc&gt;Op Inc</span>
-            <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-turn" style="margin-left:0;">T</span>Turnaround</span>
-            <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-liquid" style="margin-left:0;">💧</span>Liquid Stock</span>
-            <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-vol" style="margin-left:0;">V</span>High Vol Phase</span>
-          </span>
+          
+          </div>
+
+        </div>
       </div>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
       <script src="app.js?v=20260710a"></script>

@@ -4,21 +4,17 @@ var dataMenuOpen = false;
 
         function toggleFiltersWrap() {
           const chips = document.getElementById('screenerFilterChips');
-          const toggles = document.getElementById('screenerTogglesRow');
           const btn = document.getElementById('filtersToggleBtn');
           const collapsed = chips.style.display === 'none';
           chips.style.display = collapsed ? '' : 'none';
-          toggles.style.display = collapsed ? '' : 'none';
           document.getElementById('filtersToggleLabel').textContent = collapsed ? 'Hide Filters' : 'Filters';
         }
         // Default to collapsed on mobile so the screener has more vertical
         // room right away; desktop is untouched (filters stay visible).
         if (window.innerWidth <= 768) {
           const chips = document.getElementById('screenerFilterChips');
-          const toggles = document.getElementById('screenerTogglesRow');
-          if (chips && toggles) {
+          if (chips) {
             chips.style.display = 'none';
-            toggles.style.display = 'none';
             document.getElementById('filtersToggleLabel').textContent = 'Filters';
           }
         }
