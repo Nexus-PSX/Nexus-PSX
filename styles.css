@@ -742,6 +742,11 @@
     transition: border-color 0.15s;
   }
   .table-search:focus { border-color: var(--accent); }
+  /* Wrapper around the company count + legend icons in the screener search
+     row. On desktop it's invisible to layout (children behave as direct flex
+     items, same order as always); on mobile (see media query) it becomes a
+     real box so those two pieces group onto one line together. */
+  .search-row-info { display: contents; }
 
   /* Progress bar inline */
   .prog-bar {
@@ -1066,19 +1071,21 @@
 
     .table-header { flex-direction: column; gap: 8px; align-items: flex-start; }
     .table-filters { flex-wrap: wrap; gap: 6px; width: 100%; }
-    #screenerFilterChips { gap: 10px !important; row-gap: 12px !important; }
+    #screenerFilterChips, #screenerToggleChips { gap: 10px !important; row-gap: 12px !important; }
     /* Screener search row: on mobile, let the search box take its own full
        line, then wrap the company count / legend icons / Filters / Clear All
        onto the line(s) below instead of forcing them all onto one row. */
     .screener-search-row { flex-wrap: wrap; row-gap: 8px; }
     /* Line 1: search box + Filters/Clear All. Line 2: company count + legend
        icons, each forced onto its own new line via flex-basis:100%. */
-    .screener-search-row .table-search { width: auto !important; flex: 1 1 auto !important; min-width: 120px; font-size: 16px; order: 1; }
+    .screener-search-row .table-search { width: auto !important; flex: 1 1 0% !important; min-width: 100px; font-size: 16px; order: 1; }
     .screener-search-row #filtersToggleBtn { order: 2; }
     .screener-search-row #clearAllFiltersBtn { order: 3; }
     .screener-search-row .search-row-spacer { display: none; }
-    .screener-search-row .search-row-count { order: 4; flex-basis: 100%; }
-    .screener-search-row .search-row-legend { order: 5; flex-basis: 100%; }
+    .screener-search-row .search-row-info {
+      order: 4; flex-basis: 100%;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    }
     /* Liquid Filter / Volume Phase are real <select> elements — iOS Safari auto-zooms
        the page when focusing any input/select under 16px, so the computed font-size
        must stay at 16px. We use `zoom` (WebKit) to shrink the rendered text back down

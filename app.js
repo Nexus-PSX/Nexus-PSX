@@ -4,17 +4,21 @@ var dataMenuOpen = false;
 
         function toggleFiltersWrap() {
           const chips = document.getElementById('screenerFilterChips');
+          const toggleChips = document.getElementById('screenerToggleChips');
           const btn = document.getElementById('filtersToggleBtn');
           const collapsed = chips.style.display === 'none';
           chips.style.display = collapsed ? '' : 'none';
+          if (toggleChips) toggleChips.style.display = collapsed ? '' : 'none';
           document.getElementById('filtersToggleLabel').textContent = collapsed ? 'Hide Filters' : 'Filters';
         }
         // Default to collapsed on mobile so the screener has more vertical
         // room right away; desktop is untouched (filters stay visible).
         if (window.innerWidth <= 768) {
           const chips = document.getElementById('screenerFilterChips');
+          const toggleChips = document.getElementById('screenerToggleChips');
           if (chips) {
             chips.style.display = 'none';
+            if (toggleChips) toggleChips.style.display = 'none';
             document.getElementById('filtersToggleLabel').textContent = 'Filters';
           }
         }
@@ -430,6 +434,15 @@ function getDateStr(val) {
   if (!val) return '';
   if (typeof val === 'number') return excelSerialToDateStr(val);
   return String(val).substring(0, 10);
+}
+// Converts an ISO "YYYY-MM-DD" string (or Excel serial) into a YYYYMMDD number
+// for numeric comparison — used by the "Last Period End Date" column filter,
+// which asks the user to type a YYYYMMDD value like Signal date's filter does.
+function isoDateToYYYYMMDD(val) {
+  const s = getDateStr(val);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1] + m[2] + m[3], 10);
 }
 
 // ===== QUARTER KEY HELPER =====
@@ -1890,7 +1903,7 @@ let activeColFilterKey = null;
 const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q']);
 // Signal date / NEMI Signal date are stored as an 8-digit YYYYMMDD number — still
 // perfectly comparable with > / <, but the filter box gets a format hint for these.
-const DATE_COL_FILTER_KEYS = new Set(['Signal date', 'NEMI Signal date']);
+const DATE_COL_FILTER_KEYS = new Set(['Signal date', 'NEMI Signal date', 'Last Period End Date']);
 
 function openColFilter(event, key, label) {
   event.stopPropagation();
@@ -2072,7 +2085,10 @@ function filterScreener() {
       const f = screenerColFilters[fkey];
       // "Relative Vol" data is stored under either header depending on the sheet
       const rawVal = fkey === 'Relative Vol' ? (dget(d, 'Relative Vol') ?? dget(d, 'Rel Vol')) : dget(d, fkey);
-      const v = toNum(rawVal);
+      // "Last Period End Date" is an ISO "YYYY-MM-DD" string — toNum() on that
+      // only grabs the leading year, so convert to a YYYYMMDD number first
+      // (matches what the user types, same convention as Signal date's filter).
+      const v = fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
       if (f.op === 'gt' && v <= f.val) return false;
       if (f.op === 'lt' && v >= f.val) return false;
@@ -2081,10 +2097,13 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date'];
   const key = sortKeys[screenerSort.col];
   // Keys that must be compared numerically. Kept as a Set (built once per call is
   // cheap here) so the comparator below can do a single, fast lookup.
+  // NOTE: "Last Period End Date" is deliberately NOT here — unlike Signal date
+  // (a YYYYMMDD integer), it's stored as an ISO "YYYY-MM-DD" string, which the
+  // default string comparison below already sorts correctly (chronologically).
   const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%']);
   filteredScreener.sort((a,b) => {
   let av = a[key];
@@ -2644,6 +2663,7 @@ function renderScreenerPage() {
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'CFO 2026-Q1'))}">${fmtBig(dget(d,'CFO 2026-Q1'))}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
       <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
+      <td class="screener-hide-mobile screener-fin-col mono">${fmtPeriodEndDate(dget(d,'Last Period End Date'))}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
@@ -2818,6 +2838,19 @@ function fmtSignalDate(v) {
   const yr = sd.slice(0,4), mo = parseInt(sd.slice(4,6),10)-1, dy = sd.slice(6,8);
   if (mo < 0 || mo > 11) return sd;
   return `${parseInt(dy,10)} ${months[mo]} ${yr}`;
+}
+// "Last Period End Date" is stored as an ISO "YYYY-MM-DD" string (see
+// handleExcelUpload's date-serial conversion), NOT the YYYYMMDD integer that
+// Signal date/NEMI Signal date use — needs its own formatter, same output style.
+function fmtPeriodEndDate(v) {
+  if (v == null || v === '') return '—';
+  const s = getDateStr(v);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return s || '—';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mo = parseInt(m[2],10)-1;
+  if (mo < 0 || mo > 11) return s;
+  return `${parseInt(m[3],10)} ${months[mo]} ${m[1]}`;
 }
 // Signal Status is now encoded as a numeric score in the source data.
 // Some rows may still carry the older text labels — map those to the same codes too.
