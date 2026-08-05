@@ -3942,7 +3942,7 @@ function buildHomeTab() {
               ${sortedSignals.map((d,i) => {
                 const ret = toN(d['Signal Return %']);
                 const bg  = i%2===0 ? 'transparent' : 'var(--surface2)';
-                return `<tr onclick="switchTab('company');pickTicker('${(d.Ticker||'').replace(/'/g,"\\'")}');"
+                return `<tr onclick="switchTab('company');pickTicker('${String(d.Ticker||'').replace(/'/g,"\\'")}');"
                   style="cursor:pointer;background:${bg};"
                   onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background='${bg}'">
                   <td style="padding:8px 12px;font-size:12px;font-weight:700;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;">${d.Ticker||'—'}${tickerBadges(d)}</td>
