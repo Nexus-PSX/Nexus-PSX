@@ -2145,6 +2145,7 @@ function filterScreener() {
   document.getElementById('screenerCount').textContent = `${filteredScreener.length} companies`;
   updateSortArrows('screenerTableHead', screenerSort.col, screenerSort.dir);
   renderScreenerPage();
+  updateScreenerAvgRow();
   alignScreenerToggles();
   updateClearAllBtn();
   // Re-enforce NEMI visibility after every render
@@ -2692,6 +2693,105 @@ function renderScreenerPage() {
     tbody.appendChild(tr);
   });
   renderPagination();
+}
+
+// ── Market Average row in the Screener tfoot ───────────────────────────────
+// Recomputes averages from the *full* filteredScreener array (all pages) and
+// stamps them into a sticky tfoot row so the user always sees where the
+// current filter set stands vs the visible stocks while scrolling.
+function updateScreenerAvgRow() {
+  const table = document.getElementById('screenerTable');
+  if (!table) return;
+
+  // Lazily create <tfoot> once; from then on just update innerHTML
+  let tfoot = table.querySelector('tfoot');
+  if (!tfoot) {
+    tfoot = document.createElement('tfoot');
+    tfoot.id = 'screenerAvgFoot';
+    table.appendChild(tfoot);
+  }
+
+  const rows = filteredScreener;
+  const n = rows.length;
+
+  // Average of a numeric field across all filtered rows
+  const avg = field => {
+    const vals = rows.map(d => toNum(dget(d, field))).filter(v => v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+
+  // Relative Vol uses two possible column names
+  const avgRelVol = () => {
+    const vals = rows.map(d => toNum(dget(d,'Relative Vol') ?? dget(d,'Rel Vol'))).filter(v => v !== null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  };
+
+  // Cell builders — mirror the exact formatting used in renderScreenerPage
+  const pctRetCell = (field, extraClass = '') => {
+    const v = avg(field);
+    const color = v == null ? '' : v > 0 ? 'positive' : v < 0 ? 'negative' : '';
+    const txt   = v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '—';
+    return `<td class="mono ${extraClass} ${color}">${txt}</td>`;
+  };
+
+  const score = avg('total improvement');
+  const scoreHtml = score != null
+    ? `<span class="pill ${score >= 80 ? 'pill-good' : score >= 50 ? 'pill-neutral' : 'pill-bad'}">${score.toFixed(1)}</span>`
+    : '—';
+
+  const rvol    = avgRelVol();
+  const rvolCls = rvol == null ? '' : rvol > 1.5 ? 'positive' : rvol < 0.5 ? 'negative' : '';
+
+  const volAvg  = (() => {
+    const vals = rows.map(d => toNum(dget(d,'Volume'))).filter(v => v !== null);
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  })();
+
+  const sigRet  = avg('Signal Return %');
+  const nemiRet = avg('NEMI Signal Return %');
+  const dayChg  = avg('Day Change %');
+
+  tfoot.innerHTML = `<tr id="screenerAvgRow">
+    <td class="screener-avg-label">Mkt Avg</td>
+    <td></td>
+    <td class="screener-avg-count">${n} co.</td>
+    <td class="mono screener-fin-col ${valColor(avg('Latest EPS  Q'))}">${fmt(avg('Latest EPS  Q'),2)}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">${avg('EPS Q G%') != null ? fmtPct(avg('EPS Q G%'),2) : '—'}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Latest TTM EPS Q'),2)}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">${fmtBig(avg('Revenue - Q'))}</td>
+    <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('Op Income-Q'))}">${fmtPct(avg('Op Income-Q'),2)}</td>
+    <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('Net Income -Q'))}">${fmtPct(avg('Net Income -Q'),2)}</td>
+    <td class="mono screener-fin-col ${valColor(avg('ROE 2026-Q1'))}">${fmtPct(avg('ROE 2026-Q1'),2)}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Debt/Equity 2026-Q1'),2)}</td>
+    <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('CFO 2026-Q1'))}">${fmtBig(avg('CFO 2026-Q1'))}</td>
+    <td class="mono screener-fin-col ${valColor(avg('Latest Div Y Q'))}">${fmtPct(avg('Latest Div Y Q'),2)}</td>
+    <td class="mono screener-fin-col">${fmt(avg('P/E Ratio'),2)}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">—</td>
+    <td class="mono screener-fin-col">${fmtMarketCap(avg('Market Cap'))}</td>
+    <td class="mono">${scoreHtml}</td>
+    <td class="mono screener-tech-col">—</td>
+    <td class="mono screener-tech-col">${fmt(avg('Signal Price'),2)}</td>
+    <td class="mono screener-tech-col ${sigRet != null ? sigRet > 0 ? 'positive' : 'negative' : ''}">${sigRet != null ? (sigRet >= 0 ? '+' : '') + sigRet.toFixed(2) + '%' : '—'}</td>
+    <td class="mono screener-tech-col">—</td>
+    <td class="mono screener-daily-col">${avg('Price') != null ? avg('Price').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+    <td class="mono screener-daily-col">${avg('Day Change') != null ? avg('Day Change').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+    <td class="mono screener-daily-col ${rvolCls}">${rvol != null ? rvol.toFixed(2) : '—'}</td>
+    <td class="mono screener-daily-col">${volAvg != null ? Math.round(volAvg).toLocaleString() : '—'}</td>
+    <td class="mono screener-daily-col ${dayChg != null && dayChg !== 0 ? dayChg > 0 ? 'positive' : 'negative' : ''}">${dayChg != null && dayChg !== 0 ? (dayChg > 0 ? '+' : '') + dayChg.toFixed(2) + '%' : '—'}</td>
+    ${pctRetCell('Current Week Return %',  'screener-perf-col')}
+    ${pctRetCell('Current Month Return %', 'screener-perf-col')}
+    ${pctRetCell('Past 3 Months Return %', 'screener-perf-col')}
+    ${pctRetCell('YTD Return %',           'screener-perf-col')}
+    ${pctRetCell('Rolling 1M%',            'screener-perf-col')}
+    ${pctRetCell('Rolling 3M%',            'screener-perf-col')}
+    ${pctRetCell('Rolling 6M%',            'screener-perf-col')}
+    ${pctRetCell('Rolling 1Y%',            'screener-perf-col')}
+    <td class="mono screener-nemi-col">—</td>
+    <td class="mono screener-nemi-col">${fmt(avg('NEMI Signal Price'),2)}</td>
+    <td class="mono screener-nemi-col ${nemiRet != null ? nemiRet > 0 ? 'positive' : 'negative' : ''}">${nemiRet != null ? (nemiRet >= 0 ? '+' : '') + nemiRet.toFixed(2) + '%' : '—'}</td>
+    <td class="mono screener-nemi-col">—</td>
+    <td></td>
+  </tr>`;
 }
 
 function togglePerformance() {
@@ -3860,8 +3960,10 @@ function buildHomeTab() {
 
 
   // ── Row 3: Active Signals table (Initial Buy, Continuation, Extended) ─────
-  // Sort state for the home signals table
-  if (!window._homeSignalSort) window._homeSignalSort = { col: 'score', dir: -1 };
+  // Sort state for the home signals table.
+  // Default: group by signal type (Initial Buy → Continuation → Extended),
+  // then by Financial Score descending within each group.
+  if (!window._homeSignalSort) window._homeSignalSort = { col: null, dir: -1 };
 
   // Active signals: Initial Buy (1.5), Continuation Buy (1.7), Extended Cautious (2.5)
   const activeSignals = [...valid]
@@ -3869,6 +3971,9 @@ function buildHomeTab() {
       const s = sigStatusCode(d['Signal Status']);
       return s === 1.5 || s === 1.7 || s === 2.5;
     });
+
+  // Signal-type display order: 1.5 → 1.7 → 2.5
+  const STATUS_ORDER = { 1.5: 0, 1.7: 1, 2.5: 2 };
 
   function sortHomeSignals(col) {
     if (window._homeSignalSort.col === col) window._homeSignalSort.dir *= -1;
@@ -3879,18 +3984,30 @@ function buildHomeTab() {
 
   const sortCol = window._homeSignalSort.col;
   const sortDir = window._homeSignalSort.dir;
-  const sortedSignals = [...activeSignals].sort((a,b) => {
+  const sortedSignals = [...activeSignals].sort((a, b) => {
+    // Primary: always group by signal type order (Initial → Continuation → Extended)
+    // unless the user explicitly clicked the Status column header
+    if (sortCol !== 'status') {
+      const ao = STATUS_ORDER[sigStatusCode(a['Signal Status'])] ?? 99;
+      const bo = STATUS_ORDER[sigStatusCode(b['Signal Status'])] ?? 99;
+      if (ao !== bo) return ao - bo;
+    }
+
+    // Secondary (or primary when Status column clicked): user-chosen column
     let av, bv;
-    if (sortCol === 'ticker')   { av = a.Ticker||'';           bv = b.Ticker||''; return av.localeCompare(bv) * sortDir; }
-    if (sortCol === 'name')     { av = a.Name||'';             bv = b.Name||''; return av.localeCompare(bv) * sortDir; }
-    if (sortCol === 'sector')   { av = a.Sector||'';           bv = b.Sector||''; return av.localeCompare(bv) * sortDir; }
-    if (sortCol === 'score')    { av = toN(a['total improvement'])||0; bv = toN(b['total improvement'])||0; }
-    if (sortCol === 'date')     { av = toN(a['Signal date'])||0;      bv = toN(b['Signal date'])||0; }
-    if (sortCol === 'price')    { av = toN(a['Signal Price'])||0;     bv = toN(b['Signal Price'])||0; }
-    if (sortCol === 'ret')      { av = toN(a['Signal Return %'])||0;  bv = toN(b['Signal Return %'])||0; }
-    if (sortCol === 'status')   { av = sigStatusCode(a['Signal Status'])||0; bv = sigStatusCode(b['Signal Status'])||0; }
-    if (sortCol === 'day')      { av = toN(a['Day Change %'])||0;     bv = toN(b['Day Change %'])||0; }
-    return ((av||0) - (bv||0)) * sortDir;
+    if (sortCol === 'ticker')  { return String(a.Ticker||'').localeCompare(String(b.Ticker||'')) * sortDir; }
+    if (sortCol === 'name')    { return String(a.Name||'').localeCompare(String(b.Name||'')) * sortDir; }
+    if (sortCol === 'sector')  { return String(a.Sector||'').localeCompare(String(b.Sector||'')) * sortDir; }
+    if (sortCol === 'status')  { av = STATUS_ORDER[sigStatusCode(a['Signal Status'])] ?? 99;
+                                  bv = STATUS_ORDER[sigStatusCode(b['Signal Status'])] ?? 99; }
+    else if (sortCol === 'score') { av = toN(a['total improvement']) ?? -Infinity; bv = toN(b['total improvement']) ?? -Infinity; }
+    else if (sortCol === 'date')  { av = toN(a['Signal date'])       ?? -Infinity; bv = toN(b['Signal date'])       ?? -Infinity; }
+    else if (sortCol === 'price') { av = toN(a['Signal Price'])      ?? -Infinity; bv = toN(b['Signal Price'])      ?? -Infinity; }
+    else if (sortCol === 'ret')   { av = toN(a['Signal Return %'])   ?? -Infinity; bv = toN(b['Signal Return %'])   ?? -Infinity; }
+    else if (sortCol === 'day')   { av = toN(a['Day Change %'])      ?? -Infinity; bv = toN(b['Day Change %'])      ?? -Infinity; }
+    // Default secondary sort within each group: Financial Score descending
+    else { av = toN(a['total improvement']) ?? -Infinity; bv = toN(b['total improvement']) ?? -Infinity; return (bv - av); }
+    return (av - bv) * sortDir;
   });
 
   const arrow = col => col === sortCol ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
