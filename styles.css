@@ -453,14 +453,20 @@
      while scrolling horizontally through the financial/technical/daily/
      performance column groups. */
   #screenerTable th:first-child,
-  #screenerTable td:first-child {
+  #screenerTable td:first-child,
+  #watchlistTableGH th:first-child,
+  #watchlistTableGH td:first-child,
+  #watchlistTableGuest th:first-child,
+  #watchlistTableGuest td:first-child {
     position: sticky;
     left: 0;
     z-index: 3;
     background: var(--surface);
     box-shadow: 2px 0 5px rgba(0,0,0,0.08);
   }
-  #screenerTable thead th:first-child {
+  #screenerTable thead th:first-child,
+  #watchlistTableGH thead th:first-child,
+  #watchlistTableGuest thead th:first-child {
     z-index: 12;
     background: var(--surface2);
   }
@@ -579,7 +585,11 @@
     text-overflow: ellipsis;
   }
   #screenerTable th:nth-child(1),
-  #screenerTable td:nth-child(1) {
+  #screenerTable td:nth-child(1),
+  #watchlistTableGH th:nth-child(1),
+  #watchlistTableGH td:nth-child(1),
+  #watchlistTableGuest th:nth-child(1),
+  #watchlistTableGuest td:nth-child(1) {
     position: sticky;
     left: 0;
     z-index: 3;
@@ -587,20 +597,28 @@
     box-shadow: 2px 0 6px rgba(0,0,0,0.4);
   }
   /* Fully opaque backgrounds so zebra-stripes and hover don't bleed through */
-  #screenerTable th:nth-child(1) {
+  #screenerTable th:nth-child(1),
+  #watchlistTableGH th:nth-child(1),
+  #watchlistTableGuest th:nth-child(1) {
     background: var(--surface2) !important;
     background-color: var(--surface2) !important;
   }
-  #screenerTable td:nth-child(1) {
+  #screenerTable td:nth-child(1),
+  #watchlistTableGH td:nth-child(1),
+  #watchlistTableGuest td:nth-child(1) {
     background: var(--surface) !important;
     background-color: var(--surface) !important;
     z-index: 1;
   }
-  #screenerTable tbody tr:nth-child(even) td:nth-child(1) {
+  #screenerTable tbody tr:nth-child(even) td:nth-child(1),
+  #watchlistTableGH tbody tr:nth-child(even) td:nth-child(1),
+  #watchlistTableGuest tbody tr:nth-child(even) td:nth-child(1) {
     background: var(--surface) !important;
     background-color: var(--surface) !important;
   }
-  #screenerTable tr:hover td:nth-child(1) {
+  #screenerTable tr:hover td:nth-child(1),
+  #watchlistTableGH tr:hover td:nth-child(1),
+  #watchlistTableGuest tr:hover td:nth-child(1) {
     background: var(--surface3) !important;
     background-color: var(--surface3) !important;
   }
@@ -1351,12 +1369,18 @@
     background-color: #161616 !important;
   }
   [data-theme="bloomberg"] #screenerTable th:nth-child(1),
-  [data-theme="bloomberg"] #screenerTable td:nth-child(1) {
+  [data-theme="bloomberg"] #screenerTable td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGH th:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGH td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGuest th:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGuest td:nth-child(1) {
     background: #0e0e0e !important;
     background-color: #0e0e0e !important;
     box-shadow: 2px 0 8px rgba(255,102,0,0.08);
   }
-  [data-theme="bloomberg"] #screenerTable tr:hover td:nth-child(1) {
+  [data-theme="bloomberg"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGuest tr:hover td:nth-child(1) {
     background: #161616 !important;
     background-color: #161616 !important;
   }
@@ -1382,9 +1406,15 @@
   [data-theme="light"] #sectorTable td:first-child { background: #ffffff !important; background-color: #ffffff !important; }
   [data-theme="light"] #sectorTable th:first-child { background: #eef1f8 !important; background-color: #eef1f8 !important; }
   [data-theme="light"] #sectorTable tr:hover td:first-child { background: #e4e9f4 !important; background-color: #e4e9f4 !important; }
-  [data-theme="light"] #screenerTable td:nth-child(1) { background: #ffffff !important; background-color: #ffffff !important; }
-  [data-theme="light"] #screenerTable th:nth-child(1) { background: #eef1f8 !important; background-color: #eef1f8 !important; }
-  [data-theme="light"] #screenerTable tr:hover td:nth-child(1) { background: #e4e9f4 !important; background-color: #e4e9f4 !important; }
+  [data-theme="light"] #screenerTable td:nth-child(1),
+  [data-theme="light"] #watchlistTableGH td:nth-child(1),
+  [data-theme="light"] #watchlistTableGuest td:nth-child(1) { background: #ffffff !important; background-color: #ffffff !important; }
+  [data-theme="light"] #screenerTable th:nth-child(1),
+  [data-theme="light"] #watchlistTableGH th:nth-child(1),
+  [data-theme="light"] #watchlistTableGuest th:nth-child(1) { background: #eef1f8 !important; background-color: #eef1f8 !important; }
+  [data-theme="light"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="light"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="light"] #watchlistTableGuest tr:hover td:nth-child(1) { background: #e4e9f4 !important; background-color: #e4e9f4 !important; }
 
   /* ===== TRADINGVIEW THEME ===== */
   [data-theme="tradingview"] {
@@ -1491,8 +1521,14 @@
   [data-theme="tradingview"] #sectorTable td:first-child { background: #2a2e39 !important; background-color: #2a2e39 !important; box-shadow: 2px 0 8px rgba(0,0,0,0.4); }
   [data-theme="tradingview"] #sectorTable tr:hover td:first-child { background: #363a45 !important; background-color: #363a45 !important; }
   [data-theme="tradingview"] #screenerTable th:nth-child(1),
-  [data-theme="tradingview"] #screenerTable td:nth-child(1) { background: #2a2e39 !important; background-color: #2a2e39 !important; box-shadow: 2px 0 8px rgba(0,0,0,0.4); }
-  [data-theme="tradingview"] #screenerTable tr:hover td:nth-child(1) { background: #363a45 !important; background-color: #363a45 !important; }
+  [data-theme="tradingview"] #screenerTable td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGH th:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGH td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGuest th:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGuest td:nth-child(1) { background: #2a2e39 !important; background-color: #2a2e39 !important; box-shadow: 2px 0 8px rgba(0,0,0,0.4); }
+  [data-theme="tradingview"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGuest tr:hover td:nth-child(1) { background: #363a45 !important; background-color: #363a45 !important; }
   [data-theme="tradingview"] .sector-name-cell { color: #d1d4dc !important; }
   [data-theme="tradingview"] .screener-sector-cell { color: #787b86 !important; }
   [data-theme="tradingview"] #themeToggleBtn { border-color: var(--accent) !important; color: var(--accent) !important; }
@@ -1600,22 +1636,30 @@
     background-color: #dff0e8 !important;
   }
 
-  /* Sticky column — Screener table */
-  [data-theme="cream"] #screenerTable th:nth-child(1) {
+  /* Sticky column — Screener & Watchlist tables */
+  [data-theme="cream"] #screenerTable th:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH th:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest th:nth-child(1) {
     background: #ede8df !important;
     background-color: #ede8df !important;
     box-shadow: 2px 0 8px rgba(80,60,20,0.12);
   }
-  [data-theme="cream"] #screenerTable td:nth-child(1) {
+  [data-theme="cream"] #screenerTable td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest td:nth-child(1) {
     background: #faf7f2 !important;
     background-color: #faf7f2 !important;
     box-shadow: 2px 0 8px rgba(80,60,20,0.12);
   }
-  [data-theme="cream"] #screenerTable tbody tr:nth-child(even) td:nth-child(1) {
+  [data-theme="cream"] #screenerTable tbody tr:nth-child(even) td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH tbody tr:nth-child(even) td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest tbody tr:nth-child(even) td:nth-child(1) {
     background: #faf7f2 !important;
     background-color: #faf7f2 !important;
   }
-  [data-theme="cream"] #screenerTable tr:hover td:nth-child(1) {
+  [data-theme="cream"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest tr:hover td:nth-child(1) {
     background: #dff0e8 !important;
     background-color: #dff0e8 !important;
   }
