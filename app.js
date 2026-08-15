@@ -535,6 +535,8 @@ function loadTicker(ticker) {
   setEl('ciIndex',  d.Index  || '—');
   const rawDate = dget(d,'Last Period End Date');
   setEl('ciPeriod', getDateStr(rawDate) || '—');
+  const peRatio = dget(d,'P/E Ratio');
+  setEl('ciPE', peRatio != null ? fmt(peRatio, 2) : '—');
   const price = dget(d,'Price');
   setEl('ciPrice', price != null ? Number(price).toFixed(2) : '—');
 
