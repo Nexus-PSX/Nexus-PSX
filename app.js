@@ -3280,7 +3280,13 @@ const COMPARE_KPI_DEFS = [
 // Latest slot filled) so they slot into the same chart/scorecard code as
 // everything else with no further special-casing.
 function computeCompareRow(d, key) {
-  if (key === 'peRatio')  return { key, vals: [null,null,null, toNum(dget(d,'P/E Ratio'))],        pct:false, big:false, dec:2 };
+  // Negative P/E (from negative/loss earnings) isn't a meaningful valuation
+  // multiple, so it's excluded here rather than compared as a real value —
+  // it'll show as "—" and sort to the end, same as any other missing data.
+  if (key === 'peRatio') {
+    const v = toNum(dget(d,'P/E Ratio'));
+    return { key, vals: [null,null,null, (v != null && v > 0) ? v : null], pct:false, big:false, dec:2 };
+  }
   if (key === 'finScore') return { key, vals: [null,null,null, toNum(dget(d,'total improvement'))], pct:false, big:false, dec:0 };
   return computeKpiRows(d).find(r => r.key === key);
 }
