@@ -4648,6 +4648,12 @@
         <div class="selector-label">Add Companies to Compare (up to 6)</div>
         <input type="text" class="ticker-search" id="cmpTickerSearch" placeholder="Search ticker or company name…" autocomplete="off" oninput="cmpOnSearchInput()" onkeydown="cmpOnSearchKey(event)" onfocus="cmpOpenAC()">
         <div class="ticker-autocomplete" id="cmpAcList"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text2);white-space:nowrap;">or pick the top 6 from a sector:</span>
+          <select id="cmpSectorPicker" class="ticker-search" style="width:auto;flex:0 1 260px;cursor:pointer;" onchange="cmpPickSector(this.value)">
+            <option value="">Choose a sector…</option>
+          </select>
+        </div>
         <div id="cmpChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
       </div>
     </div>
@@ -4655,10 +4661,13 @@
     <div class="table-card" style="margin-top:16px;">
       <div class="chart-title" style="margin-bottom:10px;">KPIs Shown <span style="font-size:11px;font-weight:400;color:var(--text3);">— click to hide/show a chart</span></div>
       <div id="cmpKpiToggles" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <button type="button" class="cmp-kpi-toggle off" id="cmpIndexToggle" onclick="cmpToggleIndexed()" title="Rebase EPS, Revenue and CFO to each company's own Q-3 value = 100, so different-sized companies can be compared by % change instead of raw scale.">📈 Index EPS/Revenue/CFO to 100 (Q-3 baseline)</button>
+      </div>
     </div>
 
     <div class="table-card" id="cmpHeatmapCard" style="margin-top:16px;">
-      <div class="chart-title" style="margin-bottom:10px;">Sector-Relative Scorecard <span style="font-size:11px;font-weight:400;color:var(--text3);">— latest quarter vs sector average</span></div>
+      <div class="chart-title" style="margin-bottom:10px;">Comparison Scorecard <span style="font-size:11px;font-weight:400;color:var(--text3);">— latest quarter, ranked among selected companies</span></div>
       <div id="cmpHeatmapWrap"></div>
     </div>
 

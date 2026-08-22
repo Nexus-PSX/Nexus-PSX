@@ -1098,14 +1098,14 @@ function buildBarChart(id, labels, data, color) {
 // bloomberg, cream, tradingview) rather than pulling from theme vars.
 const COMPARE_COLORS = ['#4f8fef', '#f2994a', '#27ae60', '#eb5757', '#9b59b6', '#17a2a2'];
 
-function buildCompareChart(id, labels, series, isPercent, big) {
+function buildCompareChart(id, labels, series, isPercent, big, indexed) {
   if (charts[id]) { charts[id].destroy(); }
   const canvas = document.getElementById(id);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const th = getChartTheme();
 
-  const valueFmt = v => v == null ? '—' : (isPercent ? (v*100).toFixed(1) + '%' : big ? fmtBig(v) : fmt(v, 3));
+  const valueFmt = v => v == null ? '—' : (indexed ? v.toFixed(1) : isPercent ? (v*100).toFixed(1) + '%' : big ? fmtBig(v) : fmt(v, 3));
 
   charts[id] = new Chart(ctx, {
     type: 'line',
@@ -1127,6 +1127,23 @@ function buildCompareChart(id, labels, series, isPercent, big) {
         spanGaps: true,
       }))
     },
+    plugins: indexed ? [{
+      id: 'cmpBaseline',
+      afterDraw: chart => {
+        const { ctx: c, chartArea, scales } = chart;
+        if (!chartArea || !scales.y) return;
+        const y = scales.y.getPixelForValue(100);
+        if (y < chartArea.top || y > chartArea.bottom) return;
+        c.save();
+        c.strokeStyle = th.grid;
+        c.setLineDash([4,4]);
+        c.beginPath();
+        c.moveTo(chartArea.left, y);
+        c.lineTo(chartArea.right, y);
+        c.stroke();
+        c.restore();
+      }
+    }] : [],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1168,7 +1185,7 @@ function buildCompareChart(id, labels, series, isPercent, big) {
           border: { display: false },
           ticks: {
             color: th.tick, font: { size: 10, family: CHART_FONT },
-            callback: v => isPercent ? (v*100).toFixed(0) + '%' : (big ? fmtBig(v) : v)
+            callback: v => indexed ? v.toFixed(0) : isPercent ? (v*100).toFixed(0) + '%' : (big ? fmtBig(v) : v)
           }
         }
       }
@@ -3020,8 +3037,25 @@ function switchTab(name) {
 // Individual KPI charts can be toggled off to reduce clutter.
 let compareSelected = [];              // array of up to 6 tickers
 let compareHiddenKpis = new Set();     // KPI keys the user has hidden
+let compareIndexed = false;            // rebase absolute-scale KPIs to Q-3 = 100
 let cmpAcFiltered = [];
 let cmpAcIndex = -1;
+
+// Rebase a company's own 4-quarter series to its first available value = 100,
+// so companies of very different sizes (e.g. Revenue, CFO) can be read as
+// "% change from Q-3" on the same axis instead of one flattening the other.
+function rebaseToIndex(vals) {
+  const base = vals.find(v => v != null && v !== 0);
+  if (base == null) return vals.map(() => null);
+  return vals.map(v => v == null ? null : (v / base) * 100);
+}
+
+function cmpToggleIndexed() {
+  compareIndexed = !compareIndexed;
+  const btn = document.getElementById('cmpIndexToggle');
+  if (btn) btn.classList.toggle('off', !compareIndexed);
+  renderCompareCharts();
+}
 
 function findCompanyRow(ticker) {
   return SOURCE_DATA.find(r => dget(r,'Ticker') === ticker);
@@ -3030,15 +3064,46 @@ function findCompanyRow(ticker) {
 function buildCompareTab() {
   cmpRenderKpiToggles();
   cmpRenderChips();
+  cmpRenderSectorOptions();
   renderCompareCharts();
   renderCompareHeatmap();
 }
 
-// Sector-relative scorecard: each selected company vs its own sector
-// average, latest quarter only. Complements the QoQ line charts with a
-// fast "who's actually ahead, on what" read — reuses the same sectorKey
-// mapping computeKpiRows() already carries, so it can't drift from the
-// Company View table's own sector-average numbers.
+function cmpRenderSectorOptions() {
+  const sel = document.getElementById('cmpSectorPicker');
+  if (!sel || sel.options.length > 1) return; // populate once; sector list doesn't change during a session
+  allSectors.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
+// Replaces the current selection with the top 6 companies in the chosen
+// sector, ranked by Financial Score. A quick "give me a sensible starting
+// point" alternative to manually searching one company at a time.
+function cmpPickSector(sector) {
+  if (!sector) return;
+  const top6 = SOURCE_DATA
+    .filter(d => d.Sector === sector)
+    .slice()
+    .sort((a, b) => (toNum(b['total improvement']) ?? -Infinity) - (toNum(a['total improvement']) ?? -Infinity))
+    .slice(0, 6)
+    .map(d => String(d.Ticker));
+
+  compareSelected = top6;
+  const sel = document.getElementById('cmpSectorPicker');
+  if (sel) sel.value = '';
+  cmpRenderChips();
+  renderCompareCharts();
+  renderCompareHeatmap();
+}
+
+// Group-relative scorecard: each row ranks only the companies you've
+// selected against each other (not sector averages) — best value leads
+// left to right, shaded from strongest green (best) to strongest red
+// (worst) based on rank position within the row.
 const COMPARE_LOWER_IS_BETTER = new Set(['de']); // Debt/Equity: lower = safer
 
 function renderCompareHeatmap() {
@@ -3056,12 +3121,10 @@ function renderCompareHeatmap() {
 
   const bodyHtml = visibleDefs.map(k => {
     const cellData = companies.map(c => {
-      const sectorInfo = SECTOR_DATA.find(s => s.sector === c.row.Sector);
       const row = computeKpiRows(c.row).find(r => r.key === k.key);
       const latest = toNum(row ? row.vals[3] : null);
-      const sectorVal = (sectorInfo && row && row.sectorKey) ? toNum(sectorInfo[row.sectorKey]) : null;
       const fmtFn = row ? kpiFmtFn(row) : (v => fmt(v,3));
-      return { ticker: c.ticker, latest, sectorVal, text: latest != null ? fmtFn(latest) : '—' };
+      return { ticker: c.ticker, latest, text: latest != null ? fmtFn(latest) : '—' };
     });
 
     // Best value leads (leftmost); lower is best for D/E. Nulls always sort
@@ -3074,13 +3137,17 @@ function renderCompareHeatmap() {
       return (a.latest - b.latest) * dir;
     });
 
-    const cells = cellData.map(cell => {
+    const withData = cellData.filter(c => c.latest != null).length;
+    const cells = cellData.map((cell, idx) => {
       let bg = 'transparent';
-      if (cell.latest != null && cell.sectorVal != null && cell.sectorVal !== 0) {
-        let pctDiff = (cell.latest - cell.sectorVal) / Math.abs(cell.sectorVal);
-        if (COMPARE_LOWER_IS_BETTER.has(k.key)) pctDiff = -pctDiff;
-        const opacity = Math.min(Math.abs(pctDiff), 0.5) / 0.5 * 0.32;
-        bg = pctDiff >= 0 ? `rgba(34,197,94,${opacity.toFixed(2)})` : `rgba(239,68,68,${opacity.toFixed(2)})`;
+      // Shade purely by rank position among the companies that actually
+      // have data for this KPI — needs at least 2 to mean anything.
+      if (cell.latest != null && withData > 1) {
+        const frac = idx / (withData - 1); // 0 = best, 1 = worst
+        const opacity = 0.30;
+        bg = frac <= 0.5
+          ? `rgba(34,197,94,${(opacity * (1 - frac / 0.5)).toFixed(2)})`
+          : `rgba(239,68,68,${(opacity * ((frac - 0.5) / 0.5)).toFixed(2)})`;
       }
       return `<td class="q-val" style="text-align:center;background:${bg};">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);">${cell.ticker}</div>
@@ -3098,7 +3165,7 @@ function renderCompareHeatmap() {
       </table>
     </div>
     <div style="font-size:11px;color:var(--text2);margin-top:8px;">
-      Each row is sorted best → worst left to right (lower is best for D/E). Companies with no data for a KPI are pushed to the end. Background shading is separate — it compares each company to its own sector average.
+      Each row is sorted and shaded best (green) → worst (red) among just your selected companies — lower is best for D/E. Companies with no data for a KPI are pushed to the end and left unshaded.
     </div>
   `;
 }
@@ -3233,12 +3300,16 @@ function renderCompareCharts() {
   // Build/refresh only the visible KPI chart-cards; hidden ones are removed
   // from the DOM entirely (not just display:none) so the grid reflows cleanly.
   const visibleDefs = COMPARE_KPI_DEFS.filter(k => !compareHiddenKpis.has(k.key));
-  grid.innerHTML = visibleDefs.map(k => `
+  grid.innerHTML = visibleDefs.map(k => {
+    const def0 = computeKpiRows(companies[0].row).find(r => r.key === k.key);
+    const willIndex = compareIndexed && def0 && !def0.pct;
+    return `
     <div class="chart-card">
-      <div class="chart-title">${k.label}</div>
+      <div class="chart-title">${k.label}${willIndex ? ' <span style="font-size:10px;font-weight:400;color:var(--text3);">(Indexed, Q-3 = 100)</span>' : ''}</div>
       <div class="chart-wrap"><canvas id="cmpChart_${k.key}"></canvas></div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   const perCompanyRows = companies.map(c => ({
     ticker: c.ticker,
@@ -3253,12 +3324,17 @@ function renderCompareCharts() {
   visibleDefs.forEach(k => {
     const def0 = perCompanyRows[0]?.rows.find(r => r.key === k.key);
     const isPercent = def0 ? def0.pct : false;
-    const isBig = def0 ? def0.big : false;
+    // Percent-based KPIs (margins, ROE, D/E, Div Yield) are already on a
+    // comparable scale across companies — indexing only applies to the
+    // absolute-scale ones (EPS, Revenue, CFO), and only when toggled on.
+    const doIndex = compareIndexed && !isPercent;
+    const isBig = def0 ? def0.big && !doIndex : false;
     const series = perCompanyRows.map((c, i) => {
       const row = c.rows.find(r => r.key === k.key);
-      return { label: c.ticker, data: row ? row.vals : [null,null,null,null], color: COMPARE_COLORS[i] };
+      const vals = row ? row.vals : [null,null,null,null];
+      return { label: c.ticker, data: doIndex ? rebaseToIndex(vals) : vals, color: COMPARE_COLORS[i] };
     });
-    buildCompareChart('cmpChart_' + k.key, labels, series, isPercent, isBig);
+    buildCompareChart('cmpChart_' + k.key, labels, series, isPercent && !doIndex, isBig, doIndex);
   });
 }
 
