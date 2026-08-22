@@ -511,7 +511,7 @@ function computeKpiRows(d, qKeys) {
   ];
 }
 function kpiFmtFn(row) {
-  return row.big ? fmtBig : (row.pct ? fmtPct : v => fmt(v,3));
+  return row.big ? fmtBig : (row.pct ? fmtPct : v => fmt(v, row.dec != null ? row.dec : 3));
 }
 
 function quartersBefore(endDateStr, n) {
@@ -3104,7 +3104,7 @@ function cmpPickSector(sector) {
 // selected against each other (not sector averages) — best value leads
 // left to right, shaded from strongest green (best) to strongest red
 // (worst) based on rank position within the row.
-const COMPARE_LOWER_IS_BETTER = new Set(['de']); // Debt/Equity: lower = safer
+const COMPARE_LOWER_IS_BETTER = new Set(['de', 'peRatio']); // Debt/Equity, P/E: lower = safer/cheaper
 
 function renderCompareHeatmap() {
   const wrap = document.getElementById('cmpHeatmapWrap');
@@ -3121,7 +3121,7 @@ function renderCompareHeatmap() {
 
   const bodyHtml = visibleDefs.map(k => {
     const cellData = companies.map(c => {
-      const row = computeKpiRows(c.row).find(r => r.key === k.key);
+      const row = computeCompareRow(c.row, k.key);
       const latest = toNum(row ? row.vals[3] : null);
       const fmtFn = row ? kpiFmtFn(row) : (v => fmt(v,3));
       return { ticker: c.ticker, latest, text: latest != null ? fmtFn(latest) : '—' };
@@ -3269,7 +3269,21 @@ const COMPARE_KPI_DEFS = [
   {key:'cfo',    label:'CFO'},
   {key:'de',     label:'D/E'},
   {key:'divY',   label:'Div Yield'},
+  {key:'peRatio',   label:'P/E Ratio'},
+  {key:'finScore',  label:'Financial Score'},
 ];
+
+// P/E Ratio and Financial Score are single current-value fields, not
+// quarterly series like the 9 KPI Summary rows — kept separate from
+// computeKpiRows() so Company View's table (which does share that
+// function) isn't affected. Stored as a one-point "vals" array (only the
+// Latest slot filled) so they slot into the same chart/scorecard code as
+// everything else with no further special-casing.
+function computeCompareRow(d, key) {
+  if (key === 'peRatio')  return { key, vals: [null,null,null, toNum(dget(d,'P/E Ratio'))],        pct:false, big:false, dec:2 };
+  if (key === 'finScore') return { key, vals: [null,null,null, toNum(dget(d,'total improvement'))], pct:false, big:false, dec:0 };
+  return computeKpiRows(d).find(r => r.key === key);
+}
 
 function cmpRenderKpiToggles() {
   const wrap = document.getElementById('cmpKpiToggles');
@@ -3301,7 +3315,7 @@ function renderCompareCharts() {
   // from the DOM entirely (not just display:none) so the grid reflows cleanly.
   const visibleDefs = COMPARE_KPI_DEFS.filter(k => !compareHiddenKpis.has(k.key));
   grid.innerHTML = visibleDefs.map(k => {
-    const def0 = computeKpiRows(companies[0].row).find(r => r.key === k.key);
+    const def0 = computeCompareRow(companies[0].row, k.key);
     const willIndex = compareIndexed && def0 && !def0.pct;
     return `
     <div class="chart-card">
@@ -3311,26 +3325,21 @@ function renderCompareCharts() {
   `;
   }).join('');
 
-  const perCompanyRows = companies.map(c => ({
-    ticker: c.ticker,
-    rows: computeKpiRows(c.row)
-  }));
-
   // All selected companies share the same relative quarter positions
   // (Q-3, Q-2, Q-1, Latest) even if their exact calendar quarters differ —
   // this mirrors how each company's own KPI Summary table already labels them.
   const labels = ['Q-3', 'Q-2', 'Q-1', 'Latest'];
 
   visibleDefs.forEach(k => {
-    const def0 = perCompanyRows[0]?.rows.find(r => r.key === k.key);
+    const def0 = computeCompareRow(companies[0].row, k.key);
     const isPercent = def0 ? def0.pct : false;
     // Percent-based KPIs (margins, ROE, D/E, Div Yield) are already on a
     // comparable scale across companies — indexing only applies to the
     // absolute-scale ones (EPS, Revenue, CFO), and only when toggled on.
     const doIndex = compareIndexed && !isPercent;
     const isBig = def0 ? def0.big && !doIndex : false;
-    const series = perCompanyRows.map((c, i) => {
-      const row = c.rows.find(r => r.key === k.key);
+    const series = companies.map((c, i) => {
+      const row = computeCompareRow(c.row, k.key);
       const vals = row ? row.vals : [null,null,null,null];
       return { label: c.ticker, data: doIndex ? rebaseToIndex(vals) : vals, color: COMPARE_COLORS[i] };
     });
