@@ -1664,8 +1664,8 @@ const OTHERS_OPTIONS = [
   {value:'net_gt_op',  label:'📊 Net Inc > Op. Inc'}
 ];
 const LIQUID_OPTIONS = [
-  {value:'1',  label:'🟢 Liquid Stock (+)'},
-  {value:'-1', label:'🔴 Non-Liquid Stock (−)'}
+  {value:'1',  label:'💧 Liquid Stock (+)'},
+  {value:'-1', label:'🚱 Illiquid Stock (−)'}
 ];
 const VOLPHASE_OPTIONS = [
   {value:'1',  label:'🟢 High Phase (+1)'},
