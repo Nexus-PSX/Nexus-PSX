@@ -204,6 +204,7 @@
     <button class="tab" onclick="switchTab('company')">Company View</button>
     <button class="tab" onclick="switchTab('sector')">Sector Analysis</button>
     <button class="tab" onclick="switchTab('screener')">Stock Screener</button>
+    <button class="tab" onclick="switchTab('compare')">Compare</button>
     <button class="tab" onclick="switchTab('watchlist')"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;color:var(--warn,#eab308);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>Watchlist <span id="watchlistCountBadge" style="display: inline; background: var(--accent3); color: rgb(255, 255, 255); border-radius: 10px; padding: 1px 6px; font-size: 10px; margin-left: 4px;">13</span></button>
     <button class="tab" onclick="switchTab('top')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M17 5h2a2 2 0 0 1 2 2v1a3 3 0 0 1-3 3"></path><path d="M7 5H5a2 2 0 0 0-2 2v1a3 3 0 0 0 3 3"></path></svg>Top</button>
     <button class="tab" onclick="switchTab('faq')">&#10067; FAQ</button>
@@ -1605,6 +1606,21 @@
               <div class="msel-list" id="nemiMselList" style="max-height:220px;overflow-y:auto;"></div>
             </div>
           </div>
+          <div class="msel" id="periodMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="periodMselBtn" style="position:relative;" aria-label="Filter by latest period" aria-haspopup="listbox" onclick="mselTogglePanel('period', event)" title="Latest Period: Filter by the company's latest reported quarter-end date. Multi-select.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span id="periodMselLabel">Latest Period</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="periodMselPanel">
+              <input type="text" class="msel-search" id="periodMselSearch" placeholder="Search periods..." oninput="mselRenderList('period')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('period')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('period')">Clear</button>
+              </div>
+              <div class="msel-list" id="periodMselList"></div>
+            </div>
+          </div>
           <div class="msel" id="liquidMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="liquidMselBtn" style="position:relative;" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)" title="Liquidity: Minimum average daily trading turnover threshold.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
@@ -1680,6 +1696,7 @@
               <th data-sort-col="0" onclick="sortScreener(0)">Ticker</th>
               <th data-sort-col="1" onclick="sortScreener(1)">Name</th>
               <th data-sort-col="2" onclick="sortScreener(2)">Sector</th>
+              <th class="screener-hide-mobile screener-fin-col" data-sort-col="37" onclick="sortScreener(37)" title="Last Period End Date">Latest Period<button type="button" class="col-filter-icon" data-filter-key="Last Period End Date" data-base-title="Filter Latest Period" title="Filter Latest Period" onclick="openColFilter(event,'Last Period End Date','Latest Period')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th class="screener-fin-col" data-sort-col="3" onclick="sortScreener(3)">EPS (Q)<button type="button" class="col-filter-icon" data-filter-key="Latest EPS  Q" data-base-title="Filter EPS (Q)" title="Filter EPS (Q)" onclick="openColFilter(event,'Latest EPS  Q','EPS (Q)')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th class="screener-hide-mobile screener-fin-col" data-sort-col="36" onclick="sortScreener(36)">EPS Q G%<button type="button" class="col-filter-icon" data-filter-key="EPS Q G%" data-base-title="Filter EPS Q G%" title="Filter EPS Q G%" onclick="openColFilter(event,'EPS Q G%','EPS Q G%')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th class="screener-hide-mobile screener-fin-col" data-sort-col="4" onclick="sortScreener(4)">EPS (TTM)<button type="button" class="col-filter-icon" data-filter-key="Latest TTM EPS Q" data-base-title="Filter EPS (TTM)" title="Filter EPS (TTM)" onclick="openColFilter(event,'Latest TTM EPS Q','EPS (TTM)')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
@@ -1691,7 +1708,7 @@
               <th class="screener-hide-mobile screener-fin-col" data-sort-col="10" onclick="sortScreener(10)">CFO<button type="button" class="col-filter-icon" data-filter-key="CFO 2026-Q1" data-base-title="Filter CFO" title="Filter CFO" onclick="openColFilter(event,'CFO 2026-Q1','CFO')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th class="screener-fin-col" data-sort-col="11" onclick="sortScreener(11)">Div Yield<button type="button" class="col-filter-icon" data-filter-key="Latest Div Y Q" data-base-title="Filter Div Yield" title="Filter Div Yield" onclick="openColFilter(event,'Latest Div Y Q','Div Yield')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th class="screener-fin-col sort-desc" data-sort-col="12" onclick="sortScreener(12)">P/E Ratio<button type="button" class="col-filter-icon" data-filter-key="P/E Ratio" data-base-title="Filter P/E Ratio" title="Filter P/E Ratio" onclick="openColFilter(event,'P/E Ratio','P/E Ratio')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
-              <th class="screener-hide-mobile screener-fin-col" data-sort-col="37" onclick="sortScreener(37)" title="Last Period End Date">Latest Period<button type="button" class="col-filter-icon" data-filter-key="Last Period End Date" data-base-title="Filter Latest Period" title="Filter Latest Period" onclick="openColFilter(event,'Last Period End Date','Latest Period')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th><th class="screener-fin-col" data-sort-col="13" onclick="sortScreener(13)" title="Market Capitalization (PKR)">Market Cap<button type="button" class="col-filter-icon" data-filter-key="Market Cap" data-base-title="Filter Market Cap" title="Filter Market Cap" onclick="openColFilter(event,'Market Cap','Market Cap')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
+              <th class="screener-fin-col" data-sort-col="13" onclick="sortScreener(13)" title="Market Capitalization (PKR)">Market Cap<button type="button" class="col-filter-icon" data-filter-key="Market Cap" data-base-title="Filter Market Cap" title="Filter Market Cap" onclick="openColFilter(event,'Market Cap','Market Cap')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th data-sort-col="14" onclick="sortScreener(14)" class="">Financial Score<button type="button" class="col-filter-icon" data-filter-key="total improvement" data-base-title="Filter Financial Score" title="Filter Financial Score" onclick="openColFilter(event,'total improvement','Financial Score')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th data-sort-col="15" onclick="sortScreener(15)" class="screener-tech-col">Signal Date<button type="button" class="col-filter-icon" data-filter-key="Signal date" data-base-title="Filter Signal Date" title="Filter Signal Date" onclick="openColFilter(event,'Signal date','Signal Date')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
               <th data-sort-col="16" onclick="sortScreener(16)" class="screener-tech-col">Signal Price<button type="button" class="col-filter-icon" data-filter-key="Signal Price" data-base-title="Filter Signal Price" title="Filter Signal Price" onclick="openColFilter(event,'Signal Price','Signal Price')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"></polygon></svg></button></th>
@@ -4622,6 +4639,33 @@
       </div>
       <div class="pagination" id="screenerPagination"><button class="page-btn active" onclick="goPage(1)">1</button><button class="page-btn " onclick="goPage(2)">2</button><button class="page-btn " onclick="goPage(3)">3</button><button class="page-btn" onclick="goPage(5)">5</button><button class="page-btn" onclick="goPage(2)">→</button><span class="page-info">Showing 1–100 of 497</span></div>
     </div>
+  </div>
+
+  <!-- ===== COMPARISON TAB ===== -->
+  <div id="tab-compare" class="tab-content">
+    <div class="controls">
+      <div class="ticker-selector" id="cmpTickerSelector">
+        <div class="selector-label">Add Companies to Compare (up to 6)</div>
+        <input type="text" class="ticker-search" id="cmpTickerSearch" placeholder="Search ticker or company name…" autocomplete="off" oninput="cmpOnSearchInput()" onkeydown="cmpOnSearchKey(event)" onfocus="cmpOpenAC()">
+        <div class="ticker-autocomplete" id="cmpAcList"></div>
+        <div id="cmpChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <div class="table-card" style="margin-top:16px;">
+      <div class="chart-title" style="margin-bottom:10px;">KPIs Shown <span style="font-size:11px;font-weight:400;color:var(--text3);">— click to hide/show a chart</span></div>
+      <div id="cmpKpiToggles" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+
+    <div class="table-card" id="cmpHeatmapCard" style="margin-top:16px;">
+      <div class="chart-title" style="margin-bottom:10px;">Sector-Relative Scorecard <span style="font-size:11px;font-weight:400;color:var(--text3);">— latest quarter vs sector average</span></div>
+      <div id="cmpHeatmapWrap"></div>
+    </div>
+
+    <div id="cmpEmptyState" style="margin-top:24px;text-align:center;padding:40px 20px;color:var(--text2);font-size:13px;">
+      Add companies above to compare their quarter-on-quarter KPIs side by side.
+    </div>
+    <div class="charts-grid" id="cmpChartsGrid" style="margin-top:16px;display:none;"></div>
   </div>
 
   <!-- ===== WATCHLIST TAB ===== -->

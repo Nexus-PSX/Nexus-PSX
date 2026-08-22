@@ -492,6 +492,28 @@ function getQuarterKeys(lastDate) {
   };
 }
 
+// Single source of truth for the 9 KPI Summary rows — used by the Company
+// View table (with sector averages) and by the Comparison tab charts
+// (across up to 6 companies). Keeping this in one place means the two
+// views can never drift out of sync with each other.
+function computeKpiRows(d, qKeys) {
+  qKeys = qKeys || getQuarterKeys(d['Last Period End Date']);
+  return [
+    {key:'epsQ',   label:'EPS (Q)',    sectorKey:'epsQ',     vals:[dget(d,'EPS  Q-3'),dget(d,'EPS  Q-2'),dget(d,'EPS  Q-1'),dget(d,'Latest EPS  Q')], pct:false},
+    {key:'epsTTM', label:'EPS (TTM)',  sectorKey:'epsTTM',    vals:[dget(d,'TTM EPS Q-3'),dget(d,'TTM EPS Q-2'),dget(d,'TTM EPS Q-1'),dget(d,'Latest TTM EPS Q')], pct:false},
+    {key:'rev',    label:'Revenue',    sectorKey:null,        vals:[dget(d,'Revenue - Q-3'),dget(d,'Revenue - Q-2'),dget(d,'Revenue - Q-1'),dget(d,'Revenue - Q')], pct:false, big:true},
+    {key:'opMgn',  label:'Op Margin',  sectorKey:'opMargin',  vals:[dget(d,'Op Income-Q-3'),dget(d,'Op Income-Q-2'),dget(d,'Op Income-Q-1'),dget(d,'Op Income-Q')], pct:true},
+    {key:'netMgn', label:'Net Margin', sectorKey:null,        vals:[dget(d,'Net Income -Q-3'),dget(d,'Net Income -Q-2'),dget(d,'Net Income -Q-1'),dget(d,'Net Income -Q')], pct:true},
+    {key:'roe',    label:'ROE',        sectorKey:'roe',       vals:[null,dget(d,qKeys.roe[0]),dget(d,qKeys.roe[1]),dget(d,qKeys.roe[2])], pct:true},
+    {key:'cfo',    label:'CFO',        sectorKey:'cfo',       vals:[null,dget(d,qKeys.cfo[0]),dget(d,qKeys.cfo[1]),dget(d,qKeys.cfo[2])], pct:false, big:true},
+    {key:'de',     label:'D/E',        sectorKey:'de',        vals:[null,dget(d,qKeys.de[0]),dget(d,qKeys.de[1]),dget(d,qKeys.de[2])], pct:false},
+    {key:'divY',   label:'Div Yield',  sectorKey:'divYield',  vals:[null,dget(d,'Div Y Q-2'),dget(d,'Div Y Q-1'),dget(d,'Latest Div Y Q')], pct:true},
+  ];
+}
+function kpiFmtFn(row) {
+  return row.big ? fmtBig : (row.pct ? fmtPct : v => fmt(v,3));
+}
+
 function quartersBefore(endDateStr, n) {
   // Returns n quarter-end labels ending at endDateStr (YYYY-MM-DD)
   const qEnds = ['03-31','06-30','09-30','12-31'];
@@ -624,20 +646,10 @@ function loadTicker(ticker) {
   const tbody = document.getElementById('kpiTableBody');
   if (tbody) {
     tbody.innerHTML = '';
-    const kpiRows = [
-      {label:'EPS (Q)',    vals:[dget(d,'EPS  Q-3'),dget(d,'EPS  Q-2'),dget(d,'EPS  Q-1'),dget(d,'Latest EPS  Q')], sectorVal:sectorInfo?.epsQ, pct:false},
-      {label:'EPS (TTM)', vals:[dget(d,'TTM EPS Q-3'),dget(d,'TTM EPS Q-2'),dget(d,'TTM EPS Q-1'),dget(d,'Latest TTM EPS Q')], sectorVal:sectorInfo?.epsTTM, pct:false},
-      {label:'Revenue',   vals:[dget(d,'Revenue - Q-3'),dget(d,'Revenue - Q-2'),dget(d,'Revenue - Q-1'),dget(d,'Revenue - Q')], sectorVal:null, pct:false, big:true},
-      {label:'Op Margin', vals:[dget(d,'Op Income-Q-3'),dget(d,'Op Income-Q-2'),dget(d,'Op Income-Q-1'),dget(d,'Op Income-Q')], sectorVal:sectorInfo?.opMargin, pct:true},
-      {label:'Net Margin',vals:[dget(d,'Net Income -Q-3'),dget(d,'Net Income -Q-2'),dget(d,'Net Income -Q-1'),dget(d,'Net Income -Q')], sectorVal:null, pct:true},
-      {label:'ROE',       vals:[null,dget(d,qKeys.roe[0]),dget(d,qKeys.roe[1]),dget(d,qKeys.roe[2])], sectorVal:sectorInfo?.roe, pct:true},
-      {label:'CFO',       vals:[null,dget(d,qKeys.cfo[0]),dget(d,qKeys.cfo[1]),dget(d,qKeys.cfo[2])], sectorVal:sectorInfo?.cfo, pct:false, big:true},
-      {label:'D/E',       vals:[null,dget(d,qKeys.de[0]),dget(d,qKeys.de[1]),dget(d,qKeys.de[2])], sectorVal:sectorInfo?.de, pct:false},
-      {label:'Div Yield', vals:[null,dget(d,'Div Y Q-2'),dget(d,'Div Y Q-1'),dget(d,'Latest Div Y Q')], sectorVal:sectorInfo?.divYield, pct:true},
-    ];
+    const kpiRows = computeKpiRows(d, qKeys).map(row => ({ ...row, sectorVal: sectorInfo ? sectorInfo[row.sectorKey] : null }));
     kpiRows.forEach(row => {
       const tr = document.createElement('tr');
-      const fmtFn = row.big ? fmtBig : (row.pctRaw ? (v => { const n = toNum(v); return n == null ? '—' : n.toFixed(1) + '%'; }) : (row.pct ? fmtPct : v => fmt(v,3)));
+      const fmtFn = kpiFmtFn(row);
       tr.innerHTML = `
         <td class="metric-name">${row.label}</td>
         ${row.vals.slice(0,3).map(v => `<td class="q-val ${valColor(v)}">${fmtFn(v)}</td>`).join('')}
@@ -1074,6 +1086,90 @@ function buildBarChart(id, labels, data, color) {
           grid: { color: th.grid, drawBorder: false },
           ticks: { color: th.tick, font: { size: 10, family: CHART_FONT }, callback: v => fmtBig(v) },
           border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+// ===== COMPARISON TAB — multi-company chart =====
+// Fixed palette so each selected company keeps the same color across all
+// 9 KPI charts. Chosen to stay legible against every theme (dark, light,
+// bloomberg, cream, tradingview) rather than pulling from theme vars.
+const COMPARE_COLORS = ['#4f8fef', '#f2994a', '#27ae60', '#eb5757', '#9b59b6', '#17a2a2'];
+
+function buildCompareChart(id, labels, series, isPercent, big) {
+  if (charts[id]) { charts[id].destroy(); }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const th = getChartTheme();
+
+  const valueFmt = v => v == null ? '—' : (isPercent ? (v*100).toFixed(1) + '%' : big ? fmtBig(v) : fmt(v, 3));
+
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: series.map(s => ({
+        label: s.label,
+        data: s.data,
+        borderColor: s.color,
+        backgroundColor: s.color,
+        tension: 0.3,
+        fill: false,
+        borderWidth: 2.25,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: s.color,
+        pointBorderColor: th.tooltip.bg,
+        pointBorderWidth: 1.5,
+        spanGaps: true,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 350, easing: 'easeOutCubic' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: {
+            color: th.tick,
+            font: { size: 10, family: CHART_FONT },
+            usePointStyle: true,
+            pointStyleWidth: 10,
+            padding: 14,
+            boxHeight: 2,
+          }
+        },
+        tooltip: {
+          backgroundColor: th.tooltip.bg,
+          titleColor: th.tooltip.title,
+          bodyColor: th.tooltip.body,
+          borderColor: th.tooltip.border,
+          borderWidth: 1,
+          padding: 10,
+          titleFont: { family: CHART_FONT, size: 11 },
+          bodyFont: { family: CHART_FONT, size: 11 },
+          callbacks: {
+            label: ctx2 => `${ctx2.dataset.label}: ${valueFmt(ctx2.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: th.grid, drawBorder: false },
+          ticks: { color: th.tick, font: { size: 10, family: CHART_FONT }, maxRotation: 0 },
+          border: { display: false }
+        },
+        y: {
+          grid: { color: th.grid, drawBorder: false },
+          border: { display: false },
+          ticks: {
+            color: th.tick, font: { size: 10, family: CHART_FONT },
+            callback: v => isPercent ? (v*100).toFixed(0) + '%' : (big ? fmtBig(v) : v)
+          }
         }
       }
     }
@@ -1643,6 +1739,19 @@ const mselRegistry = {
     oneLabel: v => (VOLPHASE_OPTIONS.find(o=>o.value===v)||{}).label || v,
     manyLabel: n => `Phases`,
   },
+  period: {
+    // Distinct reporting period-end dates across all companies, newest first.
+    options: () => {
+      const set = new Set();
+      SOURCE_DATA.forEach(d => { const v = dget(d,'Last Period End Date'); if (v) set.add(String(v)); });
+      return [...set].sort().reverse().map(v => ({ value: v, label: fmtPeriodEndDate(v) }));
+    },
+    selected: new Set(),
+    searchable: true,
+    allLabel: 'Latest Period',
+    oneLabel: v => fmtPeriodEndDate(v),
+    manyLabel: n => `${n} Periods`,
+  },
   sectorFilter: {
     options: () => [...new Set(SECTOR_DATA.map(s => s.sector))].sort().map(s => ({value: s, label: s})),
     selected: new Set(),
@@ -2023,6 +2132,7 @@ function filterScreener() {
   const q = document.getElementById('screenerSearch').value.toLowerCase();
   const selLiquid = mselRegistry.liquid.selected;
   const selVolPhase = mselRegistry.volPhase.selected;
+  const selPeriod = mselRegistry.period.selected;
   const selSectors = mselRegistry.sector.selected;
   const selIndices = mselRegistry.index.selected;
   const selTickers = mselRegistry.ticker.selected;
@@ -2077,6 +2187,7 @@ function filterScreener() {
       for (const v of selVolPhase) { if (Number(d['Accumulation']) === Number(v)) { matched = true; break; } }
       if (!matched) return false;
     }
+    if (selPeriod.size > 0 && !selPeriod.has(String(dget(d,'Last Period End Date')))) return false;
     if (selStatuses.size > 0 && !selStatuses.has(String(sigStatusCode(d['Signal Status'])))) return false;
     const selNemi = mselRegistry.nemi.selected;
     if (selNemi.size > 0 && !selNemi.has(String(sigStatusCode(d['NEMI Signal Status'])))) return false;
@@ -2655,6 +2766,7 @@ function renderScreenerPage() {
       <td class="ticker-link" onclick="switchTab('company');pickTicker('${String(d.Ticker)}')">${d.Ticker}${tickerBadges(d)}</td>
       <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:500">${d.Name||'—'}</td>
       <td class="screener-sector-cell" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">${d.Sector||'—'}</td>
+      <td class="screener-hide-mobile screener-fin-col mono">${fmtPeriodEndDate(dget(d,'Last Period End Date'))}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%'),2):'—'}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),2)}</td>
@@ -2666,7 +2778,6 @@ function renderScreenerPage() {
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'CFO 2026-Q1'))}">${fmtBig(dget(d,'CFO 2026-Q1'))}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
       <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
-      <td class="screener-hide-mobile screener-fin-col mono">${fmtPeriodEndDate(dget(d,'Last Period End Date'))}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
@@ -2757,6 +2868,7 @@ function updateScreenerAvgRow() {
     <td class="screener-avg-label">Mkt Avg</td>
     <td></td>
     <td class="screener-avg-count">${n} co.</td>
+    <td class="mono screener-hide-mobile screener-fin-col">—</td>
     <td class="mono screener-fin-col ${valColor(avg('Latest EPS  Q'))}">${fmt(avg('Latest EPS  Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${avg('EPS Q G%') != null ? fmtPct(avg('EPS Q G%'),2) : '—'}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Latest TTM EPS Q'),2)}</td>
@@ -2768,7 +2880,6 @@ function updateScreenerAvgRow() {
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('CFO 2026-Q1'))}">${fmtBig(avg('CFO 2026-Q1'))}</td>
     <td class="mono screener-fin-col ${valColor(avg('Latest Div Y Q'))}">${fmtPct(avg('Latest Div Y Q'),2)}</td>
     <td class="mono screener-fin-col">${fmt(avg('P/E Ratio'),2)}</td>
-    <td class="mono screener-hide-mobile screener-fin-col">—</td>
     <td class="mono screener-fin-col">${fmtMarketCap(avg('Market Cap'))}</td>
     <td class="mono">${scoreHtml}</td>
     <td class="mono screener-tech-col">—</td>
@@ -2878,7 +2989,7 @@ function renderScreener() { filteredScreener = [...screenerData]; filterScreener
 
 // ===== TABS =====
 function switchTab(name) {
-  const tabNames = ['home','company','sector','screener','watchlist','top','faq'];
+  const tabNames = ['home','company','sector','screener','compare','watchlist','top','faq'];
   document.querySelectorAll('.tab').forEach(t => {
     const match = tabNames.find(n => t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + n + "'"));
     if (match !== undefined) t.classList.toggle('active', match === name);
@@ -2888,6 +2999,7 @@ function switchTab(name) {
   if (name === 'top') buildTopTab();
   if (name === 'home') buildHomeTab();
   if (name === 'faq') buildFaqTab();
+  if (name === 'compare') buildCompareTab();
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   const el = document.getElementById('tab-'+name);
   if (el) el.classList.add('active');
@@ -2899,6 +3011,255 @@ function switchTab(name) {
   });
   // scroll to top on mobile tab switch
   if (window.innerWidth <= 768) window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// ===== COMPARISON TAB =====
+// Lets the user manually add up to 6 companies and compare all 9 KPI
+// Summary rows (the same rows/fields shown in Company View) as small
+// multiples — one chart per KPI, each with one line per selected company.
+// Individual KPI charts can be toggled off to reduce clutter.
+let compareSelected = [];              // array of up to 6 tickers
+let compareHiddenKpis = new Set();     // KPI keys the user has hidden
+let cmpAcFiltered = [];
+let cmpAcIndex = -1;
+
+function findCompanyRow(ticker) {
+  return SOURCE_DATA.find(r => dget(r,'Ticker') === ticker);
+}
+
+function buildCompareTab() {
+  cmpRenderKpiToggles();
+  cmpRenderChips();
+  renderCompareCharts();
+  renderCompareHeatmap();
+}
+
+// Sector-relative scorecard: each selected company vs its own sector
+// average, latest quarter only. Complements the QoQ line charts with a
+// fast "who's actually ahead, on what" read — reuses the same sectorKey
+// mapping computeKpiRows() already carries, so it can't drift from the
+// Company View table's own sector-average numbers.
+const COMPARE_LOWER_IS_BETTER = new Set(['de']); // Debt/Equity: lower = safer
+
+function renderCompareHeatmap() {
+  const wrap = document.getElementById('cmpHeatmapWrap');
+  if (!wrap) return;
+  if (compareSelected.length === 0) { wrap.innerHTML = ''; return; }
+
+  const companies = compareSelected.map(t => ({ ticker: t, row: findCompanyRow(t) })).filter(c => c.row);
+  const visibleDefs = COMPARE_KPI_DEFS.filter(k => !compareHiddenKpis.has(k.key));
+  const colCount = companies.length;
+
+  // Header just marks rank position — which company sits in which column
+  // changes per row below, since each KPI row is sorted independently.
+  const headHtml = `<th>KPI</th>` + Array.from({length: colCount}, (_, i) => `<th style="text-align:center;">#${i+1}</th>`).join('');
+
+  const bodyHtml = visibleDefs.map(k => {
+    const cellData = companies.map(c => {
+      const sectorInfo = SECTOR_DATA.find(s => s.sector === c.row.Sector);
+      const row = computeKpiRows(c.row).find(r => r.key === k.key);
+      const latest = toNum(row ? row.vals[3] : null);
+      const sectorVal = (sectorInfo && row && row.sectorKey) ? toNum(sectorInfo[row.sectorKey]) : null;
+      const fmtFn = row ? kpiFmtFn(row) : (v => fmt(v,3));
+      return { ticker: c.ticker, latest, sectorVal, text: latest != null ? fmtFn(latest) : '—' };
+    });
+
+    // Best value leads (leftmost); lower is best for D/E. Nulls always sort
+    // to the end rather than being treated as zero.
+    const dir = COMPARE_LOWER_IS_BETTER.has(k.key) ? 1 : -1;
+    cellData.sort((a, b) => {
+      if (a.latest == null && b.latest == null) return 0;
+      if (a.latest == null) return 1;
+      if (b.latest == null) return -1;
+      return (a.latest - b.latest) * dir;
+    });
+
+    const cells = cellData.map(cell => {
+      let bg = 'transparent';
+      if (cell.latest != null && cell.sectorVal != null && cell.sectorVal !== 0) {
+        let pctDiff = (cell.latest - cell.sectorVal) / Math.abs(cell.sectorVal);
+        if (COMPARE_LOWER_IS_BETTER.has(k.key)) pctDiff = -pctDiff;
+        const opacity = Math.min(Math.abs(pctDiff), 0.5) / 0.5 * 0.32;
+        bg = pctDiff >= 0 ? `rgba(34,197,94,${opacity.toFixed(2)})` : `rgba(239,68,68,${opacity.toFixed(2)})`;
+      }
+      return `<td class="q-val" style="text-align:center;background:${bg};">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);">${cell.ticker}</div>
+        <div>${cell.text}</div>
+      </td>`;
+    }).join('');
+    return `<tr><td class="metric-name">${k.label}</td>${cells}</tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="scroll-table">
+      <table class="kpi-table">
+        <thead><tr>${headHtml}</tr></thead>
+        <tbody>${bodyHtml}</tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-top:8px;">
+      Each row is sorted best → worst left to right (lower is best for D/E). Companies with no data for a KPI are pushed to the end. Background shading is separate — it compares each company to its own sector average.
+    </div>
+  `;
+}
+
+function cmpOnSearchInput() { cmpAcIndex = -1; cmpOpenAC(); }
+
+function cmpOpenAC() {
+  const input = document.getElementById('cmpTickerSearch');
+  if (!input) return;
+  const q = input.value.toLowerCase().trim();
+  cmpAcFiltered = (q
+    ? allTickers.filter(t => t.ticker.toLowerCase().includes(q) || t.name.toLowerCase().includes(q))
+    : allTickers
+  ).filter(t => !compareSelected.includes(t.ticker)).slice(0, 50);
+  cmpRenderAC();
+  const list = document.getElementById('cmpAcList');
+  if (list) list.classList.add('open');
+}
+
+function cmpRenderAC() {
+  const list = document.getElementById('cmpAcList');
+  if (!list) return;
+  if (compareSelected.length >= 6) {
+    list.innerHTML = '<div class="ac-item"><span class="ac-name">Limit of 6 companies reached — remove one to add another</span></div>';
+    return;
+  }
+  if (cmpAcFiltered.length === 0) {
+    list.innerHTML = '<div class="ac-item"><span class="ac-name">No results found</span></div>';
+    return;
+  }
+  list.innerHTML = cmpAcFiltered.map((t, i) => {
+    const score = t.score;
+    const sc = score >= 80 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
+    return `<div class="ac-item ${i===cmpAcIndex?'selected':''}" onmousedown="cmpAddCompany('${t.ticker}')">
+      <span class="ac-ticker">${t.ticker}</span>
+      <span class="ac-score" style="color:${sc}">${score || '—'}</span>
+      <div class="ac-name">${t.name || ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function cmpOnSearchKey(e) {
+  const list = document.getElementById('cmpAcList');
+  if (!list.classList.contains('open')) { cmpOpenAC(); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); cmpAcIndex = Math.min(cmpAcIndex+1, cmpAcFiltered.length-1); cmpRenderAC(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); cmpAcIndex = Math.max(cmpAcIndex-1, 0); cmpRenderAC(); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (cmpAcIndex >= 0 && cmpAcFiltered[cmpAcIndex]) cmpAddCompany(cmpAcFiltered[cmpAcIndex].ticker); else if (cmpAcFiltered.length > 0) cmpAddCompany(cmpAcFiltered[0].ticker); }
+  else if (e.key === 'Escape') { cmpCloseAC(); }
+}
+
+function cmpCloseAC() {
+  const list = document.getElementById('cmpAcList');
+  if (list) list.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#cmpTickerSelector')) cmpCloseAC();
+});
+
+function cmpAddCompany(ticker) {
+  if (compareSelected.includes(ticker) || compareSelected.length >= 6) return;
+  compareSelected.push(ticker);
+  const input = document.getElementById('cmpTickerSearch');
+  if (input) input.value = '';
+  cmpCloseAC();
+  cmpRenderChips();
+  renderCompareCharts();
+  renderCompareHeatmap();
+}
+
+function cmpRemoveCompany(ticker) {
+  compareSelected = compareSelected.filter(t => t !== ticker);
+  cmpRenderChips();
+  renderCompareCharts();
+  renderCompareHeatmap();
+}
+
+function cmpRenderChips() {
+  const wrap = document.getElementById('cmpChips');
+  if (!wrap) return;
+  if (compareSelected.length === 0) {
+    wrap.innerHTML = '<span style="font-size:12px;color:var(--text2);">No companies selected yet — search above to add up to 6.</span>';
+    return;
+  }
+  wrap.innerHTML = compareSelected.map((t, i) => `
+    <span class="cmp-chip" style="border-color:${COMPARE_COLORS[i]};">
+      <span class="cmp-chip-dot" style="background:${COMPARE_COLORS[i]};"></span>${t}
+      <button type="button" onclick="cmpRemoveCompany('${t}')" aria-label="Remove ${t}">✕</button>
+    </span>
+  `).join('');
+}
+
+// The 9 KPI Summary rows, in display order — matches computeKpiRows() key-for-key.
+const COMPARE_KPI_DEFS = [
+  {key:'epsQ',   label:'EPS (Q)'},
+  {key:'epsTTM', label:'EPS (TTM)'},
+  {key:'rev',    label:'Revenue'},
+  {key:'opMgn',  label:'Op Margin'},
+  {key:'netMgn', label:'Net Margin'},
+  {key:'roe',    label:'ROE'},
+  {key:'cfo',    label:'CFO'},
+  {key:'de',     label:'D/E'},
+  {key:'divY',   label:'Div Yield'},
+];
+
+function cmpRenderKpiToggles() {
+  const wrap = document.getElementById('cmpKpiToggles');
+  if (!wrap) return;
+  wrap.innerHTML = COMPARE_KPI_DEFS.map(k => `
+    <button type="button" class="cmp-kpi-toggle ${compareHiddenKpis.has(k.key) ? 'off' : ''}" onclick="cmpToggleKpi('${k.key}')">${k.label}</button>
+  `).join('');
+}
+
+function cmpToggleKpi(key) {
+  if (compareHiddenKpis.has(key)) compareHiddenKpis.delete(key); else compareHiddenKpis.add(key);
+  cmpRenderKpiToggles();
+  renderCompareCharts();
+  renderCompareHeatmap();
+}
+
+function renderCompareCharts() {
+  const grid = document.getElementById('cmpChartsGrid');
+  if (!grid) return;
+
+  const empty = document.getElementById('cmpEmptyState');
+  if (empty) empty.style.display = compareSelected.length === 0 ? 'block' : 'none';
+  grid.style.display = compareSelected.length === 0 ? 'none' : 'grid';
+  if (compareSelected.length === 0) return;
+
+  const companies = compareSelected.map(t => ({ ticker: t, row: findCompanyRow(t) })).filter(c => c.row);
+
+  // Build/refresh only the visible KPI chart-cards; hidden ones are removed
+  // from the DOM entirely (not just display:none) so the grid reflows cleanly.
+  const visibleDefs = COMPARE_KPI_DEFS.filter(k => !compareHiddenKpis.has(k.key));
+  grid.innerHTML = visibleDefs.map(k => `
+    <div class="chart-card">
+      <div class="chart-title">${k.label}</div>
+      <div class="chart-wrap"><canvas id="cmpChart_${k.key}"></canvas></div>
+    </div>
+  `).join('');
+
+  const perCompanyRows = companies.map(c => ({
+    ticker: c.ticker,
+    rows: computeKpiRows(c.row)
+  }));
+
+  // All selected companies share the same relative quarter positions
+  // (Q-3, Q-2, Q-1, Latest) even if their exact calendar quarters differ —
+  // this mirrors how each company's own KPI Summary table already labels them.
+  const labels = ['Q-3', 'Q-2', 'Q-1', 'Latest'];
+
+  visibleDefs.forEach(k => {
+    const def0 = perCompanyRows[0]?.rows.find(r => r.key === k.key);
+    const isPercent = def0 ? def0.pct : false;
+    const isBig = def0 ? def0.big : false;
+    const series = perCompanyRows.map((c, i) => {
+      const row = c.rows.find(r => r.key === k.key);
+      return { label: c.ticker, data: row ? row.vals : [null,null,null,null], color: COMPARE_COLORS[i] };
+    });
+    buildCompareChart('cmpChart_' + k.key, labels, series, isPercent, isBig);
+  });
 }
 
 // ===== SAFE DOM HELPERS =====
