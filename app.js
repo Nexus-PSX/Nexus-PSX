@@ -4753,6 +4753,8 @@ function applyTheme(theme) {
   const labelMap = { light: 'LIGHT', bloomberg: 'BBG', tradingview: 'TV', cream: 'CREAM' };
   if (icon) icon.textContent = iconMap[theme] || '☀️';
   if (label) label.textContent = labelMap[theme] || 'DARK';
+  const mobileThemeLabel = document.getElementById('authThemeItemLabel');
+  if (mobileThemeLabel) mobileThemeLabel.textContent = labelMap[theme] || 'Dark';
   try { localStorage.setItem('psx_theme', theme); } catch(e) {}
   // Rebuild all charts with new theme colors
   setTimeout(() => {
@@ -5143,3 +5145,40 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(buildMarketTicker, 200);
 }
+
+// ===== MOBILE: mirror the avatar initial + alert badge onto the bottom
+// nav's Account button =====
+// Only runs on pages that actually have the auth menu (index.html) —
+// admin.html has no auth system at all, so this quietly no-ops there.
+// Re-queries both source elements fresh on every mutation rather than
+// holding onto element references, since auth.js replaces #authAvatarBtn's
+// entire textContent (including its nested #authAlertBadge child) on every
+// auth state change — the badge node itself gets swapped out, not just its
+// text, so a stale reference to it would silently stop updating.
+(function initMobileAvatarSync() {
+  const userMenu = document.getElementById('authUserMenu');
+  if (!userMenu) return;
+
+  function syncMobileAvatar() {
+    const circle = document.getElementById('mnavAvatarCircle');
+    const badge = document.getElementById('mnavAvatarBadge');
+    if (!circle) return;
+    const avatarBtn = document.getElementById('authAvatarBtn');
+    const initial = avatarBtn ? (avatarBtn.textContent || '').trim().charAt(0) : '';
+    circle.textContent = initial || '?';
+
+    if (!badge) return;
+    const srcBadge = document.getElementById('authAlertBadge');
+    if (srcBadge && !srcBadge.classList.contains('hidden') && srcBadge.textContent.trim() !== '0') {
+      badge.textContent = srcBadge.textContent.trim();
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  syncMobileAvatar();
+  new MutationObserver(syncMobileAvatar).observe(userMenu, {
+    subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class']
+  });
+})();

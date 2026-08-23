@@ -189,6 +189,9 @@
             🔔 Enable Alerts
           </span>
         </button>
+        <button class="auth-dropdown-item mobile-only" id="authTopItem" onclick="document.getElementById('authDropdown').classList.add('hidden'); switchTab('top');"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>Top</span></button>
+        <button class="auth-dropdown-item mobile-only" id="authCompareItem" onclick="document.getElementById('authDropdown').classList.add('hidden'); switchTab('compare');"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>Compare</span></button>
+        <button class="auth-dropdown-item mobile-only" id="authThemeItem" onclick="toggleTheme();"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>Theme: <span id="authThemeItemLabel" style="margin-left:4px;font-weight:700;">Light</span></span></button>
         <button class="auth-dropdown-item mobile-only" id="authFaqItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>FAQ</span></button>
         <button class="auth-dropdown-item" id="authSignOutItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sign out</span></button>
       </div>
@@ -5040,14 +5043,12 @@
       <div class="mnav-active-pill"></div>
     </button>
 
-    <button class="mobile-nav-item" id="mnav-top" onclick="switchTab('top')" aria-label="Top">
-      <div class="mobile-nav-icon-wrap">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline>
-        </svg>
+    <button class="mobile-nav-item" id="mnav-avatar" aria-label="Account menu" aria-haspopup="menu" onclick="event.stopPropagation(); document.getElementById('authAvatarBtn')?.click();">
+      <div class="mobile-nav-icon-wrap" style="position:relative;">
+        <div class="mnav-avatar-circle" id="mnavAvatarCircle">?</div>
+        <span class="mobile-nav-badge" id="mnavAvatarBadge" style="display:none;">0</span>
       </div>
-      <span class="mobile-nav-label">Top</span>
-      <div class="mnav-active-pill"></div>
+      <span class="mobile-nav-label">Account</span>
     </button>
   </div>
 </nav>
