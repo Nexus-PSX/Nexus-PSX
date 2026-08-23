@@ -2325,6 +2325,10 @@
      The parent wrap div already has overflow-x:auto so horizontal scroll kicks in. */
   .top-mini-table { min-width: 420px; }
   .top-mini-table .nm { max-width: 100px; }
+  /* KMI / Net Inc>Op Inc / Turnaround / Liquid / High Vol legend under the
+     Screener search box — purely explanatory, not functional, and the
+     first thing worth dropping to reclaim space on a phone. */
+  .search-row-legend { display: none !important; }
 }
 
 
@@ -2396,9 +2400,13 @@
 @media (max-width: 768px) {
   /* Scoped with :has() so this only fires on pages that actually have the
      auth menu (index.html) — admin.html has its own #themeToggleBtn but no
-     auth system at all, and must keep its theme button visible as-is. */
+     auth system at all, and must keep its theme button visible as-is.
+     Important: hide only the avatar BUTTON, not #authUserMenu itself —
+     #authDropdown lives inside that same container, and a display:none
+     ancestor would hide the dropdown too regardless of its own class state,
+     breaking the bottom-nav Account button that proxies a click to it. */
   body:has(#authUserMenu) #themeToggleBtn,
-  body:has(#authUserMenu) #authUserMenu { display: none !important; }
+  body:has(#authUserMenu) #authAvatarBtn { display: none !important; }
   .mnav-avatar-circle {
     width: 22px; height: 22px; border-radius: 50%;
     background: var(--accent); color: #fff;
