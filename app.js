@@ -138,11 +138,20 @@ let screenerData = [];
 let screenerPage = 1;
 const PAGE_SIZE = 100;
 let screenerSort = {col: 14, dir: -1};
+// Stack of previously-applied sorts, most recent first. Used as tiebreakers so that
+// sorting by a new column (e.g. Sector) doesn't discard the order from the column
+// sorted just before it (e.g. Financial Score) — rows that tie on the new column
+// keep falling back to the previous sort's order instead of reverting to source order.
+let screenerSortHistory = [];
 let sectorSort = {col: 12, dir: -1};
 // Restore sort state from previous session
 try {
   const _ss = sessionStorage.getItem('psx_screener_sort');
-  if (_ss) { const p = JSON.parse(_ss); screenerSort.col = p.col; screenerSort.dir = p.dir; }
+  if (_ss) {
+    const p = JSON.parse(_ss);
+    screenerSort.col = p.col; screenerSort.dir = p.dir;
+    if (Array.isArray(p.history)) screenerSortHistory = p.history;
+  }
 } catch(e) {}
 
 // ===== INIT =====
@@ -2235,40 +2244,59 @@ function filterScreener() {
   // (a YYYYMMDD integer), it's stored as an ISO "YYYY-MM-DD" string, which the
   // default string comparison below already sorts correctly (chronologically).
   const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%']);
-  filteredScreener.sort((a,b) => {
-  let av = a[key];
-  let bv = b[key];
 
-  // Signal date of 0 means "no date" — treat same as null so it sorts to the bottom
-  if (key === 'Signal date') {
-    if (av === 0 || av === '0' || av === '') av = null;
-    if (bv === 0 || bv === '0' || bv === '') bv = null;
-  }
+  // Compares two rows on a single sort level ({col, dir}). Returns 0 when the rows
+  // tie on that level's column, so the caller can fall through to the next level.
+  function compareScreenerLevel(a, b, level) {
+    const lKey = sortKeys[level.col];
+    let av = a[lKey];
+    let bv = b[lKey];
 
-  if (key === 'Signal Status' || key === 'NEMI Signal Status') {
+    // Signal date of 0 means "no date" — treat same as null so it sorts to the bottom
+    if (lKey === 'Signal date') {
+      if (av === 0 || av === '0' || av === '') av = null;
+      if (bv === 0 || bv === '0' || bv === '') bv = null;
+    }
+
+    if (lKey === 'Signal Status' || lKey === 'NEMI Signal Status') {
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return ((sigStatusCode(av) ?? -Infinity) - (sigStatusCode(bv) ?? -Infinity)) * level.dir;
+    }
+
+    // Numeric columns: use toNum() (not a raw Number() cast) so blanks, "-", "N/A"
+    // and similar non-numeric placeholders never produce NaN — Array.sort()'s
+    // ordering becomes unreliable the moment a comparator can return NaN, which
+    // was corrupting the sort for any column with even one such value. Missing
+    // values always sink to the bottom, regardless of sort direction.
+    if (NUMERIC_SORT_KEYS.has(lKey)) {
+      const an = toNum(av), bn = toNum(bv);
+      if (an == null && bn == null) return 0;
+      if (an == null) return 1;
+      if (bn == null) return -1;
+      return (an - bn) * level.dir;
+    }
+
+    if (av == null && bv == null) return 0;
     if (av == null) return 1;
     if (bv == null) return -1;
-    return ((sigStatusCode(av) ?? -Infinity) - (sigStatusCode(bv) ?? -Infinity)) * screenerSort.dir;
+    // default string sort
+    return String(av).localeCompare(String(bv)) * level.dir;
   }
 
-  // Numeric columns: use toNum() (not a raw Number() cast) so blanks, "-", "N/A"
-  // and similar non-numeric placeholders never produce NaN — Array.sort()'s
-  // ordering becomes unreliable the moment a comparator can return NaN, which
-  // was corrupting the sort for any column with even one such value. Missing
-  // values always sink to the bottom, regardless of sort direction.
-  if (NUMERIC_SORT_KEYS.has(key)) {
-    const an = toNum(av), bn = toNum(bv);
-    if (an == null && bn == null) return 0;
-    if (an == null) return 1;
-    if (bn == null) return -1;
-    return (an - bn) * screenerSort.dir;
-  }
-
-  if (av == null) return 1;
-  if (bv == null) return -1;
-  // default string sort
-  return String(av).localeCompare(String(bv)) * screenerSort.dir;
-});
+  // Cascade: sort by the active column first; whenever two rows tie on it, fall
+  // back to whichever column was sorted immediately before (then the one before
+  // that, etc.) so a prior sort's order is preserved instead of reverting to
+  // source order. Capped by screenerSortHistory's own length (see sortScreener).
+  const sortLevels = [screenerSort, ...screenerSortHistory];
+  filteredScreener.sort((a, b) => {
+    for (const level of sortLevels) {
+      const r = compareScreenerLevel(a, b, level);
+      if (r !== 0) return r;
+    }
+    return 0;
+  });
 
 
   screenerPage = 1;
@@ -2305,8 +2333,21 @@ function alignScreenerToggles() {
 window.addEventListener('resize', () => { if (typeof alignScreenerToggles === 'function') alignScreenerToggles(); });
 
 function sortScreener(col) {
-  if (screenerSort.col === col) screenerSort.dir *= -1; else { screenerSort.col = col; screenerSort.dir = -1; }
-  try { sessionStorage.setItem('psx_screener_sort', JSON.stringify(screenerSort)); } catch(e) {}
+  if (screenerSort.col === col) {
+    // Same column clicked again: just flip direction, history unchanged.
+    screenerSort.dir *= -1;
+  } else {
+    // New column: the just-active sort becomes the first tiebreaker. Drop any
+    // existing entry for this same column further back in history (it's about
+    // to become stale/contradictory) and cap depth so ties don't chase an
+    // unbounded chain of stale columns.
+    screenerSortHistory = [{col: screenerSort.col, dir: screenerSort.dir}, ...screenerSortHistory.filter(h => h.col !== col)].slice(0, 4);
+    screenerSort.col = col;
+    screenerSort.dir = -1;
+  }
+  try {
+    sessionStorage.setItem('psx_screener_sort', JSON.stringify({col: screenerSort.col, dir: screenerSort.dir, history: screenerSortHistory}));
+  } catch(e) {}
   filterScreener();
 }
 function toggleFinancials() {
