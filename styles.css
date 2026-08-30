@@ -1228,6 +1228,33 @@
     .data-table th { font-size: 12px; padding: 8px 10px; }
     .data-table td { padding: 8px 10px; font-size: 13px; }
 
+    /* Screener table specifically: tighter padding/font than the general
+       .data-table default above (higher specificity via #screenerTable wins)
+       so more columns fit in the visible strip before the user has to
+       scroll. Kept scoped to the screener so other tables (company info,
+       sector table, watchlist) keep their normal mobile sizing. */
+    #screenerTable th { font-size: 10.5px; padding: 6px 6px; }
+    #screenerTable td { padding: 6px 6px; font-size: 12px; }
+
+    /* Shrink the frozen/sticky Ticker column itself — it was reserving
+       80px+ of horizontal padding-heavy space just for a 4-6 character
+       code. Narrower min-width and tighter side padding claws back real
+       estate for the columns scrolling in next to it. */
+    #screenerTable th:nth-child(1),
+    #screenerTable td:nth-child(1) {
+      min-width: 52px;
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+    #screenerTable .ticker-link { font-size: 12px; }
+
+    /* The sticky "Market Avg" footer row shares columns with the body rows —
+       an HTML table sizes each column to its widest cell across ALL rows,
+       so leaving this row's wider padding untouched would silently force
+       every column back out to its old width, undoing the tightening above. */
+    #screenerAvgRow td { padding: 6px 6px; font-size: 11px; }
+    #screenerAvgRow td:nth-child(1) { padding-left: 6px; padding-right: 6px; }
+
     .two-col { grid-template-columns: 1fr; }
 
     .kpi-table th, .kpi-table tr td { font-size: 11px; padding: 5px 7px; }
@@ -1272,6 +1299,17 @@
     .kpi-value { font-size: 18px; }
     .data-table th { font-size: 11px; padding: 7px 8px; }
     .data-table td { font-size: 12px; padding: 7px 8px; }
+    #screenerTable th { font-size: 10px; padding: 5px 5px; }
+    #screenerTable td { padding: 5px 5px; font-size: 11px; }
+    #screenerTable th:nth-child(1),
+    #screenerTable td:nth-child(1) {
+      min-width: 46px;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    #screenerTable .ticker-link { font-size: 11px; }
+    #screenerAvgRow td { padding: 5px 5px; font-size: 10px; }
+    #screenerAvgRow td:nth-child(1) { padding-left: 5px; padding-right: 5px; }
     .badge { font-size: 10px; padding: 3px 7px; }
     /* Stack header on very small screens */
     .header { flex-direction: column; align-items: flex-start; gap: 8px; }
