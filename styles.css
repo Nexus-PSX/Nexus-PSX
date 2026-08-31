@@ -496,6 +496,11 @@
     transition: color 0.15s;
   }
   .data-table th:hover { color: var(--accent); }
+  /* Desktop/tablet default: show the full column-header wording (e.g. "Financial
+     Score", "Signal Date"). Swapped for the shortened version only under the
+     mobile breakpoint below — see .th-full/.th-short there. */
+  .th-full { display: inline; }
+  .th-short { display: none; }
   .data-table td {
     padding: 8px 13px;
     border-bottom: 1px solid var(--border);
@@ -1227,6 +1232,13 @@
 
     .data-table th { font-size: 12px; padding: 8px 10px; }
     .data-table td { padding: 8px 10px; font-size: 13px; }
+
+    /* Mobile only: swap Financial Score / Signal Date / Signal Price /
+       Signal Return / Signal Status headers for their shortened wording
+       (Fin Score, Sig Date, ...) to save column width. Desktop/tablet keep
+       the full wording via the default .th-full/.th-short rule above. */
+    .th-full { display: none; }
+    .th-short { display: inline; }
 
     /* Screener table specifically: tighter padding/font than the general
        .data-table default above (higher specificity via #screenerTable wins)
