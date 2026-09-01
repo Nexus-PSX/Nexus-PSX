@@ -1469,6 +1469,64 @@ function updateSortArrows(headRowId, activeCol, dir) {
   });
 }
 
+// ===== SECTOR TAB: KSE 100 vs Top 5 Sectors comparison cards =====
+// Renders one row of cards per metric (WTD%, Roll 1M%, Roll 3M%, YTD%): a
+// highlighted KSE 100 benchmark card, followed by that metric's own top 5
+// sectors — each metric is ranked independently, so the 5 sectors shown can
+// differ from row to row (e.g. the WTD leaders aren't necessarily the YTD
+// leaders). Mirrors the card styling used for the Home tab's Top 5 Sectors.
+function buildSectorCompareCards() {
+  const container = document.getElementById('sectorCompareCards');
+  if (!container) return;
+  if (!SOURCE_DATA || !SOURCE_DATA.length) { container.innerHTML = ''; return; }
+
+  const toN    = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const fmtPct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  const clr    = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
+  const mono   = "font-family:'IBM Plex Mono',monospace;";
+
+  const kse100 = SOURCE_DATA.find(d => String(d.Ticker || '').toUpperCase() === 'KSE100') || null;
+
+  const companies  = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+  const sectorRows = computeSectorRowsFromCompanies(companies);
+
+  const metrics = [
+    { label: 'WTD %',    sectorKey: 'p1w',    sourceKey: 'Current Week Return %' },
+    { label: 'Roll 1M%', sectorKey: 'pRoll1m', sourceKey: 'Rolling 1M%' },
+    { label: 'Roll 3M%', sectorKey: 'pRoll3m', sourceKey: 'Rolling 3M%' },
+    { label: 'YTD %',    sectorKey: 'pYTD',    sourceKey: 'YTD Return %' },
+  ];
+
+  const kseCard = (val) => `
+    <div style="background:var(--surface);border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;flex:1;min-width:130px;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">KSE 100</div>
+      <div style="font-size:17px;font-weight:700;color:${clr(val)};${mono}">${fmtPct(val)}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">Benchmark index</div>
+    </div>`;
+
+  const sectorCard = (s, val) => `
+    <div onclick="drillSectorToScreener('${s.sector.replace(/'/g,"\\'")}');switchTab('screener')"
+      style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-left:4px solid ${val>=0?'var(--success)':'var(--danger)'};border-radius:10px;padding:12px 14px;flex:1;min-width:130px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${s.sector}</div>
+      <div style="font-size:17px;font-weight:700;color:${clr(val)};${mono}">${fmtPct(val)}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">Score ${s.totalScore!=null?s.totalScore.toFixed(0):'—'} · ${s.companies} cos</div>
+    </div>`;
+
+  container.innerHTML = metrics.map(m => {
+    const kseVal = kse100 ? toN(kse100[m.sourceKey]) : null;
+    const ranked = [...sectorRows]
+      .filter(s => s[m.sectorKey] != null)
+      .sort((a, b) => b[m.sectorKey] - a[m.sectorKey])
+      .slice(0, 5);
+    const cards = [kseCard(kseVal), ...ranked.map(s => sectorCard(s, s[m.sectorKey]))].join('');
+    return `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">${m.label} — KSE 100 vs Top 5 Sectors</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${cards}</div>
+      </div>`;
+  }).join('');
+}
+
 // ===== SECTOR TABLE =====
 let sectorTableData = [];
 function buildSectorTable() {
@@ -1478,6 +1536,7 @@ function buildSectorTable() {
   sectorTableData = regular;
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
+  buildSectorCompareCards();
 }
 function renderSectorTable(data) {
   const tbody = document.getElementById('sectorTableBody');
