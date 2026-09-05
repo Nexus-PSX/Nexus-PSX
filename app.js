@@ -1707,6 +1707,7 @@ function sortSectorTable(col) {
 function drillSectorToScreener(sectorName) {
   const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
   const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
+  const selPeriod = mselRegistry.sectorPeriod ? mselRegistry.sectorPeriod.selected : new Set();
 
   // Resolve the same company pool that is currently displayed in the sector table
   let companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
@@ -1717,6 +1718,10 @@ function drillSectorToScreener(sectorName) {
       for (const v of selIndex) { if (dIdx.includes(v)) return true; }
       return false;
     });
+  }
+
+  if (selPeriod.size > 0) {
+    companies = companies.filter(d => selPeriod.has(String(dget(d,'Last Period End Date'))));
   }
 
   // Always narrow to the clicked sector
