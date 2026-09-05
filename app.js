@@ -1727,10 +1727,17 @@ function drillSectorToScreener(sectorName) {
   // Always narrow to the clicked sector
   companies = companies.filter(d => (d.Sector || '').trim() === sectorName);
 
-  // Clear ALL screener filters then load matched tickers into Comparison
-  Object.keys(mselRegistry).forEach(key => {
-    mselRegistry[key].selected.clear();
-    mselUpdateLabel(key);
+  // Clear the Screener's OWN filters (not the Sector tab's) before loading the
+  // drilled-down tickers into Comparison. Previously this cleared every key in
+  // mselRegistry — including sectorFilter/sectorIndex/sectorPeriod — which wiped
+  // out whatever the user had selected on the Sector tab the moment they drilled
+  // through, so it looked "forgotten" when they navigated back.
+  const SCREENER_OWN_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'period'];
+  SCREENER_OWN_KEYS.forEach(key => {
+    if (mselRegistry[key]) {
+      mselRegistry[key].selected.clear();
+      mselUpdateLabel(key);
+    }
   });
 
   const tickerReg = mselRegistry.ticker;
@@ -2918,15 +2925,15 @@ function renderScreenerPage() {
       <td class="screener-hide-mobile screener-fin-col mono">${fmtPeriodEndDate(dget(d,'Last Period End Date'))}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%'),2):'—'}</td>
-      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),2)}</td>
+      <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtBig(dget(d,'Revenue - Q'))}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Op Income-Q'))}">${fmtPct(dget(d,'Op Income-Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Net Income -Q'))}">${fmtPct(dget(d,'Net Income -Q'),2)}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'ROE 2026-Q1'))}">${fmtPct(dget(d,'ROE 2026-Q1'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmt(dget(d,'Debt/Equity 2026-Q1'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'CFO 2026-Q1'))}">${fmtBig(dget(d,'CFO 2026-Q1'))}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
-      <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
@@ -3020,15 +3027,15 @@ function updateScreenerAvgRow() {
     <td class="mono screener-hide-mobile screener-fin-col">—</td>
     <td class="mono screener-fin-col ${valColor(avg('Latest EPS  Q'))}">${fmt(avg('Latest EPS  Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${avg('EPS Q G%') != null ? fmtPct(avg('EPS Q G%'),2) : '—'}</td>
-    <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Latest TTM EPS Q'),2)}</td>
+    <td class="mono screener-fin-col">${fmt(avg('P/E Ratio'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmtBig(avg('Revenue - Q'))}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Latest TTM EPS Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('Op Income-Q'))}">${fmtPct(avg('Op Income-Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('Net Income -Q'))}">${fmtPct(avg('Net Income -Q'),2)}</td>
     <td class="mono screener-fin-col ${valColor(avg('ROE 2026-Q1'))}">${fmtPct(avg('ROE 2026-Q1'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Debt/Equity 2026-Q1'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('CFO 2026-Q1'))}">${fmtBig(avg('CFO 2026-Q1'))}</td>
     <td class="mono screener-fin-col ${valColor(avg('Latest Div Y Q'))}">${fmtPct(avg('Latest Div Y Q'),2)}</td>
-    <td class="mono screener-fin-col">${fmt(avg('P/E Ratio'),2)}</td>
     <td class="mono screener-fin-col">${fmtMarketCap(avg('Market Cap'))}</td>
     <td class="mono">${scoreHtml}</td>
     <td class="mono screener-tech-col">—</td>
