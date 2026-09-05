@@ -454,6 +454,21 @@
         <div class="table-title" style="position:relative;">Sector Performance Summary</div>
         <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button class="fin-toggle-btn" style="position:relative;" active" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, Net Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Hide Financials</span></button>
+          <div class="msel" id="sectorPeriodMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="sectorPeriodMselBtn" aria-label="Filter by latest period" aria-haspopup="listbox" onclick="mselTogglePanel('sectorPeriod', event)" title="Latest Period: Narrows sector averages to only companies whose latest reported quarter-end date matches the selection.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span id="sectorPeriodMselLabel">Latest Period</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="sectorPeriodMselPanel">
+              <input type="text" class="msel-search" id="sectorPeriodMselSearch" placeholder="Search periods..." oninput="mselRenderList('sectorPeriod')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('sectorPeriod')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('sectorPeriod')">Clear</button>
+              </div>
+              <div class="msel-list" id="sectorPeriodMselList"></div>
+            </div>
+          </div>
           <div class="msel" id="sectorIndexMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="sectorIndexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)" title="Index Filter: Narrows sector averages to only companies in the selected index (e.g. KSE 100).">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>

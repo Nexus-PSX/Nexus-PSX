@@ -1615,7 +1615,7 @@ function syncWatchlistToComparison(active) {
 }
 
 function clearSectorFilters() {
-  ['sectorFilter', 'sectorIndex'].forEach(key => {
+  ['sectorFilter', 'sectorIndex', 'sectorPeriod'].forEach(key => {
     if (mselRegistry[key]) {
       mselRegistry[key].selected.clear();
       mselUpdateLabel(key);
@@ -1629,12 +1629,14 @@ function updateSectorClearBtn() {
   if (!btn) return;
   const hasSector = mselRegistry.sectorFilter && mselRegistry.sectorFilter.selected.size > 0;
   const hasIndex  = mselRegistry.sectorIndex  && mselRegistry.sectorIndex.selected.size  > 0;
-  btn.style.display = (hasSector || hasIndex) ? '' : 'none';
+  const hasPeriod = mselRegistry.sectorPeriod && mselRegistry.sectorPeriod.selected.size > 0;
+  btn.style.display = (hasSector || hasIndex || hasPeriod) ? '' : 'none';
 }
 
 function filterSectorTable() {
   const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
   const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
+  const selPeriod = mselRegistry.sectorPeriod ? mselRegistry.sectorPeriod.selected : new Set();
 
   // Start from the full company list, then narrow by index and/or sector filters.
   // This means averages are always recomputed from the actual matching companies —
@@ -1653,6 +1655,10 @@ function filterSectorTable() {
     companies = companies.filter(d => selSector.has((d.Sector || '').trim()));
   }
 
+  if (selPeriod.size > 0) {
+    companies = companies.filter(d => selPeriod.has(String(dget(d,'Last Period End Date'))));
+  }
+
   const regular = computeSectorRowsFromCompanies(companies)
     .sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
 
@@ -1668,6 +1674,7 @@ function sortSectorTable(col) {
 
   const selSector = mselRegistry.sectorFilter ? mselRegistry.sectorFilter.selected : new Set();
   const selIndex  = mselRegistry.sectorIndex  ? mselRegistry.sectorIndex.selected  : new Set();
+  const selPeriod = mselRegistry.sectorPeriod ? mselRegistry.sectorPeriod.selected : new Set();
 
   // Recompute from the same filtered company pool as filterSectorTable
   let companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
@@ -1680,6 +1687,9 @@ function sortSectorTable(col) {
   }
   if (selSector.size > 0) {
     companies = companies.filter(d => selSector.has((d.Sector || '').trim()));
+  }
+  if (selPeriod.size > 0) {
+    companies = companies.filter(d => selPeriod.has(String(dget(d,'Last Period End Date'))));
   }
 
   const sorted = computeSectorRowsFromCompanies(companies).sort((a,b) => {
@@ -1836,6 +1846,23 @@ const mselRegistry = {
     allLabel: 'Latest Period',
     oneLabel: v => fmtPeriodEndDate(v),
     manyLabel: n => `${n} Periods`,
+  },
+  sectorPeriod: {
+    // Same underlying field as the Screener's 'period' filter (each company's
+    // latest reported quarter-end date), but kept as its own independent
+    // selection since the Sector tab and Screener tab shouldn't share filter
+    // state with each other.
+    options: () => {
+      const set = new Set();
+      SOURCE_DATA.forEach(d => { const v = dget(d,'Last Period End Date'); if (v) set.add(String(v)); });
+      return [...set].sort().reverse().map(v => ({ value: v, label: fmtPeriodEndDate(v) }));
+    },
+    selected: new Set(),
+    searchable: true,
+    allLabel: 'Latest Period',
+    oneLabel: v => fmtPeriodEndDate(v),
+    manyLabel: n => `${n} Periods`,
+    onChange: () => filterSectorTable(),
   },
   sectorFilter: {
     options: () => [...new Set(SECTOR_DATA.map(s => s.sector))].sort().map(s => ({value: s, label: s})),
@@ -2035,7 +2062,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'status', 'nemi', 'others', 'volPhase', 'liquidity']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'status', 'nemi', 'others', 'volPhase', 'liquidity']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
