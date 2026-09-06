@@ -191,6 +191,7 @@
         </button>
         <button class="auth-dropdown-item mobile-only" id="authTopItem" onclick="document.getElementById('authDropdown').classList.add('hidden'); switchTab('top');"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>Top</span></button>
         <button class="auth-dropdown-item mobile-only" id="authCompareItem" onclick="document.getElementById('authDropdown').classList.add('hidden'); switchTab('compare');"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>Compare</span></button>
+        <button class="auth-dropdown-item mobile-only" id="authPortfolioItem" onclick="document.getElementById('authDropdown').classList.add('hidden'); switchTab('portfolio');"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg>Portfolio</span></button>
         <button class="auth-dropdown-item mobile-only" id="authThemeItem" onclick="toggleTheme();"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>Theme: <span id="authThemeItemLabel" style="margin-left:4px;font-weight:700;">Light</span></span></button>
         <button class="auth-dropdown-item mobile-only" id="authFaqItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>FAQ</span></button>
         <button class="auth-dropdown-item" id="authSignOutItem"><span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sign out</span></button>
@@ -209,6 +210,7 @@
     <button class="tab" onclick="switchTab('screener')">Stock Screener</button>
     <button class="tab" onclick="switchTab('compare')">Compare</button>
     <button class="tab" onclick="switchTab('watchlist')"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;color:var(--warn,#eab308);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>Watchlist <span id="watchlistCountBadge" style="display: inline; background: var(--accent3); color: rgb(255, 255, 255); border-radius: 10px; padding: 1px 6px; font-size: 10px; margin-left: 4px;">13</span></button>
+    <button class="tab" onclick="switchTab('portfolio')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg>Portfolio</button>
     <button class="tab" onclick="switchTab('top')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M17 5h2a2 2 0 0 1 2 2v1a3 3 0 0 1-3 3"></path><path d="M7 5H5a2 2 0 0 0-2 2v1a3 3 0 0 0 3 3"></path></svg>Top</button>
     <button class="tab" onclick="switchTab('faq')">&#10067; FAQ</button>
   </div>
@@ -4980,6 +4982,16 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ===== PORTFOLIO TAB ===== -->
+  <!-- Populated entirely by buildPortfolioTab() in app.js — see the "PORTFOLIO"
+       section there for the data model, Firestore sync, and rendering logic. -->
+  <div id="tab-portfolio" class="tab-content">
+    <div class="table-card">
+      <div class="table-title">Your Portfolio</div>
+      <div id="portfolioContent"><div style="padding:40px;text-align:center;color:var(--text2);">Loading…</div></div>
+    </div>
   </div>
 
   <!-- ===== TOP TAB ===== -->

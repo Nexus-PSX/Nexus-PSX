@@ -292,6 +292,7 @@ function init() {
     .map(d => ({...d, Ticker: String(d.Ticker), Name: String(d.Name||''), Index: String(d.Index||'')}));
   renderScreener();
   initWatchlist();
+  initPortfolio();
   buildMarketTicker();
   setTimeout(buildHomeTab, 0);
   if (typeof applyNemiVisibility === 'function') applyNemiVisibility(window._psxCurrentEmail || '');
@@ -2074,7 +2075,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'status', 'nemi', 'others', 'volPhase', 'liquidity']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
@@ -2576,6 +2577,581 @@ window.wlOnSignOut = function () {
 // Bridge for the Alerts panel (defined in the separate Firebase Auth module
 // script, which can't see this script's `let`/`const` variables directly).
 window.getWatchlistTickers = function () { return wlList.slice(); };
+
+// ===== PORTFOLIO =====
+// Unlike the Watchlist (things you're watching) or Screener (market-wide
+// data), the Portfolio tracks what the user actually owns — one holding is
+// just { ticker, qty, avgPrice, buyDate }. Everything else (current price,
+// sector, signal, financial score) is looked up live from SOURCE_DATA rather
+// than duplicated, so it's always current with zero extra data maintenance.
+// Same local/firestore mode pattern as the Watchlist: works immediately via
+// localStorage with no sign-in (so it's testable standalone, e.g. in
+// admin.html), and upgrades to Firestore sync automatically the moment a
+// user signs in — migrating any local holdings up on first sign-in so
+// nothing testing pre-login gets lost.
+//
+// State shape: { cash, open: [{ticker,qty,avgPrice,buyDate}], closed: [{ticker,qty,avgPrice,buyDate,sellPrice,sellDate,realizedPnl,realizedPnlPct}] }
+// A "Buy" (new position or adding to one) deducts cash. A "Sell" moves that
+// quantity from open → closed, records realized P&L, and credits cash with
+// the sale proceeds. "Edit" and "Remove" are corrections (fixing a mistaken
+// entry) and deliberately do NOT touch cash, since they aren't real trades.
+const PF_LOCAL_KEY = 'psx_portfolio_local';
+let pfCash = 0;
+let pfOpen = [];              // [{ticker, qty, avgPrice, buyDate}]
+let pfClosed = [];            // [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
+let pfMode = 'local';         // 'local' | 'firestore'
+let pfUID = null;
+let pfReadyPromise = Promise.resolve();
+let pfAcFiltered = [];
+let pfAcIndex = -1;
+let pfPendingTicker = null;   // ticker currently in the buy/edit mini-form, if any
+let pfEditingExisting = false;
+let pfPendingSellTicker = null; // ticker currently in the sell mini-form, if any
+let pfCashFormOpen = false;
+
+function pfNormalizeState(raw) {
+  if (!raw) return { cash: 0, open: [], closed: [] };
+  if (Array.isArray(raw)) return { cash: 0, open: raw, closed: [] }; // legacy: bare holdings array from before cash/sell tracking existed
+  return {
+    cash: typeof raw.cash === 'number' ? raw.cash : 0,
+    open: Array.isArray(raw.open) ? raw.open : (Array.isArray(raw.holdings) ? raw.holdings : []),
+    closed: Array.isArray(raw.closed) ? raw.closed : [],
+  };
+}
+
+function pfReadLocal()       { try { return pfNormalizeState(JSON.parse(wlLocalGet(PF_LOCAL_KEY) || 'null')); } catch { return { cash: 0, open: [], closed: [] }; } }
+function pfWriteLocal(state) { wlLocalSet(PF_LOCAL_KEY, JSON.stringify(state)); }
+function pfApplyState(s)     { pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; }
+
+function initPortfolio() {
+  pfMode = 'local';
+  pfApplyState(pfReadLocal());
+}
+
+async function pfSaveFirestore() {
+  if (!pfUID || typeof window.fsSavePortfolio !== 'function') return false;
+  return await window.fsSavePortfolio(pfUID, { cash: pfCash, open: pfOpen, closed: pfClosed });
+}
+
+async function pfSave() {
+  if (pfMode === 'firestore') return await pfSaveFirestore();
+  pfWriteLocal({ cash: pfCash, open: pfOpen, closed: pfClosed });
+  return true;
+}
+
+window.pfOnSignIn = function (uid, email) {
+  pfReadyPromise = (async () => {
+    pfUID = uid;
+    if (typeof window.fsLoadPortfolio !== 'function') return; // Firestore bridge not ready yet
+    const remote = await window.fsLoadPortfolio(uid);
+    if (remote === undefined) {
+      // Firestore read failed (offline, rules misconfigured, etc.) — fall back
+      // to local storage rather than silently showing an empty portfolio.
+      pfMode = 'local';
+      pfApplyState(pfReadLocal());
+    } else if (remote === null) {
+      // No Firestore portfolio yet for this account — migrate any existing
+      // local/guest state up so testing before sign-in isn't lost.
+      const local = pfReadLocal();
+      pfApplyState(local);
+      pfMode = 'firestore';
+      if (local.open.length || local.closed.length || local.cash) await pfSaveFirestore();
+    } else {
+      pfApplyState(pfNormalizeState(remote));
+      pfMode = 'firestore';
+    }
+    if (document.getElementById('tab-portfolio')?.classList.contains('active')) buildPortfolioTab();
+  })();
+  return pfReadyPromise;
+};
+
+window.pfOnSignOut = function () {
+  pfUID = null;
+  pfMode = 'local';
+  pfApplyState(pfReadLocal());
+  pfReadyPromise = Promise.resolve();
+  if (document.getElementById('tab-portfolio')?.classList.contains('active')) buildPortfolioTab();
+};
+
+// ----- Cash management -----
+function pfToggleCashForm() {
+  pfCashFormOpen = !pfCashFormOpen;
+  renderPfCashForm();
+}
+
+function renderPfCashForm() {
+  const el = document.getElementById('pfCashForm');
+  if (!el) return;
+  if (!pfCashFormOpen) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0 16px;">
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Amount</label><input type="number" id="pfCashAmount" min="0" step="0.01" placeholder="0.00" style="width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfDeposit()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--success);color:#fff;font-weight:600;cursor:pointer;">Deposit</button>
+      <button onclick="pfWithdraw()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;">Withdraw</button>
+      <button onclick="pfToggleCashForm()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Close</button>
+    </div>`;
+}
+
+async function pfDeposit() {
+  const amt = parseFloat(document.getElementById('pfCashAmount')?.value);
+  if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
+  pfCash += amt;
+  pfCashFormOpen = false;
+  await pfSave();
+  buildPortfolioTab();
+}
+
+async function pfWithdraw() {
+  const amt = parseFloat(document.getElementById('pfCashAmount')?.value);
+  if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
+  pfCash -= amt; // allowed to go negative, same as an over-spent buy — flagged red in the UI, not blocked
+  pfCashFormOpen = false;
+  await pfSave();
+  buildPortfolioTab();
+}
+
+// ----- Add-holding ticker search (same autocomplete pattern as the Compare tab) -----
+function pfOnSearchInput() { pfAcIndex = -1; pfOpenAC(); }
+
+function pfOpenAC() {
+  const input = document.getElementById('pfTickerSearch');
+  if (!input) return;
+  const q = input.value.toLowerCase().trim();
+  // Already-held tickers are intentionally NOT excluded here — searching one
+  // you already hold and buying again is exactly how you add to a position
+  // at a new price; pfConfirmAdd() below merges it into a weighted-average
+  // cost automatically. pfRenderAC() flags held tickers so it's clear.
+  pfAcFiltered = (q
+    ? allTickers.filter(t => t.ticker.toLowerCase().includes(q) || t.name.toLowerCase().includes(q))
+    : allTickers
+  ).slice(0, 50);
+  pfRenderAC();
+  const list = document.getElementById('pfAcList');
+  if (list) list.classList.add('open');
+}
+
+function pfRenderAC() {
+  const list = document.getElementById('pfAcList');
+  if (!list) return;
+  if (pfAcFiltered.length === 0) {
+    list.innerHTML = '<div class="ac-item"><span class="ac-name">No results found</span></div>';
+    return;
+  }
+  const heldByTicker = new Map(pfOpen.map(h => [h.ticker, h]));
+  list.innerHTML = pfAcFiltered.map((t, i) => {
+    const score = t.score;
+    const sc = score >= 80 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
+    const held = heldByTicker.get(t.ticker);
+    const heldNote = held ? `<span style="color:var(--accent);font-size:11px;font-weight:600;margin-left:6px;">· holding ${held.qty} @ ${held.avgPrice.toFixed(2)}</span>` : '';
+    return `<div class="ac-item ${i===pfAcIndex?'selected':''}" onmousedown="pfSelectTicker('${t.ticker}')">
+      <span class="ac-ticker">${t.ticker}</span>${heldNote}
+      <span class="ac-score" style="color:${sc}">${score || '—'}</span>
+      <div class="ac-name">${t.name || ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function pfOnSearchKey(e) {
+  const list = document.getElementById('pfAcList');
+  if (!list.classList.contains('open')) { pfOpenAC(); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); pfAcIndex = Math.min(pfAcIndex+1, pfAcFiltered.length-1); pfRenderAC(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); pfAcIndex = Math.max(pfAcIndex-1, 0); pfRenderAC(); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (pfAcIndex >= 0 && pfAcFiltered[pfAcIndex]) pfSelectTicker(pfAcFiltered[pfAcIndex].ticker); else if (pfAcFiltered.length > 0) pfSelectTicker(pfAcFiltered[0].ticker); }
+  else if (e.key === 'Escape') { pfCloseAC(); }
+}
+
+function pfCloseAC() {
+  const list = document.getElementById('pfAcList');
+  if (list) list.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#pfTickerSelector')) pfCloseAC();
+});
+
+// ----- Buy / edit / remove (open positions) -----
+function pfSelectTicker(ticker) {
+  pfPendingTicker = ticker;
+  pfEditingExisting = false;
+  pfCloseAC();
+  const input = document.getElementById('pfTickerSearch');
+  if (input) input.value = '';
+  renderPfPendingForm();
+}
+
+function pfEditHolding(ticker) {
+  const h = pfOpen.find(x => x.ticker === ticker);
+  if (!h) return;
+  pfPendingTicker = ticker;
+  pfEditingExisting = true;
+  renderPfPendingForm(h);
+}
+
+function pfCancelPending() {
+  pfPendingTicker = null;
+  pfEditingExisting = false;
+  const wrap = document.getElementById('pfPendingForm');
+  if (wrap) wrap.innerHTML = '';
+}
+
+function renderPfPendingForm(existing) {
+  const wrap = document.getElementById('pfPendingForm');
+  if (!wrap) return;
+  if (!pfPendingTicker) { wrap.innerHTML = ''; return; }
+  const qty   = existing ? existing.qty : '';
+  const price = existing ? existing.avgPrice : '';
+  const date  = existing ? (existing.buyDate || '') : '';
+  wrap.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0 16px;">
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Ticker</div><div style="font-weight:700;font-size:14px;">${pfPendingTicker}</div></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Quantity</label><input type="number" id="pfQtyInput" value="${qty}" min="1" step="1" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Avg Buy Price</label><input type="number" id="pfPriceInput" value="${price}" min="0" step="0.01" style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Buy Date (optional)</label><input type="date" id="pfDateInput" value="${date}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfConfirmAdd()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">${pfEditingExisting ? 'Save' : 'Buy'}</button>
+      <button onclick="pfCancelPending()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
+    </div>
+    ${pfEditingExisting ? '<div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Editing corrects the entry and does not move cash. Use Sell to record an actual trade.</div>' : ''}
+    ${(!pfEditingExisting && pfOpen.find(h=>h.ticker===pfPendingTicker)) ? (() => {
+        const held = pfOpen.find(h=>h.ticker===pfPendingTicker);
+        return `<div style="font-size:11px;color:var(--accent);margin:-10px 0 16px;">You already hold ${held.qty} @ ${held.avgPrice.toFixed(2)} — this buy will merge into one position at a new weighted-average cost.</div>`;
+      })() : ''}`;
+}
+
+// Adding a ticker that's already held merges into a single quantity-weighted
+// average cost position (standard "average cost basis" behavior) rather than
+// tracking separate lots — keeps the table to one row per ticker. Editing an
+// existing holding overwrites its qty/price directly instead of merging, and
+// is treated as a correction — not a trade — so it doesn't touch cash.
+async function pfConfirmAdd() {
+  const qtyEl = document.getElementById('pfQtyInput');
+  const priceEl = document.getElementById('pfPriceInput');
+  const dateEl = document.getElementById('pfDateInput');
+  const qty = qtyEl ? parseFloat(qtyEl.value) : NaN;
+  const price = priceEl ? parseFloat(priceEl.value) : NaN;
+  const date = dateEl && dateEl.value ? dateEl.value : null;
+
+  if (!qty || qty <= 0 || !price || price <= 0) { alert('Enter a valid quantity and buy price.'); return; }
+
+  const idx = pfOpen.findIndex(h => h.ticker === pfPendingTicker);
+  const isRealBuy = !(pfEditingExisting && idx >= 0); // editing an existing entry is a correction, not a trade — no cash check applies
+  const cost = qty * price;
+
+  if (isRealBuy && cost > pfCash) {
+    const short = cost - pfCash;
+    alert(`Not enough cash for this buy.\n\nCost: ${cost.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}\nAvailable: ${pfCash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}\nShort by: ${short.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}\n\nDeposit cash first, then try again.`);
+    pfCashFormOpen = true;
+    renderPfCashForm();
+    document.getElementById('pfCashAmount')?.focus();
+    return;
+  }
+
+  if (pfEditingExisting && idx >= 0) {
+    pfOpen[idx] = { ticker: pfPendingTicker, qty, avgPrice: price, buyDate: date };
+  } else if (idx >= 0) {
+    const existing = pfOpen[idx];
+    const newQty = existing.qty + qty;
+    const newAvg = ((existing.qty * existing.avgPrice) + (qty * price)) / newQty;
+    pfOpen[idx] = { ...existing, qty: newQty, avgPrice: newAvg };
+    pfCash -= cost; // real buy: deduct cost from cash
+  } else {
+    pfOpen.push({ ticker: pfPendingTicker, qty, avgPrice: price, buyDate: date });
+    pfCash -= cost; // real buy: deduct cost from cash
+  }
+
+  pfPendingTicker = null;
+  pfEditingExisting = false;
+  await pfSave();
+  buildPortfolioTab();
+}
+
+// Remove deletes the entry outright with no cash effect — for correcting a
+// mistaken add. Use Sell (below) to record an actual market transaction.
+async function pfRemoveHolding(ticker) {
+  if (!confirm(`Remove ${ticker} from your portfolio? This won't record a sale or affect cash — use Sell for an actual trade.`)) return;
+  pfOpen = pfOpen.filter(h => h.ticker !== ticker);
+  await pfSave();
+  buildPortfolioTab();
+}
+
+// ----- Sell (open → closed, realized P&L, cash credited) -----
+function pfSellHolding(ticker) {
+  const h = pfOpen.find(x => x.ticker === ticker);
+  if (!h) return;
+  pfPendingSellTicker = ticker;
+  renderPfSellForm(h);
+}
+
+function pfCancelSell() {
+  pfPendingSellTicker = null;
+  const wrap = document.getElementById('pfSellForm');
+  if (wrap) wrap.innerHTML = '';
+}
+
+function renderPfSellForm(h) {
+  const wrap = document.getElementById('pfSellForm');
+  if (!wrap) return;
+  if (!pfPendingSellTicker) { wrap.innerHTML = ''; return; }
+  const row = findCompanyRow(h.ticker);
+  const livePrice = row ? parseFloat(dget(row,'Price')) : NaN;
+  const today = new Date().toISOString().slice(0,10);
+  wrap.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--danger);border-radius:10px;padding:12px;margin:8px 0 16px;">
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Sell</div><div style="font-weight:700;font-size:14px;">${h.ticker}</div></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Quantity (max ${h.qty})</label><input type="number" id="pfSellQty" value="${h.qty}" min="1" max="${h.qty}" step="1" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Sell Price</label><input type="number" id="pfSellPrice" value="${!isNaN(livePrice) ? livePrice : ''}" min="0" step="0.01" style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Sell Date</label><input type="date" id="pfSellDate" value="${today}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfConfirmSell()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--danger);color:#fff;font-weight:600;cursor:pointer;">Confirm Sell</button>
+      <button onclick="pfCancelSell()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
+    </div>`;
+}
+
+async function pfConfirmSell() {
+  const idx = pfOpen.findIndex(h => h.ticker === pfPendingSellTicker);
+  if (idx < 0) { pfCancelSell(); return; }
+  const h = pfOpen[idx];
+
+  const sellQty = parseFloat(document.getElementById('pfSellQty')?.value);
+  const sellPrice = parseFloat(document.getElementById('pfSellPrice')?.value);
+  const sellDate = document.getElementById('pfSellDate')?.value || new Date().toISOString().slice(0,10);
+
+  if (!sellQty || sellQty <= 0 || sellQty > h.qty) { alert(`Enter a quantity between 1 and ${h.qty}.`); return; }
+  if (!sellPrice || sellPrice <= 0) { alert('Enter a valid sell price.'); return; }
+
+  const costBasis = h.avgPrice * sellQty;
+  const proceeds = sellPrice * sellQty;
+  const realizedPnl = proceeds - costBasis;
+  const realizedPnlPct = costBasis ? (realizedPnl / costBasis) * 100 : null;
+
+  pfClosed.push({
+    ticker: h.ticker, qty: sellQty, avgPrice: h.avgPrice, buyDate: h.buyDate || null,
+    sellPrice, sellDate, realizedPnl, realizedPnlPct,
+  });
+
+  if (sellQty === h.qty) {
+    pfOpen.splice(idx, 1); // fully sold — position closes out entirely
+  } else {
+    pfOpen[idx] = { ...h, qty: h.qty - sellQty }; // partial sell — remainder stays open at the same avg cost
+  }
+
+  pfCash += proceeds; // sale proceeds credited back to cash
+
+  pfPendingSellTicker = null;
+  await pfSave();
+  buildPortfolioTab();
+}
+
+async function pfRemoveClosed(index) {
+  if (!confirm('Remove this closed-position record? This is just a history correction and will not adjust your cash balance.')) return;
+  pfClosed.splice(index, 1);
+  await pfSave();
+  buildPortfolioTab();
+}
+
+// ----- Main render -----
+function buildPortfolioTab() {
+  const wrap = document.getElementById('portfolioContent');
+  if (!wrap) return;
+
+  const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const fmtPct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  const fmtPKR = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const clr = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
+
+  const rows = pfOpen.map(h => {
+    const row = findCompanyRow(h.ticker);
+    const price = row ? toN(dget(row,'Price')) : null;
+    const dayChangeAbs = row ? toN(dget(row,'Day Change')) : null;
+    const sector = row ? row.Sector : '—';
+    const score = row ? toN(row['total improvement']) : null;
+    const signalStatus = row ? dget(row,'Signal Status') : null;
+    const marketValue = price != null ? price * h.qty : null;
+    const costBasis = h.avgPrice * h.qty;
+    const pnl = marketValue != null ? marketValue - costBasis : null;
+    const pnlPct = (marketValue != null && costBasis) ? (pnl / costBasis) * 100 : null;
+    // Today's PKR contribution = today's price move (already in currency units) × shares held
+    const dayPnlPKR = dayChangeAbs != null ? dayChangeAbs * h.qty : null;
+    return { ...h, row, price, sector, score, signalStatus, marketValue, costBasis, pnl, pnlPct, dayPnlPKR };
+  });
+
+  const holdingsValue = rows.reduce((s,r) => s + (r.marketValue||0), 0);
+  const totalCost      = rows.reduce((s,r) => s + (r.costBasis||0), 0);
+  const unrealizedPnl   = holdingsValue - totalCost;
+  const unrealizedPnlPct = totalCost ? (unrealizedPnl/totalCost)*100 : null;
+  const totalDayPnl    = rows.reduce((s,r) => s + (r.dayPnlPKR||0), 0);
+  const netWorth        = pfCash + holdingsValue;
+  const realizedPnl     = pfClosed.reduce((s,c) => s + (c.realizedPnl||0), 0);
+
+  const summaryHtml = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Net Worth</div>
+        <div style="font-size:18px;font-weight:700;">${fmtPKR(netWorth)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;${pfCash<0?`border-left:4px solid var(--danger);`:''}">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">Cash <button onclick="pfToggleCashForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;padding:0;">Manage</button></div>
+        <div style="font-size:18px;font-weight:700;color:${pfCash<0?'var(--danger)':'var(--text)'};">${fmtPKR(pfCash)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(unrealizedPnl)};">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Unrealized P&amp;L</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(unrealizedPnl)};">${fmtPKR(unrealizedPnl)} (${fmtPct(unrealizedPnlPct)})</div>
+      </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(realizedPnl)};">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Realized P&amp;L</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(realizedPnl)};">${fmtPKR(realizedPnl)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(totalDayPnl)};">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Today's Change</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(totalDayPnl)};">${fmtPKR(totalDayPnl)}</div>
+      </div>
+    </div>`;
+
+  const openTableHtml = rows.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">No open positions — search a ticker above to buy your first position.</div>` : `
+    <div class="scroll-table">
+      <table class="data-table">
+        <thead><tr>
+          <th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg Price</th><th>Current Price</th>
+          <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Signal</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}</td>
+              <td>${r.sector || '—'}</td>
+              <td class="mono">${r.qty}</td>
+              <td class="mono">${fmtPKR(r.avgPrice)}</td>
+              <td class="mono">${r.price != null ? fmtPKR(r.price) : '—'}</td>
+              <td class="mono">${r.marketValue != null ? fmtPKR(r.marketValue) : '—'}</td>
+              <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? fmtPKR(r.pnl) : '—'}</td>
+              <td class="mono" style="color:${clr(r.pnl)}">${fmtPct(r.pnlPct)}</td>
+              <td class="mono">${holdingsValue ? ((r.marketValue/holdingsValue)*100).toFixed(1)+'%' : '—'}</td>
+              <td class="mono">${r.score != null ? r.score.toFixed(0) : '—'}</td>
+              <td>${r.signalStatus || '—'}</td>
+              <td style="white-space:nowrap;">
+                <button onclick="pfSellHolding('${r.ticker}')" title="Sell" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:4px;font-size:11px;font-weight:700;">SELL</button>
+                <button onclick="pfEditHolding('${r.ticker}')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✎</button>
+                <button onclick="pfRemoveHolding('${r.ticker}')" title="Remove" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  const closedSorted = [...pfClosed].sort((a,b) => new Date(b.sellDate||0) - new Date(a.sellDate||0));
+  const closedTableHtml = closedSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No closed positions yet — sold trades will show up here with their realized P&amp;L.</div>` : `
+    <div class="scroll-table">
+      <table class="data-table">
+        <thead><tr>
+          <th>Ticker</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Buy Date</th><th>Sell Date</th><th>Realized P&amp;L</th><th>Realized P&amp;L %</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${closedSorted.map((c) => {
+            const origIdx = pfClosed.indexOf(c);
+            return `
+            <tr>
+              <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}</td>
+              <td class="mono">${c.qty}</td>
+              <td class="mono">${fmtPKR(c.avgPrice)}</td>
+              <td class="mono">${fmtPKR(c.sellPrice)}</td>
+              <td class="mono">${c.buyDate || '—'}</td>
+              <td class="mono">${c.sellDate || '—'}</td>
+              <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPKR(c.realizedPnl)}</td>
+              <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPct(c.realizedPnlPct)}</td>
+              <td><button onclick="pfRemoveClosed(${origIdx})" title="Remove record" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  const modeNote = pfMode === 'firestore'
+    ? `<div style="font-size:11px;color:var(--text2);margin-bottom:12px;">✓ Signed in — synced to your account</div>`
+    : `<div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Stored locally on this device. Sign in to sync across devices.</div>`;
+
+  wrap.innerHTML = `
+    <div id="pfTickerSelector" style="position:relative;max-width:420px;margin-bottom:4px;">
+      <input type="text" class="ticker-search" id="pfTickerSearch" placeholder="Search ticker or company name to buy…" autocomplete="off" oninput="pfOnSearchInput()" onkeydown="pfOnSearchKey(event)" onfocus="pfOpenAC()">
+      <div class="ticker-autocomplete" id="pfAcList"></div>
+    </div>
+    <div id="pfPendingForm"></div>
+    <div id="pfSellForm"></div>
+    <div id="pfCashForm"></div>
+    ${modeNote}
+    ${summaryHtml}
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Open Positions</div>
+    ${openTableHtml}
+    <div style="margin-top:20px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Portfolio Allocation</div>
+      <div class="chart-wrap" style="height:280px;"><canvas id="chartPortfolioSector"></canvas></div>
+    </div>
+    <div style="margin-top:24px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Closed Positions</div>
+      ${closedTableHtml}
+    </div>
+  `;
+
+  renderPfPendingForm(pfPendingTicker ? (pfEditingExisting ? pfOpen.find(h=>h.ticker===pfPendingTicker) : null) : null);
+  if (pfPendingSellTicker) { const h = pfOpen.find(x=>x.ticker===pfPendingSellTicker); if (h) renderPfSellForm(h); else pfPendingSellTicker = null; }
+  renderPfCashForm();
+  buildPortfolioSectorChart(rows, holdingsValue, pfCash);
+}
+
+function buildPortfolioSectorChart(rows, holdingsValue, cash) {
+  if (charts['portfolioSector']) { charts['portfolioSector'].destroy(); delete charts['portfolioSector']; }
+  const canvas = document.getElementById('chartPortfolioSector');
+  if (!canvas) return;
+
+  const cashSlice = cash > 0 ? cash : 0; // negative cash isn't a meaningful pie slice — omit rather than show a "negative" wedge
+  const netWorth = holdingsValue + cashSlice;
+  if (!netWorth) { canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); return; }
+
+  const th = getChartTheme();
+  const surfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#0000';
+  const CASH_COLOR = '#94a3b8'; // fixed neutral slate, distinct from the sector palette regardless of sector count
+
+  const bySector = {};
+  rows.forEach(r => {
+    if (r.marketValue == null) return;
+    const key = r.sector || 'Unknown';
+    bySector[key] = (bySector[key] || 0) + r.marketValue;
+  });
+  const labels = Object.keys(bySector);
+  const data = labels.map(l => bySector[l]);
+  const palette = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#a855f7','#eab308','#ec4899','#14b8a6','#f97316'];
+  const backgroundColor = labels.map((_,i) => palette[i % palette.length]);
+
+  if (cashSlice > 0) {
+    labels.push('Cash');
+    data.push(cashSlice);
+    backgroundColor.push(CASH_COLOR);
+  }
+
+  charts['portfolioSector'] = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor,
+        borderColor: surfaceColor,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400, easing: 'easeOutCubic' },
+      plugins: {
+        legend: { position: 'right', labels: { color: th.tick, font: { size: 11, family: CHART_FONT }, boxWidth: 12 } },
+        tooltip: {
+          ...sharedTooltip(),
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${((ctx.parsed/netWorth)*100).toFixed(1)}% (${ctx.parsed.toLocaleString('en-US',{maximumFractionDigits:0})})`
+          }
+        }
+      }
+    }
+  });
+}
 
 function showWatchlistPanel() {
   const setup   = document.getElementById('wlSetupPanel');
@@ -3145,7 +3721,7 @@ function renderScreener() { filteredScreener = [...screenerData]; filterScreener
 
 // ===== TABS =====
 function switchTab(name) {
-  const tabNames = ['home','company','sector','screener','compare','watchlist','top','faq'];
+  const tabNames = ['home','company','sector','screener','compare','watchlist','portfolio','top','faq'];
   document.querySelectorAll('.tab').forEach(t => {
     const match = tabNames.find(n => t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + n + "'"));
     if (match !== undefined) t.classList.toggle('active', match === name);
@@ -3156,6 +3732,7 @@ function switchTab(name) {
   if (name === 'home') buildHomeTab();
   if (name === 'faq') buildFaqTab();
   if (name === 'compare') buildCompareTab();
+  if (name === 'portfolio') buildPortfolioTab();
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   const el = document.getElementById('tab-'+name);
   if (el) el.classList.add('active');

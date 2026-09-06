@@ -150,6 +150,27 @@
     }
   };
 
+  // Portfolio holdings — same bridge pattern as the watchlist above, stored at
+  // users/{uid}/data/portfolio as { holdings: [{ticker, qty, avgPrice, buyDate}], updatedAt }.
+  window.fsLoadPortfolio = async function (uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid, 'data', 'portfolio'));
+      return snap.exists() ? (snap.data().holdings || []) : null; // null = no doc yet
+    } catch (e) {
+      console.error('Firestore load portfolio failed:', e);
+      return undefined; // undefined = read failed
+    }
+  };
+  window.fsSavePortfolio = async function (uid, holdings) {
+    try {
+      await setDoc(doc(db, 'users', uid, 'data', 'portfolio'), { holdings, updatedAt: Date.now() });
+      return true;
+    } catch (e) {
+      console.error('Firestore save portfolio failed:', e);
+      return false;
+    }
+  };
+
   // ===== Auto-refresh on return =====
   // Data is baked into this HTML at publish time, so the only way to pick up
   // a newer version is a full page reload. If the user leaves this tab open
@@ -526,6 +547,7 @@
       // the line before it (this previously caused the watchlist to never
       // sync to Firestore at all whenever checkFreshSignalsToday() threw).
       if (typeof window.wlOnSignIn === 'function') window.wlOnSignIn(user.uid, email);
+      if (typeof window.pfOnSignIn === 'function') window.pfOnSignIn(user.uid, email);
       window._psxCurrentEmail = email;
       if (typeof window.applyNemiVisibility === 'function') window.applyNemiVisibility(email);
       try { checkFreshSignalsToday(); } catch (e) { console.error('checkFreshSignalsToday failed:', e); }
@@ -548,6 +570,7 @@
       const toast = document.getElementById('alertToast');
       if (toast) toast.remove();
       if (typeof window.wlOnSignOut === 'function') window.wlOnSignOut();
+      if (typeof window.pfOnSignOut === 'function') window.pfOnSignOut();
       window._psxCurrentEmail = '';
       if (typeof window.applyNemiVisibility === 'function') window.applyNemiVisibility('');
       window._currentFcmUid = null;
