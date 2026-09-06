@@ -2608,6 +2608,9 @@ let pfPendingTicker = null;   // ticker currently in the buy/edit mini-form, if 
 let pfEditingExisting = false;
 let pfPendingSellTicker = null; // ticker currently in the sell mini-form, if any
 let pfCashFormOpen = false;
+let pfAllocationBasis = 'value'; // 'value' (latest market value) | 'cost' (original cost basis)
+let _pfLastRows = [];
+let _pfLastHoldingsValue = 0;
 
 function pfNormalizeState(raw) {
   if (!raw) return { cash: 0, open: [], closed: [] };
@@ -2955,6 +2958,7 @@ function buildPortfolioTab() {
   const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
   const fmtPct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
   const fmtPKR = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const fmtQty = v => v == null ? '—' : v.toLocaleString('en-US');
   const clr = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
 
   const rows = pfOpen.map(h => {
@@ -2980,6 +2984,11 @@ function buildPortfolioTab() {
   const totalDayPnl    = rows.reduce((s,r) => s + (r.dayPnlPKR||0), 0);
   const netWorth        = pfCash + holdingsValue;
   const realizedPnl     = pfClosed.reduce((s,c) => s + (c.realizedPnl||0), 0);
+  // Today's % uses the implied start-of-day value (today's move backed out),
+  // same convention as a per-stock Day Change % relative to its previous close.
+  const startOfDayValue = holdingsValue - totalDayPnl;
+  const totalDayPnlPct  = startOfDayValue ? (totalDayPnl/startOfDayValue)*100 : null;
+  const cashWeightPct   = netWorth ? (pfCash/netWorth)*100 : null;
 
   const summaryHtml = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
@@ -2990,6 +2999,7 @@ function buildPortfolioTab() {
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;${pfCash<0?`border-left:4px solid var(--danger);`:''}">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">Cash <button onclick="pfToggleCashForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;padding:0;">Manage</button></div>
         <div style="font-size:18px;font-weight:700;color:${pfCash<0?'var(--danger)':'var(--text)'};">${fmtPKR(pfCash)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${cashWeightPct != null ? fmtPct(cashWeightPct).replace('+','') + ' of portfolio' : '—'}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(unrealizedPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Unrealized P&amp;L</div>
@@ -3001,7 +3011,7 @@ function buildPortfolioTab() {
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(totalDayPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Today's Change</div>
-        <div style="font-size:18px;font-weight:700;color:${clr(totalDayPnl)};">${fmtPKR(totalDayPnl)}</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(totalDayPnl)};">${fmtPKR(totalDayPnl)} (${fmtPct(totalDayPnlPct)})</div>
       </div>
     </div>`;
 
@@ -3017,13 +3027,13 @@ function buildPortfolioTab() {
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}</td>
               <td>${r.sector || '—'}</td>
-              <td class="mono">${r.qty}</td>
+              <td class="mono">${fmtQty(r.qty)}</td>
               <td class="mono">${fmtPKR(r.avgPrice)}</td>
               <td class="mono">${r.price != null ? fmtPKR(r.price) : '—'}</td>
               <td class="mono">${r.marketValue != null ? fmtPKR(r.marketValue) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? fmtPKR(r.pnl) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${fmtPct(r.pnlPct)}</td>
-              <td class="mono">${holdingsValue ? ((r.marketValue/holdingsValue)*100).toFixed(1)+'%' : '—'}</td>
+              <td class="mono">${netWorth ? ((r.marketValue/netWorth)*100).toFixed(1)+'%' : '—'}</td>
               <td class="mono">${r.score != null ? r.score.toFixed(0) : '—'}</td>
               <td>${r.signalStatus || '—'}</td>
               <td style="white-space:nowrap;">
@@ -3049,7 +3059,7 @@ function buildPortfolioTab() {
             return `
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}</td>
-              <td class="mono">${c.qty}</td>
+              <td class="mono">${fmtQty(c.qty)}</td>
               <td class="mono">${fmtPKR(c.avgPrice)}</td>
               <td class="mono">${fmtPKR(c.sellPrice)}</td>
               <td class="mono">${c.buyDate || '—'}</td>
@@ -3080,7 +3090,13 @@ function buildPortfolioTab() {
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Open Positions</div>
     ${openTableHtml}
     <div style="margin-top:20px;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Portfolio Allocation</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;">Portfolio Allocation</div>
+        <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <button onclick="pfSetAllocationBasis('value')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='value'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='value'?'#fff':'var(--text2)'};">Latest Value</button>
+          <button onclick="pfSetAllocationBasis('cost')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='cost'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='cost'?'#fff':'var(--text2)'};">Cost Basis</button>
+        </div>
+      </div>
       <div class="chart-wrap" style="height:280px;"><canvas id="chartPortfolioSector"></canvas></div>
     </div>
     <div style="margin-top:24px;">
@@ -3092,38 +3108,66 @@ function buildPortfolioTab() {
   renderPfPendingForm(pfPendingTicker ? (pfEditingExisting ? pfOpen.find(h=>h.ticker===pfPendingTicker) : null) : null);
   if (pfPendingSellTicker) { const h = pfOpen.find(x=>x.ticker===pfPendingSellTicker); if (h) renderPfSellForm(h); else pfPendingSellTicker = null; }
   renderPfCashForm();
-  buildPortfolioSectorChart(rows, holdingsValue, pfCash);
+  _pfLastRows = rows;
+  _pfLastHoldingsValue = holdingsValue;
+  buildPortfolioAllocationChart(rows, holdingsValue, pfCash, pfAllocationBasis);
 }
 
-function buildPortfolioSectorChart(rows, holdingsValue, cash) {
+function pfSetAllocationBasis(basis) {
+  pfAllocationBasis = basis;
+  // Re-render just the toggle buttons + chart, not the whole tab, so this feels instant
+  const wrap = document.getElementById('portfolioContent');
+  if (wrap) {
+    const btnValue = wrap.querySelector('button[onclick="pfSetAllocationBasis(\'value\')"]');
+    const btnCost = wrap.querySelector('button[onclick="pfSetAllocationBasis(\'cost\')"]');
+    if (btnValue && btnCost) {
+      btnValue.style.background = basis === 'value' ? 'var(--accent)' : 'var(--surface)';
+      btnValue.style.color = basis === 'value' ? '#fff' : 'var(--text2)';
+      btnCost.style.background = basis === 'cost' ? 'var(--accent)' : 'var(--surface)';
+      btnCost.style.color = basis === 'cost' ? '#fff' : 'var(--text2)';
+    }
+  }
+  buildPortfolioAllocationChart(_pfLastRows, _pfLastHoldingsValue, pfCash, pfAllocationBasis);
+}
+
+function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
   if (charts['portfolioSector']) { charts['portfolioSector'].destroy(); delete charts['portfolioSector']; }
   const canvas = document.getElementById('chartPortfolioSector');
   if (!canvas) return;
 
+  // "Latest Value" shows how your money is distributed today; "Cost Basis"
+  // shows how it was originally allocated when you bought — different totals
+  // (unrealized gains/losses shift the value-basis total away from cost), so
+  // percentages are computed against whichever total matches the selected basis.
+  const valueOf = r => basis === 'cost' ? r.costBasis : r.marketValue;
   const cashSlice = cash > 0 ? cash : 0; // negative cash isn't a meaningful pie slice — omit rather than show a "negative" wedge
-  const netWorth = holdingsValue + cashSlice;
-  if (!netWorth) { canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); return; }
+  const positionsTotal = rows.reduce((s,r) => s + (valueOf(r) || 0), 0);
+  const total = positionsTotal + cashSlice;
+  if (!total) { canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); return; }
 
   const th = getChartTheme();
   const surfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#0000';
-  const CASH_COLOR = '#94a3b8'; // fixed neutral slate, distinct from the sector palette regardless of sector count
-
-  const bySector = {};
-  rows.forEach(r => {
-    if (r.marketValue == null) return;
-    const key = r.sector || 'Unknown';
-    bySector[key] = (bySector[key] || 0) + r.marketValue;
-  });
-  const labels = Object.keys(bySector);
-  const data = labels.map(l => bySector[l]);
+  const CASH_COLOR = '#94a3b8'; // fixed neutral slate, distinct from the ticker palette regardless of how many positions exist
   const palette = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#a855f7','#eab308','#ec4899','#14b8a6','#f97316'];
-  const backgroundColor = labels.map((_,i) => palette[i % palette.length]);
+
+  const sliceRows = rows
+    .map(r => ({ ticker: r.ticker, value: valueOf(r) || 0 }))
+    .filter(s => s.value > 0)
+    .sort((a,b) => b.value - a.value);
+
+  const rawLabels = sliceRows.map(s => s.ticker);
+  const data = sliceRows.map(s => s.value);
+  const backgroundColor = rawLabels.map((_,i) => palette[i % palette.length]);
 
   if (cashSlice > 0) {
-    labels.push('Cash');
+    rawLabels.push('Cash');
     data.push(cashSlice);
     backgroundColor.push(CASH_COLOR);
   }
+
+  // Ticker + weight% baked directly into the legend label (not just the
+  // hover tooltip), since the point is to see each position's share at a glance.
+  const labels = rawLabels.map((l,i) => `${l} (${((data[i]/total)*100).toFixed(1)}%)`);
 
   charts['portfolioSector'] = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
@@ -3145,7 +3189,7 @@ function buildPortfolioSectorChart(rows, holdingsValue, cash) {
         tooltip: {
           ...sharedTooltip(),
           callbacks: {
-            label: ctx => ` ${ctx.label}: ${((ctx.parsed/netWorth)*100).toFixed(1)}% (${ctx.parsed.toLocaleString('en-US',{maximumFractionDigits:0})})`
+            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('en-US',{maximumFractionDigits:0})}`
           }
         }
       }
@@ -5589,8 +5633,8 @@ function topTableRender(tableId) {
     });
   }
 
-  const ths = `padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);color:var(--text2);position:sticky;top:0;z-index:2;`;
-  const thA = `padding:7px 11px;background:var(--accent-dim);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);color:var(--accent);position:sticky;top:0;z-index:2;`;
+  const ths = `padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);box-shadow:0 2px 0 var(--border2);color:var(--text2);position:sticky;top:0;z-index:10;`;
+  const thA = `padding:7px 11px;background:var(--accent-dim);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);box-shadow:0 2px 0 var(--accent);color:var(--accent);position:sticky;top:0;z-index:10;`;
   const arr = col => sortCol===col ? (sortDir===-1?'▼':'▲') : '<span style="opacity:.3">⇅</span>';
 
   let html = `<table class="top-mini-table" id="${tableId}" style="width:100%;border-collapse:separate;border-spacing:0;">
