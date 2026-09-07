@@ -258,6 +258,21 @@ function buildMarketTicker() {
 window.buildMarketTicker = buildMarketTicker;
 
 function init() {
+  // Register chartjs-plugin-datalabels (used only by the Portfolio allocation
+  // chart) globally-but-disabled-by-default, before ANY chart in the app gets
+  // built — loadTicker() below builds the Company page's charts, which is
+  // actually the very first chart built in the whole session, even before
+  // the Sector chart. Registering a plugin makes it apply to every chart by
+  // default, so this must run before that first chart exists, not reactively
+  // whenever the Portfolio tab happens to be opened — otherwise every chart
+  // built before a user's first Portfolio visit would show unwanted default
+  // datalabels (this plugin defaults to display:true once registered).
+  if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined' && !window._pfDatalabelsRegistered) {
+    Chart.register(ChartDataLabels);
+    Chart.defaults.set('plugins.datalabels', { display: false });
+    window._pfDatalabelsRegistered = true;
+  }
+
   buildColMap(SOURCE_DATA);
   // Build ticker list
   allTickers = SOURCE_DATA
@@ -3097,7 +3112,7 @@ function buildPortfolioTab() {
           <button onclick="pfSetAllocationBasis('cost')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='cost'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='cost'?'#fff':'var(--text2)'};">Cost Basis</button>
         </div>
       </div>
-      <div class="chart-wrap" style="height:280px;"><canvas id="chartPortfolioSector"></canvas></div>
+      <div class="chart-wrap" style="height:380px;max-width:460px;margin:0 auto;"><canvas id="chartPortfolioSector"></canvas></div>
     </div>
     <div style="margin-top:24px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Closed Positions</div>
@@ -3130,7 +3145,37 @@ function pfSetAllocationBasis(basis) {
   buildPortfolioAllocationChart(_pfLastRows, _pfLastHoldingsValue, pfCash, pfAllocationBasis);
 }
 
+// Draws "{count} STOCKS" in the empty center of the doughnut — a small,
+// self-contained plugin passed only to this chart instance (not globally
+// registered), so it can never affect any other chart.
+function pfCenterTextPlugin(count) {
+  return {
+    id: 'pfCenterText',
+    afterDraw(chart) {
+      const { ctx, chartArea: { left, right, top, bottom } } = chart;
+      const cx = (left + right) / 2;
+      const cy = (top + bottom) / 2;
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#000';
+      const text2Color = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#888';
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = textColor;
+      ctx.font = `700 26px ${CHART_FONT}`;
+      ctx.fillText(String(count), cx, cy - 11);
+      ctx.fillStyle = text2Color;
+      ctx.font = `600 10px ${CHART_FONT}`;
+      ctx.fillText(count === 1 ? 'STOCK' : 'STOCKS', cx, cy + 12);
+      ctx.restore();
+    }
+  };
+}
+
 function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
+  // Plugin registration happens once in init() — before any chart in the app
+  // is built — not here, since this function only runs when the user
+  // actually opens the Portfolio tab, which could be well after other charts
+  // (Company page, Sector, Home) already exist.
   if (charts['portfolioSector']) { charts['portfolioSector'].destroy(); delete charts['portfolioSector']; }
   const canvas = document.getElementById('chartPortfolioSector');
   if (!canvas) return;
@@ -3165,14 +3210,12 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
     backgroundColor.push(CASH_COLOR);
   }
 
-  // Ticker + weight% baked directly into the legend label (not just the
-  // hover tooltip), since the point is to see each position's share at a glance.
-  const labels = rawLabels.map((l,i) => `${l} (${((data[i]/total)*100).toFixed(1)}%)`);
+  const weightPct = data.map(v => (v/total)*100);
 
   charts['portfolioSector'] = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
     data: {
-      labels,
+      labels: rawLabels,
       datasets: [{
         data,
         backgroundColor,
@@ -3180,16 +3223,37 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
         borderWidth: 2,
       }]
     },
+    // pfCenterTextPlugin is passed per-instance (not globally registered),
+    // so the stock count only ever appears on this chart.
+    plugins: [pfCenterTextPlugin(rows.length)],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      cutout: '68%',
+      // Room for labels pushed outside the ring — without this they'd get
+      // clipped at the canvas edge.
+      layout: { padding: 28 },
       animation: { duration: 400, easing: 'easeOutCubic' },
       plugins: {
-        legend: { position: 'right', labels: { color: th.tick, font: { size: 11, family: CHART_FONT }, boxWidth: 12 } },
+        // The built-in legend (a separate list off to the side) is what put
+        // tickers "far from the chart" — replaced with datalabels below,
+        // which draw the ticker + weight% directly next to each slice.
+        legend: { display: false },
+        datalabels: {
+          display: true,
+          color: th.tick,
+          font: { size: 10, weight: '700', family: CHART_FONT },
+          textAlign: 'center',
+          anchor: 'end',
+          align: 'end',
+          offset: 6,
+          clip: false,
+          formatter: (_, ctx) => `${ctx.chart.data.labels[ctx.dataIndex]}\n${weightPct[ctx.dataIndex].toFixed(1)}%`,
+        },
         tooltip: {
           ...sharedTooltip(),
           callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('en-US',{maximumFractionDigits:0})}`
+            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('en-US',{maximumFractionDigits:0})} (${weightPct[ctx.dataIndex].toFixed(1)}%)`
           }
         }
       }
@@ -5634,7 +5698,7 @@ function topTableRender(tableId) {
   }
 
   const ths = `padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);box-shadow:0 2px 0 var(--border2);color:var(--text2);position:sticky;top:0;z-index:10;`;
-  const thA = `padding:7px 11px;background:var(--accent-dim);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);box-shadow:0 2px 0 var(--accent);color:var(--accent);position:sticky;top:0;z-index:10;`;
+  const thA = `padding:7px 11px;background-image:linear-gradient(var(--accent-dim),var(--accent-dim)),linear-gradient(var(--surface2),var(--surface2));font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);box-shadow:0 2px 0 var(--accent);color:var(--accent);position:sticky;top:0;z-index:10;`;
   const arr = col => sortCol===col ? (sortDir===-1?'▼':'▲') : '<span style="opacity:.3">⇅</span>';
 
   let html = `<table class="top-mini-table" id="${tableId}" style="width:100%;border-collapse:separate;border-spacing:0;">
