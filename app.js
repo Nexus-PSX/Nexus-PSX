@@ -2614,6 +2614,7 @@ const PF_LOCAL_KEY = 'psx_portfolio_local';
 let pfCash = 0;
 let pfOpen = [];              // [{ticker, qty, avgPrice, buyDate}]
 let pfClosed = [];            // [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
+let pfTransactions = [];      // [{type:'buy'|'sell'|'deposit'|'withdraw', ticker?, qty?, price?, amount?, date, ts}] — chronological log, newest logged as most recent ts
 let pfMode = 'local';         // 'local' | 'firestore'
 let pfUID = null;
 let pfReadyPromise = Promise.resolve();
@@ -2628,18 +2629,27 @@ let _pfLastRows = [];
 let _pfLastHoldingsValue = 0;
 
 function pfNormalizeState(raw) {
-  if (!raw) return { cash: 0, open: [], closed: [] };
-  if (Array.isArray(raw)) return { cash: 0, open: raw, closed: [] }; // legacy: bare holdings array from before cash/sell tracking existed
+  if (!raw) return { cash: 0, open: [], closed: [], transactions: [] };
+  if (Array.isArray(raw)) return { cash: 0, open: raw, closed: [], transactions: [] }; // legacy: bare holdings array from before cash/sell tracking existed
   return {
     cash: typeof raw.cash === 'number' ? raw.cash : 0,
     open: Array.isArray(raw.open) ? raw.open : (Array.isArray(raw.holdings) ? raw.holdings : []),
     closed: Array.isArray(raw.closed) ? raw.closed : [],
+    transactions: Array.isArray(raw.transactions) ? raw.transactions : [], // absent for state saved before this feature existed — starts empty, not retroactive
   };
 }
 
-function pfReadLocal()       { try { return pfNormalizeState(JSON.parse(wlLocalGet(PF_LOCAL_KEY) || 'null')); } catch { return { cash: 0, open: [], closed: [] }; } }
+function pfReadLocal()       { try { return pfNormalizeState(JSON.parse(wlLocalGet(PF_LOCAL_KEY) || 'null')); } catch { return { cash: 0, open: [], closed: [], transactions: [] }; } }
 function pfWriteLocal(state) { wlLocalSet(PF_LOCAL_KEY, JSON.stringify(state)); }
-function pfApplyState(s)     { pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; }
+function pfApplyState(s)     { pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; pfTransactions = s.transactions; }
+
+// Appends one entry to the transaction log. Called from every action that
+// represents a real event (buy, sell, deposit, withdraw) — deliberately NOT
+// called from Edit/Remove, since those are corrections, not things that
+// actually happened.
+function pfLogTx(entry) {
+  pfTransactions.push({ ...entry, ts: Date.now() });
+}
 
 function initPortfolio() {
   pfMode = 'local';
@@ -2648,12 +2658,12 @@ function initPortfolio() {
 
 async function pfSaveFirestore() {
   if (!pfUID || typeof window.fsSavePortfolio !== 'function') return false;
-  return await window.fsSavePortfolio(pfUID, { cash: pfCash, open: pfOpen, closed: pfClosed });
+  return await window.fsSavePortfolio(pfUID, { cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions });
 }
 
 async function pfSave() {
   if (pfMode === 'firestore') return await pfSaveFirestore();
-  pfWriteLocal({ cash: pfCash, open: pfOpen, closed: pfClosed });
+  pfWriteLocal({ cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions });
   return true;
 }
 
@@ -2673,7 +2683,7 @@ window.pfOnSignIn = function (uid, email) {
       const local = pfReadLocal();
       pfApplyState(local);
       pfMode = 'firestore';
-      if (local.open.length || local.closed.length || local.cash) await pfSaveFirestore();
+      if (local.open.length || local.closed.length || local.cash || local.transactions.length) await pfSaveFirestore();
     } else {
       pfApplyState(pfNormalizeState(remote));
       pfMode = 'firestore';
@@ -2715,6 +2725,7 @@ async function pfDeposit() {
   if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
   pfCash += amt;
   pfCashFormOpen = false;
+  pfLogTx({ type: 'deposit', amount: amt, date: new Date().toISOString().slice(0,10) });
   await pfSave();
   buildPortfolioTab();
 }
@@ -2724,6 +2735,7 @@ async function pfWithdraw() {
   if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
   pfCash -= amt; // allowed to go negative, same as an over-spent buy — flagged red in the UI, not blocked
   pfCashFormOpen = false;
+  pfLogTx({ type: 'withdraw', amount: amt, date: new Date().toISOString().slice(0,10) });
   await pfSave();
   buildPortfolioTab();
 }
@@ -2871,9 +2883,11 @@ async function pfConfirmAdd() {
     const newAvg = ((existing.qty * existing.avgPrice) + (qty * price)) / newQty;
     pfOpen[idx] = { ...existing, qty: newQty, avgPrice: newAvg };
     pfCash -= cost; // real buy: deduct cost from cash
+    pfLogTx({ type: 'buy', ticker: pfPendingTicker, qty, price, date: date || new Date().toISOString().slice(0,10) });
   } else {
     pfOpen.push({ ticker: pfPendingTicker, qty, avgPrice: price, buyDate: date });
     pfCash -= cost; // real buy: deduct cost from cash
+    pfLogTx({ type: 'buy', ticker: pfPendingTicker, qty, price, date: date || new Date().toISOString().slice(0,10) });
   }
 
   pfPendingTicker = null;
@@ -2952,6 +2966,7 @@ async function pfConfirmSell() {
   }
 
   pfCash += proceeds; // sale proceeds credited back to cash
+  pfLogTx({ type: 'sell', ticker: h.ticker, qty: sellQty, price: sellPrice, date: sellDate, realizedPnl });
 
   pfPendingSellTicker = null;
   await pfSave();
@@ -3088,6 +3103,38 @@ function buildPortfolioTab() {
       </table>
     </div>`;
 
+  const txSorted = [...pfTransactions].sort((a,b) => b.ts - a.ts);
+  const TX_BADGE = {
+    buy:      { label: 'BUY',      color: 'var(--accent)' },
+    sell:     { label: 'SELL',     color: 'var(--danger)' },
+    deposit:  { label: 'DEPOSIT',  color: 'var(--success)' },
+    withdraw: { label: 'WITHDRAW', color: 'var(--text2)' },
+  };
+  const txHistoryHtml = txSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No transactions logged yet — buys, sells, deposits and withdrawals will show up here as you make them.</div>` : `
+    <div class="scroll-table">
+      <table class="data-table">
+        <thead><tr>
+          <th>Type</th><th>Ticker</th><th>Qty</th><th>Price</th><th>Amount</th><th>Date</th><th>Realized P&amp;L</th>
+        </tr></thead>
+        <tbody>
+          ${txSorted.map(t => {
+            const badge = TX_BADGE[t.type] || { label: t.type, color: 'var(--text2)' };
+            const amount = t.type === 'deposit' || t.type === 'withdraw' ? t.amount : (t.qty * t.price);
+            return `
+            <tr>
+              <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
+              <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>` : '—'}</td>
+              <td class="mono">${t.qty != null ? fmtQty(t.qty) : '—'}</td>
+              <td class="mono">${t.price != null ? fmtPKR(t.price) : '—'}</td>
+              <td class="mono">${fmtPKR(amount)}</td>
+              <td class="mono">${t.date || '—'}</td>
+              <td class="mono" style="color:${t.realizedPnl!=null?clr(t.realizedPnl):'var(--text2)'}">${t.realizedPnl != null ? fmtPKR(t.realizedPnl) : '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
   const modeNote = pfMode === 'firestore'
     ? `<div style="font-size:11px;color:var(--text2);margin-bottom:12px;">✓ Signed in — synced to your account</div>`
     : `<div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Stored locally on this device. Sign in to sync across devices.</div>`;
@@ -3112,11 +3159,15 @@ function buildPortfolioTab() {
           <button onclick="pfSetAllocationBasis('cost')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='cost'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='cost'?'#fff':'var(--text2)'};">Cost Basis</button>
         </div>
       </div>
-      <div class="chart-wrap" style="height:380px;max-width:460px;margin:0 auto;"><canvas id="chartPortfolioSector"></canvas></div>
+      <div class="chart-wrap pf-alloc-chart"><canvas id="chartPortfolioSector"></canvas></div>
     </div>
     <div style="margin-top:24px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Closed Positions</div>
       ${closedTableHtml}
+    </div>
+    <div style="margin-top:24px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Transaction History</div>
+      ${txHistoryHtml}
     </div>
   `;
 
@@ -3155,17 +3206,23 @@ function pfCenterTextPlugin(count) {
       const { ctx, chartArea: { left, right, top, bottom } } = chart;
       const cx = (left + right) / 2;
       const cy = (top + bottom) / 2;
+      // Scale relative to the actual rendered chart area rather than a fixed
+      // pixel size, so this stays proportionate whether the chart renders at
+      // mobile height (~240px) or desktop height (~300px).
+      const size = Math.min(right - left, bottom - top);
+      const bigFont = Math.max(16, Math.min(26, size * 0.16));
+      const subFont = Math.max(8, Math.min(11, size * 0.065));
       const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#000';
       const text2Color = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#888';
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = textColor;
-      ctx.font = `700 26px ${CHART_FONT}`;
-      ctx.fillText(String(count), cx, cy - 11);
+      ctx.font = `700 ${bigFont}px ${CHART_FONT}`;
+      ctx.fillText(String(count), cx, cy - bigFont * 0.45);
       ctx.fillStyle = text2Color;
-      ctx.font = `600 10px ${CHART_FONT}`;
-      ctx.fillText(count === 1 ? 'STOCK' : 'STOCKS', cx, cy + 12);
+      ctx.font = `600 ${subFont}px ${CHART_FONT}`;
+      ctx.fillText(count === 1 ? 'STOCK' : 'STOCKS', cx, cy + subFont * 1.1);
       ctx.restore();
     }
   };
@@ -3229,10 +3286,13 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '68%',
-      // Room for labels pushed outside the ring — without this they'd get
-      // clipped at the canvas edge.
-      layout: { padding: 28 },
+      cutout: '70%',
+      // Shrinking the ring itself (not just adding canvas padding) is what
+      // actually fixes label clipping on narrow screens — a fixed pixel
+      // padding doesn't scale down with a small mobile canvas, but a radius
+      // percentage does, so labels keep proportional room on any screen size.
+      radius: '72%',
+      layout: { padding: 16 },
       animation: { duration: 400, easing: 'easeOutCubic' },
       plugins: {
         // The built-in legend (a separate list off to the side) is what put
@@ -3240,13 +3300,18 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
         // which draw the ticker + weight% directly next to each slice.
         legend: { display: false },
         datalabels: {
-          display: true,
+          // Slices under 2% are too thin to fit a two-line label without
+          // colliding with a neighbor — hiding just those (rather than
+          // shrinking font further) is what actually fixes the crowded/
+          // overlapping labels seen with many similar-sized positions.
+          // The exact number is always available on hover via the tooltip.
+          display: (ctx) => weightPct[ctx.dataIndex] >= 2,
           color: th.tick,
-          font: { size: 10, weight: '700', family: CHART_FONT },
+          font: { size: 9, weight: '700', family: CHART_FONT },
           textAlign: 'center',
           anchor: 'end',
           align: 'end',
-          offset: 6,
+          offset: 4,
           clip: false,
           formatter: (_, ctx) => `${ctx.chart.data.labels[ctx.dataIndex]}\n${weightPct[ctx.dataIndex].toFixed(1)}%`,
         },
