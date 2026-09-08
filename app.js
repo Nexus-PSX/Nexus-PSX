@@ -3630,6 +3630,68 @@ function disconnectGitHub() {
   showToast('Disconnected — watchlist copied to browser storage');
 }
 
+// ── Screener "+" button popup: Add to Watchlist / Add to Portfolio ─────────
+// One shared menu element, repositioned per click, rather than one popup per
+// row — the screener can have hundreds of rows, so a per-row popup would be
+// wasteful. Lazily created on first use.
+let _screenerAddMenuTicker = null;
+
+function openScreenerAddMenu(event, ticker) {
+  event.stopPropagation();
+  _screenerAddMenuTicker = ticker;
+
+  let menu = document.getElementById('screenerAddMenu');
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id = 'screenerAddMenu';
+    menu.className = 'screener-add-menu';
+    menu.innerHTML = `
+      <button onclick="screenerAddMenuAction('watchlist')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        Add to Watchlist
+      </button>
+      <button onclick="screenerAddMenuAction('portfolio')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg>
+        Add to Portfolio
+      </button>`;
+    document.body.appendChild(menu);
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 4) + 'px';
+  // Keep it on-screen if the button is near the right edge (e.g. sticky column on a narrow phone)
+  const menuWidth = 190;
+  menu.style.left = Math.min(rect.left, window.innerWidth - menuWidth - 8) + 'px';
+  menu.classList.add('open');
+}
+
+function closeScreenerAddMenu() {
+  const menu = document.getElementById('screenerAddMenu');
+  if (menu) menu.classList.remove('open');
+}
+
+function screenerAddMenuAction(action) {
+  const ticker = _screenerAddMenuTicker;
+  closeScreenerAddMenu();
+  if (!ticker) return;
+  if (action === 'watchlist') {
+    addToWatchlist(ticker);
+  } else if (action === 'portfolio') {
+    switchTab('portfolio');
+    // switchTab rebuilds the Portfolio tab's DOM synchronously, so the buy
+    // form's container already exists by the time this runs — no need to
+    // wait a tick.
+    pfSelectTicker(ticker);
+  }
+}
+
+document.addEventListener('click', e => {
+  const menu = document.getElementById('screenerAddMenu');
+  if (menu && menu.classList.contains('open') && !e.target.closest('#screenerAddMenu') && !e.target.closest('.screener-add-btn')) {
+    closeScreenerAddMenu();
+  }
+});
+
 async function addToWatchlist(ticker) {
   await wlReadyPromise;
   ticker = String(ticker);
@@ -3822,7 +3884,7 @@ function renderScreenerPage() {
     const score = d['total improvement'];
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="ticker-link" onclick="switchTab('company');pickTicker('${String(d.Ticker)}')">${d.Ticker}${tickerBadges(d)}</td>
+      <td class="ticker-link"><button class="screener-add-btn" onclick="event.stopPropagation();openScreenerAddMenu(event,'${String(d.Ticker)}')" title="Add to Watchlist or Portfolio"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button><span onclick="switchTab('company');pickTicker('${String(d.Ticker)}')">${d.Ticker}${tickerBadges(d)}</span></td>
       <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; color:var(--text); font-weight:500">${d.Name||'—'}</td>
       <td class="screener-sector-cell" style="max-width:140px; overflow:hidden; text-overflow:ellipsis">${d.Sector||'—'}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtPeriodEndDate(dget(d,'Last Period End Date'))}</td>
@@ -3860,7 +3922,6 @@ function renderScreenerPage() {
       <td class="mono screener-nemi-col">${(()=>{const n=toNum(dget(d,'NEMI Signal Price'));return n!=null?n.toFixed(2):'—'})()}</td>
       <td class="mono screener-nemi-col ${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-nemi-col">${(()=>{const raw=dget(d,'NEMI Signal Status');const s=sigStatusLabel(raw);if(s==null)return '\u2014';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
-      <td style="padding:4px 8px;"><button onclick="addToWatchlist('${String(d.Ticker)}')" title="Add to Watchlist" style="background:var(--accent3-dim); border:1px solid rgba(59,130,246,0.35); border-radius:4px; color:var(--accent3); width:26px; height:26px; font-size:16px; cursor:pointer; line-height:1; padding:0;">＋</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -3962,7 +4023,6 @@ function updateScreenerAvgRow() {
     <td class="mono screener-nemi-col">${fmt(avg('NEMI Signal Price'),2)}</td>
     <td class="mono screener-nemi-col ${nemiRet != null ? nemiRet > 0 ? 'positive' : 'negative' : ''}">${nemiRet != null ? (nemiRet >= 0 ? '+' : '') + nemiRet.toFixed(2) + '%' : '—'}</td>
     <td class="mono screener-nemi-col">—</td>
-    <td></td>
   </tr>`;
 }
 

@@ -528,6 +528,27 @@
   .negative { color: var(--danger); }
   .neutral { color: var(--warn); }
   .ticker-link { color: var(--accent3); cursor: pointer; font-weight: 700; font-size: 13px; }
+
+  /* Compact "+" button embedded in the sticky Ticker cell, and its popup menu */
+  .screener-add-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; margin-right: 5px; vertical-align: -3px;
+    background: var(--accent3-dim); border: 1px solid rgba(59,130,246,0.35); border-radius: 4px;
+    color: var(--accent3); cursor: pointer; padding: 0; flex-shrink: 0;
+  }
+  .screener-add-menu {
+    display: none; position: fixed; z-index: 100000; min-width: 180px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.25); padding: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  .screener-add-menu.open { display: block; }
+  .screener-add-menu button {
+    display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box;
+    padding: 9px 10px; border: none; background: none; border-radius: 7px;
+    color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; text-align: left;
+  }
+  .screener-add-menu button:hover { background: var(--surface2); }
   .ticker-badge {
     display: inline-flex; align-items: center; justify-content: center;
     width: 14px; height: 14px; border-radius: 50%; margin-left: 4px;
@@ -604,6 +625,12 @@
     z-index: 3;
     min-width: 80px;
     box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+  }
+  /* Screener's Ticker cell embeds an add-button (Watchlist's doesn't), so it
+     needs a bit more room than the shared baseline above. */
+  #screenerTable th:nth-child(1),
+  #screenerTable td:nth-child(1) {
+    min-width: 108px;
   }
   /* Fully opaque backgrounds so zebra-stripes and hover don't bleed through */
   #screenerTable th:nth-child(1),
@@ -1259,7 +1286,7 @@
        estate for the columns scrolling in next to it. */
     #screenerTable th:nth-child(1),
     #screenerTable td:nth-child(1) {
-      min-width: 52px;
+      min-width: 78px;
       padding-left: 6px;
       padding-right: 6px;
     }
@@ -1320,11 +1347,12 @@
     #screenerTable td { padding: 5px 5px; font-size: 11px; }
     #screenerTable th:nth-child(1),
     #screenerTable td:nth-child(1) {
-      min-width: 46px;
+      min-width: 68px;
       padding-left: 5px;
       padding-right: 5px;
     }
     #screenerTable .ticker-link { font-size: 11px; }
+    #screenerTable .screener-add-btn { width: 14px; height: 14px; margin-right: 4px; }
     #screenerAvgRow td { padding: 5px 5px; font-size: 10px; }
     #screenerAvgRow td:nth-child(1) { padding-left: 5px; padding-right: 5px; }
     .badge { font-size: 10px; padding: 3px 7px; }
