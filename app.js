@@ -2605,50 +2605,166 @@ window.getWatchlistTickers = function () { return wlList.slice(); };
 // user signs in — migrating any local holdings up on first sign-in so
 // nothing testing pre-login gets lost.
 //
-// State shape: { cash, open: [{ticker,qty,avgPrice,buyDate}], closed: [{ticker,qty,avgPrice,buyDate,sellPrice,sellDate,realizedPnl,realizedPnlPct}] }
-// A "Buy" (new position or adding to one) deducts cash. A "Sell" moves that
-// quantity from open → closed, records realized P&L, and credits cash with
-// the sale proceeds. "Edit" and "Remove" are corrections (fixing a mistaken
-// entry) and deliberately do NOT touch cash, since they aren't real trades.
+// ARCHITECTURE: the transaction log (pfTransactions) is the single source of
+// truth. pfCash / pfOpen / pfClosed are not stored independently — they are
+// VALUES COMPUTED by replaying every transaction in chronological order
+// (see pfApplyTxToState / pfTryReplay / pfRecomputeFromTransactions). This
+// means editing or deleting any past Buy/Sell/Deposit/Withdraw just re-runs
+// the replay from scratch — there's no special-case patch logic that could
+// drift out of sync, and a sell can never end up "impossible" (selling more
+// than was actually held at that point in your history) because every edit
+// is validated by a full trial-replay before it's allowed to save.
+// pfLegacyClosed holds closed positions that existed before this log-based
+// model did (from early testing) — preserved as read-only history since
+// reconstructing accurate buy+sell transaction pairs for them retroactively
+// would risk double-counting cash already reflected in the stored balance.
 const PF_LOCAL_KEY = 'psx_portfolio_local';
 let pfCash = 0;
-let pfOpen = [];              // [{ticker, qty, avgPrice, buyDate}]
-let pfClosed = [];            // [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
-let pfTransactions = [];      // [{type:'buy'|'sell'|'deposit'|'withdraw', ticker?, qty?, price?, amount?, date, ts}] — chronological log, newest logged as most recent ts
+let pfOpen = [];              // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate}]
+let pfClosed = [];            // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
+let pfLegacyClosed = [];      // Frozen pre-log-model closed positions — read-only, not part of the replay
+let pfTransactions = [];      // SOURCE OF TRUTH — [{id, type:'buy'|'sell'|'deposit'|'withdraw', ticker?, qty?, price?, amount?, date, ts}]
 let pfMode = 'local';         // 'local' | 'firestore'
 let pfUID = null;
 let pfReadyPromise = Promise.resolve();
 let pfAcFiltered = [];
 let pfAcIndex = -1;
-let pfPendingTicker = null;   // ticker currently in the buy/edit mini-form, if any
-let pfEditingExisting = false;
+let pfPendingTicker = null;   // ticker currently in the buy mini-form, if any
 let pfPendingSellTicker = null; // ticker currently in the sell mini-form, if any
+let pfEditingTxId = null;     // transaction id currently in the edit mini-form, if any
+let pfRealizedPnlByTxId = new Map(); // populated by replay — realizedPnl for each 'sell' transaction, keyed by its id (this value isn't stored on the transaction itself, since it depends on the avgPrice at the time of sale, which is a product of replay order)
 let pfCashFormOpen = false;
 let pfAllocationBasis = 'value'; // 'value' (latest market value) | 'cost' (original cost basis)
 let _pfLastRows = [];
 let _pfLastHoldingsValue = 0;
+let _pfTxIdCounter = 0;
+
+function pfNewTxId() { return `tx_${Date.now()}_${_pfTxIdCounter++}_${Math.random().toString(36).slice(2,7)}`; }
 
 function pfNormalizeState(raw) {
-  if (!raw) return { cash: 0, open: [], closed: [], transactions: [] };
-  if (Array.isArray(raw)) return { cash: 0, open: raw, closed: [], transactions: [] }; // legacy: bare holdings array from before cash/sell tracking existed
+  if (!raw) return { cash: 0, open: [], closed: [], transactions: [], legacyClosed: [] };
+  if (Array.isArray(raw)) return { cash: 0, open: raw, closed: [], transactions: [], legacyClosed: [] }; // legacy: bare holdings array from before cash/sell tracking existed
   return {
     cash: typeof raw.cash === 'number' ? raw.cash : 0,
     open: Array.isArray(raw.open) ? raw.open : (Array.isArray(raw.holdings) ? raw.holdings : []),
     closed: Array.isArray(raw.closed) ? raw.closed : [],
-    transactions: Array.isArray(raw.transactions) ? raw.transactions : [], // absent for state saved before this feature existed — starts empty, not retroactive
+    transactions: Array.isArray(raw.transactions) ? raw.transactions : [],
+    legacyClosed: Array.isArray(raw.legacyClosed) ? raw.legacyClosed : [],
   };
 }
 
-function pfReadLocal()       { try { return pfNormalizeState(JSON.parse(wlLocalGet(PF_LOCAL_KEY) || 'null')); } catch { return { cash: 0, open: [], closed: [], transactions: [] }; } }
+function pfReadLocal()       { try { return pfNormalizeState(JSON.parse(wlLocalGet(PF_LOCAL_KEY) || 'null')); } catch { return { cash: 0, open: [], closed: [], transactions: [], legacyClosed: [] }; } }
 function pfWriteLocal(state) { wlLocalSet(PF_LOCAL_KEY, JSON.stringify(state)); }
-function pfApplyState(s)     { pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; pfTransactions = s.transactions; }
 
-// Appends one entry to the transaction log. Called from every action that
-// represents a real event (buy, sell, deposit, withdraw) — deliberately NOT
-// called from Edit/Remove, since those are corrections, not things that
-// actually happened.
-function pfLogTx(entry) {
-  pfTransactions.push({ ...entry, ts: Date.now() });
+// Applies one transaction's effect to a working {cash, open, closed} state
+// object, in place. This is the ONLY place transaction effects are computed —
+// both the live "do this action now" path and the "replay history from
+// scratch" path (used after any edit/delete) call this exact same function,
+// so they can never drift apart or disagree.
+function pfApplyTxToState(state, t, pnlMap) {
+  if (t.type === 'deposit') {
+    state.cash += t.amount;
+  } else if (t.type === 'withdraw') {
+    state.cash -= t.amount;
+  } else if (t.type === 'buy') {
+    state.cash -= t.qty * t.price;
+    const idx = state.open.findIndex(h => h.ticker === t.ticker);
+    if (idx >= 0) {
+      const existing = state.open[idx];
+      const newQty = existing.qty + t.qty;
+      const newAvg = ((existing.qty * existing.avgPrice) + (t.qty * t.price)) / newQty;
+      state.open[idx] = { ...existing, qty: newQty, avgPrice: newAvg };
+    } else {
+      state.open.push({ ticker: t.ticker, qty: t.qty, avgPrice: t.price, buyDate: t.date });
+    }
+  } else if (t.type === 'sell') {
+    const idx = state.open.findIndex(h => h.ticker === t.ticker);
+    const h = state.open[idx];
+    const costBasis = h.avgPrice * t.qty;
+    const proceeds = t.price * t.qty;
+    const realizedPnl = proceeds - costBasis;
+    const realizedPnlPct = costBasis ? (realizedPnl / costBasis) * 100 : null;
+    state.closed.push({ ticker: h.ticker, qty: t.qty, avgPrice: h.avgPrice, buyDate: h.buyDate || null, sellPrice: t.price, sellDate: t.date, realizedPnl, realizedPnlPct });
+    state.cash += proceeds;
+    if (pnlMap && t.id) pnlMap.set(t.id, realizedPnl);
+    if (t.qty === h.qty) state.open.splice(idx, 1);
+    else state.open[idx] = { ...h, qty: h.qty - t.qty };
+  }
+}
+
+// Replays a set of transactions in chronological order into a fresh state,
+// validating as it goes — a sell is rejected if it would exceed what was
+// actually held at that exact point in the sequence. This is what makes
+// editing/deleting a past transaction safe: the candidate result is always
+// checked before it's allowed to be saved, so a sell can never end up
+// pointing at shares that (after the edit) were never bought.
+function pfTryReplay(transactions) {
+  const sorted = [...transactions].sort((a, b) => a.ts - b.ts);
+  const state = { cash: 0, open: [], closed: [] };
+  const pnlMap = new Map();
+  for (const t of sorted) {
+    if (t.type === 'sell') {
+      const idx = state.open.findIndex(h => h.ticker === t.ticker);
+      const held = idx >= 0 ? state.open[idx].qty : 0;
+      if (t.qty > held) {
+        return { ok: false, error: `Sell of ${t.qty} ${t.ticker} on ${t.date} would exceed the ${held} share(s) actually held at that point in your history.` };
+      }
+    }
+    pfApplyTxToState(state, t, pnlMap);
+  }
+  return { ok: true, state, pnlMap };
+}
+
+function pfRecomputeFromTransactions() {
+  const result = pfTryReplay(pfTransactions);
+  if (result.ok) { pfCash = result.state.cash; pfOpen = result.state.open; pfClosed = result.state.closed; pfRealizedPnlByTxId = result.pnlMap; }
+  return result;
+}
+
+// Reconstructs a synthetic transaction history for state that existed before
+// the transaction-log model did (only runs once, the first time this code
+// encounters such data). The math: an opening deposit sized exactly large
+// enough to cover every open position's original cost AND still leave the
+// currently-stored cash balance remaining, so replaying these synthetic
+// transactions reproduces the stored snapshot exactly.
+function pfSeedOpeningTransactions(s) {
+  const today = new Date().toISOString().slice(0,10);
+  const totalBuyCost = (s.open || []).reduce((sum,h) => sum + h.qty * h.avgPrice, 0);
+  const openingAmount = s.cash + totalBuyCost;
+  const txs = [];
+  let t = Date.now() - ((s.open || []).length + 2) * 1000; // stagger timestamps, oldest first
+  if (openingAmount !== 0) {
+    txs.push({ id: pfNewTxId(), type: openingAmount >= 0 ? 'deposit' : 'withdraw', amount: Math.abs(openingAmount), date: today, ts: t++ });
+  }
+  (s.open || []).forEach(h => {
+    txs.push({ id: pfNewTxId(), type: 'buy', ticker: h.ticker, qty: h.qty, price: h.avgPrice, date: h.buyDate || today, ts: t++ });
+  });
+  return txs;
+}
+
+function pfApplyState(s) {
+  pfTransactions = (s.transactions || []).map(t => t.id ? t : { ...t, id: pfNewTxId() }); // backfill ids for entries logged before edit/delete existed
+  pfLegacyClosed = s.legacyClosed || [];
+
+  if (pfTransactions.length > 0) {
+    const result = pfRecomputeFromTransactions();
+    if (!result.ok) {
+      // Shouldn't normally happen — fall back to the last-known-good stored
+      // snapshot rather than showing broken/empty data.
+      pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed;
+    }
+  } else if ((s.open && s.open.length) || s.cash) {
+    // Pre-existing data from before the transaction log existed. Seed
+    // synthetic opening transactions so it has a consistent starting point
+    // for future edits, and freeze any already-closed positions into
+    // pfLegacyClosed (see the note above pfLegacyClosed's declaration).
+    pfLegacyClosed = [...pfLegacyClosed, ...(s.closed || [])];
+    pfTransactions = pfSeedOpeningTransactions(s);
+    pfRecomputeFromTransactions();
+    pfSave(); // persist the seeded log so this migration only ever runs once
+  } else {
+    pfCash = 0; pfOpen = []; pfClosed = [];
+  }
 }
 
 function initPortfolio() {
@@ -2658,12 +2774,12 @@ function initPortfolio() {
 
 async function pfSaveFirestore() {
   if (!pfUID || typeof window.fsSavePortfolio !== 'function') return false;
-  return await window.fsSavePortfolio(pfUID, { cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions });
+  return await window.fsSavePortfolio(pfUID, { cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions, legacyClosed: pfLegacyClosed });
 }
 
 async function pfSave() {
   if (pfMode === 'firestore') return await pfSaveFirestore();
-  pfWriteLocal({ cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions });
+  pfWriteLocal({ cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions, legacyClosed: pfLegacyClosed });
   return true;
 }
 
@@ -2683,7 +2799,7 @@ window.pfOnSignIn = function (uid, email) {
       const local = pfReadLocal();
       pfApplyState(local);
       pfMode = 'firestore';
-      if (local.open.length || local.closed.length || local.cash || local.transactions.length) await pfSaveFirestore();
+      if (local.open.length || local.closed.length || local.cash || local.transactions.length || local.legacyClosed.length) await pfSaveFirestore();
     } else {
       pfApplyState(pfNormalizeState(remote));
       pfMode = 'firestore';
@@ -2723,9 +2839,9 @@ function renderPfCashForm() {
 async function pfDeposit() {
   const amt = parseFloat(document.getElementById('pfCashAmount')?.value);
   if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
-  pfCash += amt;
+  pfTransactions.push({ id: pfNewTxId(), type: 'deposit', amount: amt, date: new Date().toISOString().slice(0,10), ts: Date.now() });
+  pfRecomputeFromTransactions();
   pfCashFormOpen = false;
-  pfLogTx({ type: 'deposit', amount: amt, date: new Date().toISOString().slice(0,10) });
   await pfSave();
   buildPortfolioTab();
 }
@@ -2733,9 +2849,10 @@ async function pfDeposit() {
 async function pfWithdraw() {
   const amt = parseFloat(document.getElementById('pfCashAmount')?.value);
   if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
-  pfCash -= amt; // allowed to go negative, same as an over-spent buy — flagged red in the UI, not blocked
+  // Allowed to go negative, same as an over-spent buy — flagged red in the UI, not blocked
+  pfTransactions.push({ id: pfNewTxId(), type: 'withdraw', amount: amt, date: new Date().toISOString().slice(0,10), ts: Date.now() });
+  pfRecomputeFromTransactions();
   pfCashFormOpen = false;
-  pfLogTx({ type: 'withdraw', amount: amt, date: new Date().toISOString().slice(0,10) });
   await pfSave();
   buildPortfolioTab();
 }
@@ -2802,71 +2919,54 @@ document.addEventListener('click', e => {
 // ----- Buy / edit / remove (open positions) -----
 function pfSelectTicker(ticker) {
   pfPendingTicker = ticker;
-  pfEditingExisting = false;
   pfCloseAC();
   const input = document.getElementById('pfTickerSearch');
   if (input) input.value = '';
   renderPfPendingForm();
 }
 
-function pfEditHolding(ticker) {
-  const h = pfOpen.find(x => x.ticker === ticker);
-  if (!h) return;
-  pfPendingTicker = ticker;
-  pfEditingExisting = true;
-  renderPfPendingForm(h);
-}
-
 function pfCancelPending() {
   pfPendingTicker = null;
-  pfEditingExisting = false;
   const wrap = document.getElementById('pfPendingForm');
   if (wrap) wrap.innerHTML = '';
 }
 
-function renderPfPendingForm(existing) {
+function renderPfPendingForm() {
   const wrap = document.getElementById('pfPendingForm');
   if (!wrap) return;
   if (!pfPendingTicker) { wrap.innerHTML = ''; return; }
-  const qty   = existing ? existing.qty : '';
-  const price = existing ? existing.avgPrice : '';
-  const date  = existing ? (existing.buyDate || '') : '';
+  const held = pfOpen.find(h => h.ticker === pfPendingTicker);
   wrap.innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0 16px;">
       <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Ticker</div><div style="font-weight:700;font-size:14px;">${pfPendingTicker}</div></div>
-      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Quantity</label><input type="number" id="pfQtyInput" value="${qty}" min="1" step="1" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
-      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Avg Buy Price</label><input type="number" id="pfPriceInput" value="${price}" min="0" step="0.01" style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
-      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Buy Date (optional)</label><input type="date" id="pfDateInput" value="${date}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
-      <button onclick="pfConfirmAdd()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">${pfEditingExisting ? 'Save' : 'Buy'}</button>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Quantity</label><input type="number" id="pfQtyInput" value="" min="1" step="1" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Buy Price</label><input type="number" id="pfPriceInput" value="" min="0" step="0.01" style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Buy Date</label><input type="date" id="pfDateInput" value="${new Date().toISOString().slice(0,10)}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfConfirmAdd()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Buy</button>
       <button onclick="pfCancelPending()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
     </div>
-    ${pfEditingExisting ? '<div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Editing corrects the entry and does not move cash. Use Sell to record an actual trade.</div>' : ''}
-    ${(!pfEditingExisting && pfOpen.find(h=>h.ticker===pfPendingTicker)) ? (() => {
-        const held = pfOpen.find(h=>h.ticker===pfPendingTicker);
-        return `<div style="font-size:11px;color:var(--accent);margin:-10px 0 16px;">You already hold ${held.qty} @ ${held.avgPrice.toFixed(2)} — this buy will merge into one position at a new weighted-average cost.</div>`;
-      })() : ''}`;
+    ${held ? `<div style="font-size:11px;color:var(--accent);margin:-10px 0 16px;">You already hold ${held.qty} @ ${held.avgPrice.toFixed(2)} — this buy will merge into one position at a new weighted-average cost.</div>` : ''}
+    <div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Made a mistake later? You can edit or delete this buy from Transaction History below.</div>`;
 }
 
 // Adding a ticker that's already held merges into a single quantity-weighted
 // average cost position (standard "average cost basis" behavior) rather than
-// tracking separate lots — keeps the table to one row per ticker. Editing an
-// existing holding overwrites its qty/price directly instead of merging, and
-// is treated as a correction — not a trade — so it doesn't touch cash.
+// tracking separate lots — keeps Open Positions to one row per ticker. Fixing
+// a mistake now happens by editing the logged transaction in Transaction
+// History (below), not by overwriting the position directly — since the
+// position is a computed result of the log, not independently stored.
 async function pfConfirmAdd() {
   const qtyEl = document.getElementById('pfQtyInput');
   const priceEl = document.getElementById('pfPriceInput');
   const dateEl = document.getElementById('pfDateInput');
   const qty = qtyEl ? parseFloat(qtyEl.value) : NaN;
   const price = priceEl ? parseFloat(priceEl.value) : NaN;
-  const date = dateEl && dateEl.value ? dateEl.value : null;
+  const date = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0,10);
 
   if (!qty || qty <= 0 || !price || price <= 0) { alert('Enter a valid quantity and buy price.'); return; }
 
-  const idx = pfOpen.findIndex(h => h.ticker === pfPendingTicker);
-  const isRealBuy = !(pfEditingExisting && idx >= 0); // editing an existing entry is a correction, not a trade — no cash check applies
   const cost = qty * price;
-
-  if (isRealBuy && cost > pfCash) {
+  if (cost > pfCash) {
     const short = cost - pfCash;
     alert(`Not enough cash for this buy.\n\nCost: ${cost.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}\nAvailable: ${pfCash.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}\nShort by: ${short.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}\n\nDeposit cash first, then try again.`);
     pfCashFormOpen = true;
@@ -2875,32 +2975,10 @@ async function pfConfirmAdd() {
     return;
   }
 
-  if (pfEditingExisting && idx >= 0) {
-    pfOpen[idx] = { ticker: pfPendingTicker, qty, avgPrice: price, buyDate: date };
-  } else if (idx >= 0) {
-    const existing = pfOpen[idx];
-    const newQty = existing.qty + qty;
-    const newAvg = ((existing.qty * existing.avgPrice) + (qty * price)) / newQty;
-    pfOpen[idx] = { ...existing, qty: newQty, avgPrice: newAvg };
-    pfCash -= cost; // real buy: deduct cost from cash
-    pfLogTx({ type: 'buy', ticker: pfPendingTicker, qty, price, date: date || new Date().toISOString().slice(0,10) });
-  } else {
-    pfOpen.push({ ticker: pfPendingTicker, qty, avgPrice: price, buyDate: date });
-    pfCash -= cost; // real buy: deduct cost from cash
-    pfLogTx({ type: 'buy', ticker: pfPendingTicker, qty, price, date: date || new Date().toISOString().slice(0,10) });
-  }
+  pfTransactions.push({ id: pfNewTxId(), type: 'buy', ticker: pfPendingTicker, qty, price, date, ts: Date.now() });
+  pfRecomputeFromTransactions();
 
   pfPendingTicker = null;
-  pfEditingExisting = false;
-  await pfSave();
-  buildPortfolioTab();
-}
-
-// Remove deletes the entry outright with no cash effect — for correcting a
-// mistaken add. Use Sell (below) to record an actual market transaction.
-async function pfRemoveHolding(ticker) {
-  if (!confirm(`Remove ${ticker} from your portfolio? This won't record a sale or affect cash — use Sell for an actual trade.`)) return;
-  pfOpen = pfOpen.filter(h => h.ticker !== ticker);
   await pfSave();
   buildPortfolioTab();
 }
@@ -2938,9 +3016,8 @@ function renderPfSellForm(h) {
 }
 
 async function pfConfirmSell() {
-  const idx = pfOpen.findIndex(h => h.ticker === pfPendingSellTicker);
-  if (idx < 0) { pfCancelSell(); return; }
-  const h = pfOpen[idx];
+  const h = pfOpen.find(x => x.ticker === pfPendingSellTicker);
+  if (!h) { pfCancelSell(); return; }
 
   const sellQty = parseFloat(document.getElementById('pfSellQty')?.value);
   const sellPrice = parseFloat(document.getElementById('pfSellPrice')?.value);
@@ -2949,36 +3026,112 @@ async function pfConfirmSell() {
   if (!sellQty || sellQty <= 0 || sellQty > h.qty) { alert(`Enter a quantity between 1 and ${h.qty}.`); return; }
   if (!sellPrice || sellPrice <= 0) { alert('Enter a valid sell price.'); return; }
 
-  const costBasis = h.avgPrice * sellQty;
-  const proceeds = sellPrice * sellQty;
-  const realizedPnl = proceeds - costBasis;
-  const realizedPnlPct = costBasis ? (realizedPnl / costBasis) * 100 : null;
-
-  pfClosed.push({
-    ticker: h.ticker, qty: sellQty, avgPrice: h.avgPrice, buyDate: h.buyDate || null,
-    sellPrice, sellDate, realizedPnl, realizedPnlPct,
-  });
-
-  if (sellQty === h.qty) {
-    pfOpen.splice(idx, 1); // fully sold — position closes out entirely
-  } else {
-    pfOpen[idx] = { ...h, qty: h.qty - sellQty }; // partial sell — remainder stays open at the same avg cost
-  }
-
-  pfCash += proceeds; // sale proceeds credited back to cash
-  pfLogTx({ type: 'sell', ticker: h.ticker, qty: sellQty, price: sellPrice, date: sellDate, realizedPnl });
+  pfTransactions.push({ id: pfNewTxId(), type: 'sell', ticker: h.ticker, qty: sellQty, price: sellPrice, date: sellDate, ts: Date.now() });
+  pfRecomputeFromTransactions();
 
   pfPendingSellTicker = null;
   await pfSave();
   buildPortfolioTab();
 }
 
-async function pfRemoveClosed(index) {
-  if (!confirm('Remove this closed-position record? This is just a history correction and will not adjust your cash balance.')) return;
-  pfClosed.splice(index, 1);
+// ----- Edit / delete a past transaction (fixes a buy/sell mistake) -----
+// This is the actual mechanism for correcting mistakes now: Open/Closed
+// positions are computed from the log, not independently editable, so
+// fixing a wrong quantity or price means editing the transaction that
+// caused it — everything downstream (cash, positions, realized P&L)
+// recalculates automatically via a fresh replay.
+function pfEditTransaction(id) {
+  pfEditingTxId = id;
+  renderPfTxEditForm();
+}
+
+function pfCancelTxEdit() {
+  pfEditingTxId = null;
+  const wrap = document.getElementById('pfTxEditForm');
+  if (wrap) wrap.innerHTML = '';
+}
+
+function renderPfTxEditForm() {
+  const wrap = document.getElementById('pfTxEditForm');
+  if (!wrap) return;
+  if (!pfEditingTxId) { wrap.innerHTML = ''; return; }
+  const t = pfTransactions.find(x => x.id === pfEditingTxId);
+  if (!t) { pfEditingTxId = null; wrap.innerHTML = ''; return; }
+
+  const isCash = t.type === 'deposit' || t.type === 'withdraw';
+  wrap.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:12px;margin:8px 0 16px;">
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Editing ${t.type.toUpperCase()}</div><div style="font-weight:700;font-size:14px;">${t.ticker || 'Cash'}</div></div>
+      ${isCash ? `
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Amount</label><input type="number" id="pfTxAmount" value="${t.amount}" min="0" step="0.01" style="width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      ` : `
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Quantity</label><input type="number" id="pfTxQty" value="${t.qty}" min="1" step="1" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Price</label><input type="number" id="pfTxPrice" value="${t.price}" min="0" step="0.01" style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      `}
+      <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Date</label><input type="date" id="pfTxDate" value="${t.date||''}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfConfirmTxEdit()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
+      <button onclick="pfCancelTxEdit()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Saving replays your full history with this change — cash and positions recalculate automatically. Ticker can't be changed here; delete and re-add instead if it's wrong.</div>`;
+}
+
+async function pfConfirmTxEdit() {
+  const t = pfTransactions.find(x => x.id === pfEditingTxId);
+  if (!t) { pfCancelTxEdit(); return; }
+  const isCash = t.type === 'deposit' || t.type === 'withdraw';
+  const dateEl = document.getElementById('pfTxDate');
+  const date = dateEl && dateEl.value ? dateEl.value : t.date;
+
+  let updated;
+  if (isCash) {
+    const amt = parseFloat(document.getElementById('pfTxAmount')?.value);
+    if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
+    updated = { ...t, amount: amt, date };
+  } else {
+    const qty = parseFloat(document.getElementById('pfTxQty')?.value);
+    const price = parseFloat(document.getElementById('pfTxPrice')?.value);
+    if (!qty || qty <= 0 || !price || price <= 0) { alert('Enter a valid quantity and price.'); return; }
+    updated = { ...t, qty, price, date };
+  }
+
+  // Trial-replay the WOULD-BE result before committing — this is what makes
+  // editing safe. If reducing a buy's quantity (or its date moving it later)
+  // would mean a subsequent sell now exceeds what was actually available,
+  // the edit is refused with a clear explanation instead of silently
+  // producing inconsistent numbers.
+  const candidate = pfTransactions.map(x => x.id === pfEditingTxId ? updated : x);
+  const check = pfTryReplay(candidate);
+  if (!check.ok) {
+    alert(`Can't save this edit:\n\n${check.error}\n\nTry editing or removing that later sell first.`);
+    return;
+  }
+
+  pfTransactions = candidate;
+  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfRealizedPnlByTxId = check.pnlMap;
+  pfEditingTxId = null;
   await pfSave();
   buildPortfolioTab();
 }
+
+async function pfDeleteTransaction(id) {
+  const t = pfTransactions.find(x => x.id === id);
+  if (!t) return;
+  if (!confirm(`Delete this ${t.type}${t.ticker ? ' for ' + t.ticker : ''}? This can't be undone.`)) return;
+
+  const candidate = pfTransactions.filter(x => x.id !== id);
+  const check = pfTryReplay(candidate);
+  if (!check.ok) {
+    alert(`Can't delete this:\n\n${check.error}\n\nA later sell depends on it. Remove or edit that sell first.`);
+    return;
+  }
+
+  pfTransactions = candidate;
+  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfRealizedPnlByTxId = check.pnlMap;
+  if (pfEditingTxId === id) pfEditingTxId = null;
+  await pfSave();
+  buildPortfolioTab();
+}
+
 
 // ----- Main render -----
 function buildPortfolioTab() {
@@ -3068,25 +3221,21 @@ function buildPortfolioTab() {
               <td>${r.signalStatus || '—'}</td>
               <td style="white-space:nowrap;">
                 <button onclick="pfSellHolding('${r.ticker}')" title="Sell" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:4px;font-size:11px;font-weight:700;">SELL</button>
-                <button onclick="pfEditHolding('${r.ticker}')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✎</button>
-                <button onclick="pfRemoveHolding('${r.ticker}')" title="Remove" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button>
               </td>
             </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
 
-  const closedSorted = [...pfClosed].sort((a,b) => new Date(b.sellDate||0) - new Date(a.sellDate||0));
+  const closedSorted = [...pfClosed, ...pfLegacyClosed].sort((a,b) => new Date(b.sellDate||0) - new Date(a.sellDate||0));
   const closedTableHtml = closedSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No closed positions yet — sold trades will show up here with their realized P&amp;L.</div>` : `
     <div class="scroll-table">
       <table class="data-table">
         <thead><tr>
-          <th>Ticker</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Buy Date</th><th>Sell Date</th><th>Realized P&amp;L</th><th>Realized P&amp;L %</th><th></th>
+          <th>Ticker</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Buy Date</th><th>Sell Date</th><th>Realized P&amp;L</th><th>Realized P&amp;L %</th>
         </tr></thead>
         <tbody>
-          ${closedSorted.map((c) => {
-            const origIdx = pfClosed.indexOf(c);
-            return `
+          ${closedSorted.map((c) => `
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}</td>
               <td class="mono">${fmtQty(c.qty)}</td>
@@ -3096,9 +3245,7 @@ function buildPortfolioTab() {
               <td class="mono">${c.sellDate || '—'}</td>
               <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPKR(c.realizedPnl)}</td>
               <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPct(c.realizedPnlPct)}</td>
-              <td><button onclick="pfRemoveClosed(${origIdx})" title="Remove record" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button></td>
-            </tr>`;
-          }).join('')}
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
@@ -3114,12 +3261,13 @@ function buildPortfolioTab() {
     <div class="scroll-table">
       <table class="data-table">
         <thead><tr>
-          <th>Type</th><th>Ticker</th><th>Qty</th><th>Price</th><th>Amount</th><th>Date</th><th>Realized P&amp;L</th>
+          <th>Type</th><th>Ticker</th><th>Qty</th><th>Price</th><th>Amount</th><th>Date</th><th>Realized P&amp;L</th><th></th>
         </tr></thead>
         <tbody>
           ${txSorted.map(t => {
             const badge = TX_BADGE[t.type] || { label: t.type, color: 'var(--text2)' };
             const amount = t.type === 'deposit' || t.type === 'withdraw' ? t.amount : (t.qty * t.price);
+            const pnl = t.type === 'sell' ? pfRealizedPnlByTxId.get(t.id) : null;
             return `
             <tr>
               <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
@@ -3128,7 +3276,11 @@ function buildPortfolioTab() {
               <td class="mono">${t.price != null ? fmtPKR(t.price) : '—'}</td>
               <td class="mono">${fmtPKR(amount)}</td>
               <td class="mono">${t.date || '—'}</td>
-              <td class="mono" style="color:${t.realizedPnl!=null?clr(t.realizedPnl):'var(--text2)'}">${t.realizedPnl != null ? fmtPKR(t.realizedPnl) : '—'}</td>
+              <td class="mono" style="color:${pnl!=null?clr(pnl):'var(--text2)'}">${pnl != null ? fmtPKR(pnl) : '—'}</td>
+              <td style="white-space:nowrap;">
+                <button onclick="pfEditTransaction('${t.id}')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✎</button>
+                <button onclick="pfDeleteTransaction('${t.id}')" title="Delete" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button>
+              </td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -3167,13 +3319,15 @@ function buildPortfolioTab() {
     </div>
     <div style="margin-top:24px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Transaction History</div>
+      <div id="pfTxEditForm"></div>
       ${txHistoryHtml}
     </div>
   `;
 
-  renderPfPendingForm(pfPendingTicker ? (pfEditingExisting ? pfOpen.find(h=>h.ticker===pfPendingTicker) : null) : null);
+  renderPfPendingForm();
   if (pfPendingSellTicker) { const h = pfOpen.find(x=>x.ticker===pfPendingSellTicker); if (h) renderPfSellForm(h); else pfPendingSellTicker = null; }
   renderPfCashForm();
+  renderPfTxEditForm();
   _pfLastRows = rows;
   _pfLastHoldingsValue = holdingsValue;
   buildPortfolioAllocationChart(rows, holdingsValue, pfCash, pfAllocationBasis);
