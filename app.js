@@ -5569,7 +5569,7 @@ function buildHomeTab() {
 
   const arrow = col => col === sortCol ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
 
-  const thStyle = "padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;";
+  const thStyle = "padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:0.07em;color:var(--text2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;";
   const thR = col => `style="${thStyle}text-align:right;" onclick="sortHomeSignals('${col}')"`;
   const thL = col => `style="${thStyle}text-align:left;"  onclick="sortHomeSignals('${col}')"`;
 
@@ -5619,13 +5619,13 @@ function buildHomeTab() {
                 return `<tr onclick="switchTab('company');pickTicker('${String(d.Ticker||'').replace(/'/g,"\\'")}');"
                   style="cursor:pointer;background:${bg};"
                   onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background='${bg}'">
-                  <td style="padding:8px 12px;font-size:12px;font-weight:700;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;">${d.Ticker||'—'}${tickerBadges(d)}</td>
-                  <td style="padding:8px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(d.Name||'').substring(0,28)}</td>
-                  <td style="padding:8px 12px;font-size:11px;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;font-weight:600;font-size:10px;">${(d.Sector||'—').substring(0,18)}</td>
+                  <td style="padding:8px 12px;font-size:13px;font-weight:700;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;">${d.Ticker||'—'}${tickerBadges(d)}</td>
+                  <td style="padding:8px 12px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(d.Name||'').substring(0,28)}</td>
+                  <td style="padding:8px 12px;font-size:13px;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;font-weight:600;">${(d.Sector||'—').substring(0,18)}</td>
                   <td style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);">${scoreCircle(d['total improvement'])}</td>
-                  <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);white-space:nowrap;${mono}">${fmtSignalDate(d['Signal date'])}</td>
-                  <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);${mono}">${toN(d['Signal Price'])!=null?toN(d['Signal Price']).toFixed(2):'—'}</td>
-                  <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);${mono}color:${clr(ret)};">${ret!=null?(ret>=0?'+':'')+ret.toFixed(1)+'%':'—'}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);white-space:nowrap;${mono}">${fmtSignalDate(d['Signal date'])}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);${mono}">${toN(d['Signal Price'])!=null?toN(d['Signal Price']).toFixed(2):'—'}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);${mono}color:${clr(ret)};">${ret!=null?(ret>=0?'+':'')+ret.toFixed(1)+'%':'—'}</td>
                   <td style="padding:8px 12px;border-bottom:1px solid var(--border);">${pill(d['Signal Status'])}</td>
                 </tr>`;
               }).join('')}
@@ -5976,8 +5976,8 @@ function topTableRender(tableId) {
     });
   }
 
-  const ths = `padding:7px 11px;background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);box-shadow:0 2px 0 var(--border2);color:var(--text2);position:sticky;top:0;z-index:10;`;
-  const thA = `padding:7px 11px;background-image:linear-gradient(var(--accent-dim),var(--accent-dim)),linear-gradient(var(--surface2),var(--surface2));font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);box-shadow:0 2px 0 var(--accent);color:var(--accent);position:sticky;top:0;z-index:10;`;
+  const ths = `padding:7px 11px;background:var(--surface2);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--border2);box-shadow:0 2px 0 var(--border2);color:var(--text2);position:sticky;top:0;z-index:10;`;
+  const thA = `padding:7px 11px;background-image:linear-gradient(var(--accent-dim),var(--accent-dim)),linear-gradient(var(--surface2),var(--surface2));font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--accent);box-shadow:0 2px 0 var(--accent);color:var(--accent);position:sticky;top:0;z-index:10;`;
   const arr = col => sortCol===col ? (sortDir===-1?'▼':'▲') : '<span style="opacity:.3">⇅</span>';
 
   let html = `<table class="top-mini-table" id="${tableId}" style="width:100%;border-collapse:separate;border-spacing:0;">

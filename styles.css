@@ -1349,8 +1349,12 @@
     input[type="text"], input[type="password"], input[type="search"] { font-size: 16px; }
     select:not(.filter-select) { font-size: 16px; }
 
-    .data-table th { font-size: 12px; padding: 8px 10px; }
-    .data-table td { padding: 8px 10px; font-size: 13px; }
+    .data-table th { font-size: 10.5px; padding: 8px 10px; }
+    .data-table td { padding: 8px 10px; font-size: 12px; }
+    .top-mini-table td { font-size: 12px; }
+    .top-mini-table th { font-size: 10.5px !important; }
+    #homeSignalsTable td { font-size: 12px !important; }
+    #homeSignalsTable th { font-size: 10.5px !important; }
 
     /* Mobile only: swap Financial Score / Signal Date / Signal Price /
        Signal Return / Signal Status headers for their shortened wording
@@ -1388,7 +1392,8 @@
 
     .two-col { grid-template-columns: 1fr; }
 
-    .kpi-table th, .kpi-table tr td { font-size: 11px; padding: 5px 7px; }
+    .kpi-table th { font-size: 10.5px; padding: 5px 7px; }
+    .kpi-table tr td { font-size: 12px; padding: 5px 7px; }
 
     .modal { min-width: unset; width: 92vw; padding: 20px 16px; }
     .modal-stats { grid-template-columns: 1fr 1fr; }
@@ -1428,8 +1433,14 @@
     .header-subtitle { font-size: 10px; }
     .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
     .kpi-value { font-size: 18px; }
-    .data-table th { font-size: 11px; padding: 7px 8px; }
-    .data-table td { font-size: 12px; padding: 7px 8px; }
+    .data-table th { font-size: 10px; padding: 7px 8px; }
+    .data-table td { font-size: 11px; padding: 7px 8px; }
+    .kpi-table th { font-size: 10px; padding: 4px 6px; }
+    .kpi-table tr td { font-size: 11px; padding: 4px 6px; }
+    .top-mini-table td { font-size: 11px; }
+    .top-mini-table th { font-size: 10px !important; }
+    #homeSignalsTable td { font-size: 11px !important; }
+    #homeSignalsTable th { font-size: 10px !important; }
     #screenerTable th { font-size: 10px; padding: 5px 5px; }
     #screenerTable td { padding: 5px 5px; font-size: 11px; }
     #screenerTable th:nth-child(1),
@@ -2478,7 +2489,7 @@
 }
 .top-table-head .th-icon { font-size: 15px; }
 .top-mini-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.top-mini-table td { padding: 7px 12px; font-size: 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.top-mini-table td { padding: 7px 12px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .top-mini-table tr:last-child td { border-bottom: none; }
 .top-mini-table tr:hover td { background: var(--accent3-dim); }
 .top-mini-table .rk { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); width: 26px; }
