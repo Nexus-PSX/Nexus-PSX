@@ -3200,7 +3200,7 @@ function buildPortfolioTab() {
 
   const openTableHtml = rows.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">No open positions — search a ticker above to buy your first position.</div>` : `
     <div class="scroll-table">
-      <table class="data-table">
+      <table class="data-table" id="pfOpenTable">
         <thead><tr>
           <th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg Price</th><th>Current Price</th>
           <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Signal</th><th></th>
@@ -3230,7 +3230,7 @@ function buildPortfolioTab() {
   const closedSorted = [...pfClosed, ...pfLegacyClosed].sort((a,b) => new Date(b.sellDate||0) - new Date(a.sellDate||0));
   const closedTableHtml = closedSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No closed positions yet — sold trades will show up here with their realized P&amp;L.</div>` : `
     <div class="scroll-table">
-      <table class="data-table">
+      <table class="data-table" id="pfClosedTable">
         <thead><tr>
           <th>Ticker</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Buy Date</th><th>Sell Date</th><th>Realized P&amp;L</th><th>Realized P&amp;L %</th>
         </tr></thead>
@@ -3259,7 +3259,7 @@ function buildPortfolioTab() {
   };
   const txHistoryHtml = txSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No transactions logged yet — buys, sells, deposits and withdrawals will show up here as you make them.</div>` : `
     <div class="scroll-table">
-      <table class="data-table">
+      <table class="data-table" id="pfTxTable">
         <thead><tr>
           <th>Type</th><th>Ticker</th><th>Qty</th><th>Price</th><th>Amount</th><th>Date</th><th>Realized P&amp;L</th><th></th>
         </tr></thead>
@@ -5599,7 +5599,7 @@ function buildHomeTab() {
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
         <div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
-          <table style="width:100%;border-collapse:collapse;min-width:700px;">
+          <table id="homeSignalsTable" style="width:100%;border-collapse:separate;border-spacing:0;min-width:700px;">
             <thead style="background:var(--surface2);position:sticky;top:0;z-index:2;">
               <tr>
                 <th ${thL('ticker')}>TICKER${arrow('ticker')}</th>

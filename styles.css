@@ -659,6 +659,93 @@
     background-color: var(--surface3) !important;
   }
 
+  /* ── HOME TAB (Active Buy Signals) — frozen Ticker column ────────────── */
+  #homeSignalsTable th:nth-child(1),
+  #homeSignalsTable td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    min-width: 90px;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.3);
+  }
+  #homeSignalsTable th:nth-child(1) { z-index: 3; }
+  #homeSignalsTable td:nth-child(1) {
+    z-index: 1;
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+  }
+  /* Rows toggle their background inline on hover (JS-driven, not CSS nth-
+     child stripes) — !important on the sticky cell wins over that inline
+     style so it stays a consistent solid color instead of inheriting it. */
+  #homeSignalsTable tr:hover td:nth-child(1) {
+    background: var(--surface3) !important;
+    background-color: var(--surface3) !important;
+  }
+
+  /* ── PORTFOLIO TAB — frozen Ticker column ─────────────────────────────
+     Open/Closed Positions: Ticker is column 1. Transaction History has a
+     Type badge in column 1 and Ticker in column 2 — both are frozen
+     together so there's no gap/jump between them while scrolling. */
+  #pfOpenTable th:nth-child(1),
+  #pfOpenTable td:nth-child(1),
+  #pfClosedTable th:nth-child(1),
+  #pfClosedTable td:nth-child(1),
+  #pfTxTable th:nth-child(1),
+  #pfTxTable td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+  }
+  #pfTxTable th:nth-child(2),
+  #pfTxTable td:nth-child(2) {
+    position: sticky;
+    left: 96px; /* approx. rendered width of the Type badge column */
+    z-index: 2;
+  }
+  #pfOpenTable td:nth-child(1),
+  #pfClosedTable td:nth-child(1),
+  #pfTxTable td:nth-child(1),
+  #pfTxTable td:nth-child(2) {
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.25);
+  }
+  #pfOpenTable th:nth-child(1),
+  #pfClosedTable th:nth-child(1),
+  #pfTxTable th:nth-child(1),
+  #pfTxTable th:nth-child(2) {
+    background: var(--surface2) !important;
+    background-color: var(--surface2) !important;
+  }
+
+  /* ── TOP TAB — frozen Rank + Ticker columns ───────────────────────────
+     Both frozen together (not just Ticker alone) so there's no gap/jump
+     between the rank number and the ticker it belongs to while scrolling. */
+  .top-mini-table th:nth-child(1),
+  .top-mini-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+  }
+  .top-mini-table th:nth-child(2),
+  .top-mini-table td:nth-child(2) {
+    position: sticky;
+    left: 42px; /* approx. rendered width of the # rank column */
+  }
+  .top-mini-table td:nth-child(1),
+  .top-mini-table td:nth-child(2) {
+    z-index: 3;
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.25);
+  }
+  .top-mini-table tr:hover td:nth-child(1),
+  .top-mini-table tr:hover td:nth-child(2) {
+    background: var(--accent3-dim) !important;
+  }
+  /* Header cells already have their own opaque background (solid for the
+     default header, an opaque gradient for the active-sorted column — see
+     the ths/thA styles in topTableRender()), so only position is added here
+     — forcing a background would override that active-sort highlighting. */
+
   /* ── SCREENER MARKET AVERAGE ROW (tfoot) ─────────────────────────────────
      Sticky at the bottom of the scroll-table viewport so it stays visible
      while scrolling vertically through rows. First cell is also frozen
