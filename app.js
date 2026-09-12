@@ -1487,62 +1487,120 @@ function updateSortArrows(headRowId, activeCol, dir) {
   });
 }
 
-// ===== SECTOR TAB: KSE 100 vs Top 5 Sectors comparison cards =====
-// Renders one row of cards per metric (WTD%, Roll 1M%, Roll 3M%, YTD%): a
-// highlighted KSE 100 benchmark card, followed by that metric's own top 5
-// sectors — each metric is ranked independently, so the 5 sectors shown can
-// differ from row to row (e.g. the WTD leaders aren't necessarily the YTD
-// leaders). Mirrors the card styling used for the Home tab's Top 5 Sectors.
-function buildSectorCompareCards() {
-  const container = document.getElementById('sectorCompareCards');
-  if (!container) return;
-  if (!SOURCE_DATA || !SOURCE_DATA.length) { container.innerHTML = ''; return; }
-
-  const toN    = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
-  const fmtPct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-  const clr    = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
-  const mono   = "font-family:'IBM Plex Mono',monospace;";
-
-  const kse100 = SOURCE_DATA.find(d => String(d.Ticker || '').toUpperCase() === 'KSE100') || null;
+// Pure data step: classifies every sector into one of the 5 rotation
+// categories. Shared by the list widget below (and reusable elsewhere if
+// needed) so the classification logic lives in exactly one place.
+function computeSectorRotationData() {
+  const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const kse100   = SOURCE_DATA.find(d => String(d.Ticker || '').toUpperCase() === 'KSE100') || null;
+  const bench1D  = kse100 ? toN(kse100['Day Change %']) : null;
+  const benchWTD = kse100 ? toN(kse100['Current Week Return %']) : null;
+  const bench1M  = kse100 ? toN(kse100['Rolling 1M%']) : null;
+  if (bench1D == null && benchWTD == null && bench1M == null) return null;
 
   const companies  = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
   const sectorRows = computeSectorRowsFromCompanies(companies);
 
-  const metrics = [
-    { label: 'WTD %',    sectorKey: 'p1w',    sourceKey: 'Current Week Return %' },
-    { label: 'Roll 1M%', sectorKey: 'pRoll1m', sourceKey: 'Rolling 1M%' },
-    { label: 'Roll 3M%', sectorKey: 'pRoll3m', sourceKey: 'Rolling 3M%' },
-    { label: 'YTD %',    sectorKey: 'pYTD',    sourceKey: 'YTD Return %' },
-  ];
+  return sectorRows.map(s => {
+    const rel1D  = (s.p1d     != null && bench1D  != null) ? s.p1d     - bench1D  : null;
+    const relWTD = (s.p1w     != null && benchWTD != null) ? s.p1w     - benchWTD : null;
+    const rel1M  = (s.pRoll1m != null && bench1M  != null) ? s.pRoll1m - bench1M  : null;
+    let category = null;
+    if (rel1M != null && relWTD != null) {
+      if (rel1M > 0 && relWTD > 0) {
+        const actualPositive = s.pRoll1m != null && s.pRoll1m > 0 && s.p1w != null && s.p1w > 0;
+        category = actualPositive ? 'absoluteLeading' : 'defensiveOutperforming';
+      } else if (rel1M > 0) {
+        category = 'weakening';
+      } else if (relWTD > 0) {
+        category = 'improving';
+      } else {
+        category = 'lagging';
+      }
+    }
+    return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, roll1m: s.pRoll1m, wtd: s.p1w, category };
+  });
+}
 
-  const kseCard = (val) => `
-    <div style="background:var(--surface);border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;flex:1;min-width:130px;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">KSE 100</div>
-      <div style="font-size:17px;font-weight:700;color:${clr(val)};${mono}">${fmtPct(val)}</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px;">Benchmark index</div>
+const SECTOR_ROTATION_CATEGORIES = [
+  { key: 'absoluteLeading',        label: 'Absolute Leading',        color: 'var(--success)' },
+  { key: 'defensiveOutperforming', label: 'Defensive Outperforming', color: 'var(--accent)' },
+  { key: 'improving',              label: 'Improving',               color: 'var(--warn)' },
+  { key: 'weakening',              label: 'Weakening',               color: 'var(--danger)' },
+  { key: 'lagging',                label: 'Lagging',                 color: 'var(--text3)' },
+];
+
+// ===== SECTOR TAB: Sector Rotation ranked list (replaces the old KSE 100
+// vs Top 5 Sectors comparison cards, same slot above Sector Performance
+// Summary) =====
+// Classifies each sector into one of 5 rotation categories vs the KSE 100
+// benchmark — see computeSectorRotationData() above for the exact rules —
+// and lists them with a filter pill per category. List order is
+// alphabetical by sector name; "Rank" is just that list position, not a
+// performance ranking.
+let sectorRotationFilter = 'all';
+function setSectorRotationFilter(key) {
+  sectorRotationFilter = key;
+  renderSectorRotationList();
+}
+function buildSectorRotation() {
+  // Computes + stores the data, then delegates to the renderer so the
+  // filter pills can re-render instantly without recomputing.
+  sectorRotationData = computeSectorRotationData();
+  renderSectorRotationList();
+}
+let sectorRotationData = null;
+function renderSectorRotationList() {
+  const container = document.getElementById('sectorRotationList');
+  if (!container) return;
+  if (!sectorRotationData) {
+    container.innerHTML = `<div style="padding:16px;color:var(--text2);font-size:12px;">Benchmark (KSE 100) data isn't available, so sector rotation can't be calculated right now.</div>`;
+    return;
+  }
+
+  const catByKey = Object.fromEntries(SECTOR_ROTATION_CATEGORIES.map(c => [c.key, c]));
+  const rows = [...sectorRotationData]
+    .filter(r => sectorRotationFilter === 'all' || r.category === sectorRotationFilter)
+    .sort((a, b) => a.sector.localeCompare(b.sector));
+
+  const pill = (key, label) => `
+    <button type="button" onclick="setSectorRotationFilter('${key}')"
+      style="padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+        border:1px solid ${sectorRotationFilter===key?'var(--accent)':'var(--border)'};
+        background:${sectorRotationFilter===key?'var(--accent-dim)':'var(--surface)'};
+        color:${sectorRotationFilter===key?'var(--accent)':'var(--text2)'};">${label}</button>`;
+
+  const pills = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:14px 14px 10px;">
+      ${pill('all', 'All')}
+      ${SECTOR_ROTATION_CATEGORIES.map(c => pill(c.key, c.label)).join('')}
     </div>`;
 
-  const sectorCard = (s, val) => `
-    <div onclick="drillSectorToScreener('${s.sector.replace(/'/g,"\\'")}');switchTab('screener')"
-      style="cursor:pointer;background:var(--surface);border:1px solid var(--border);border-left:4px solid ${val>=0?'var(--success)':'var(--danger)'};border-radius:10px;padding:12px 14px;flex:1;min-width:130px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${s.sector}</div>
-      <div style="font-size:17px;font-weight:700;color:${clr(val)};${mono}">${fmtPct(val)}</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px;">Score ${s.totalScore!=null?s.totalScore.toFixed(0):'—'} · ${s.companies} cos</div>
-    </div>`;
+  const listRows = rows.length
+    ? rows.map((r, i) => {
+        const cat = r.category != null ? catByKey[r.category] : null;
+        return `
+        <div onclick="drillSectorToScreener('${r.sector.replace(/'/g,"\\'")}');switchTab('screener')"
+          style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:12px 14px;border-top:1px solid var(--border);">
+          <div style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--surface2);color:var(--text3);
+            display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'IBM Plex Mono',monospace;">${i + 1}</div>
+          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="font-size:13px;font-weight:700;color:var(--text);">${r.sector}</span>
+            ${cat ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:${cat.color};">
+              <span style="width:6px;height:6px;border-radius:50%;background:${cat.color};display:inline-block;"></span>${cat.label}
+            </span>` : `<span style="font-size:12px;color:var(--text3);">—</span>`}
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="padding:24px 14px;text-align:center;color:var(--text3);font-size:12px;">No sectors in this category</div>`;
 
-  container.innerHTML = metrics.map(m => {
-    const kseVal = kse100 ? toN(kse100[m.sourceKey]) : null;
-    const ranked = [...sectorRows]
-      .filter(s => s[m.sectorKey] != null)
-      .sort((a, b) => b[m.sectorKey] - a[m.sectorKey])
-      .slice(0, 5);
-    const cards = [kseCard(kseVal), ...ranked.map(s => sectorCard(s, s[m.sectorKey]))].join('');
-    return `
-      <div style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">${m.label} — KSE 100 vs Top 5 Sectors</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">${cards}</div>
-      </div>`;
-  }).join('');
+  container.innerHTML = `
+    ${pills}
+    <div style="display:flex;align-items:center;gap:14px;padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:0.04em;color:var(--text3);text-transform:uppercase;border-top:1px solid var(--border);">
+      <div style="width:26px;flex-shrink:0;">Rank</div>
+      <div>Sector</div>
+    </div>
+    ${listRows}`;
 }
 
 // ===== SECTOR TABLE =====
@@ -1554,7 +1612,7 @@ function buildSectorTable() {
   sectorTableData = regular;
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
-  buildSectorCompareCards();
+  buildSectorRotation();
 }
 function renderSectorTable(data) {
   const tbody = document.getElementById('sectorTableBody');
@@ -3401,6 +3459,7 @@ function pfCalloutLabelsPlugin(weightPct) {
     afterDraw(chart) {
       const meta = chart.getDatasetMeta(0);
       const labels = chart.data.labels;
+      const colors = chart.data.datasets[0].backgroundColor;
       const th = getChartTheme();
       const ctx = chart.ctx;
 
@@ -3414,9 +3473,10 @@ function pfCalloutLabelsPlugin(weightPct) {
 
       if (!items.length) return;
 
-      const baseOffset = 14;   // default label distance from the slice edge
-      const stepOffset = 13;   // extra distance added per collision, fanning crowded labels out
+      const baseOffset = 18;   // default label distance from the slice edge — every slice gets a visible connector now, not just crowded ones
+      const stepOffset = 14;   // extra distance added per collision, fanning crowded labels out further
       const minGap = 0.33;     // ~19° — closer than this counts as "crowded"
+      const textGap = 7;       // gap kept between the leader line's tip and where the text starts, so the line never touches a letter
 
       let lastMid = null, lastRadius = null;
       items.forEach(it => {
@@ -3436,24 +3496,35 @@ function pfCalloutLabelsPlugin(weightPct) {
 
       ctx.save();
       ctx.font = `700 9px ${CHART_FONT}`;
-      ctx.fillStyle = th.tick;
       items.forEach(it => {
         const cosA = Math.cos(it.mid), sinA = Math.sin(it.mid);
         const arcX = it.x + it.outerRadius * cosA, arcY = it.y + it.outerRadius * sinA;
         const labelX = it.x + it.radius * cosA, labelY = it.y + it.radius * sinA;
+        // Stop the line textGap px short of the label point, along the same
+        // radial direction, so there's always a visible gap before the text
+        // starts — regardless of how close together labels get.
+        const lineEndX = it.x + (it.radius - textGap) * cosA;
+        const lineEndY = it.y + (it.radius - textGap) * sinA;
 
-        if (it.radius > it.outerRadius + baseOffset + 1) {
-          ctx.save();
-          ctx.strokeStyle = th.tick;
-          ctx.globalAlpha = 0.45;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(arcX, arcY);
-          ctx.lineTo(labelX, labelY);
-          ctx.stroke();
-          ctx.restore();
-        }
+        // Small dot at the slice edge, colored to match the slice — makes
+        // the connector read as "this line belongs to this slice" at a
+        // glance, and looks nicer than a bare line.
+        ctx.beginPath();
+        ctx.arc(arcX, arcY, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = colors[it.i] || th.tick;
+        ctx.fill();
 
+        ctx.save();
+        ctx.strokeStyle = th.tick;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(arcX, arcY);
+        ctx.lineTo(lineEndX, lineEndY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = th.tick;
         ctx.textAlign = cosA > 0.15 ? 'left' : cosA < -0.15 ? 'right' : 'center';
         ctx.textBaseline = 'middle';
         const tx = labelX + (cosA > 0.15 ? 3 : cosA < -0.15 ? -3 : 0);
@@ -3514,7 +3585,10 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
         data,
         backgroundColor,
         borderColor: surfaceColor,
-        borderWidth: 2,
+        borderWidth: 3,
+        borderRadius: 4,
+        hoverOffset: 8,
+        hoverBorderWidth: 3,
       }]
     },
     // pfCenterTextPlugin and pfCalloutLabelsPlugin are passed per-instance
@@ -3523,19 +3597,23 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '70%',
+      // A thick ring reads much better than a thin one at this size — 70%
+      // cutout left a hairline band that was hard to associate with its
+      // color/label at a glance. 50% gives a substantially bolder ring
+      // while still leaving clear room for the centered stock count.
+      cutout: '50%',
       // Shrinking the ring itself (not just adding canvas padding) is what
       // actually fixes label clipping on narrow screens — a fixed pixel
       // padding doesn't scale down with a small mobile canvas, but a radius
       // percentage does, so labels keep proportional room on any screen size.
       radius: '68%',
-      layout: { padding: 20 },
+      layout: { padding: 22 },
       animation: { duration: 400, easing: 'easeOutCubic' },
       plugins: {
         // The built-in legend (a separate list off to the side) is what put
         // tickers "far from the chart" — replaced by pfCalloutLabelsPlugin
         // above, which draws the ticker + weight% directly next to each
-        // slice (with a leader line for crowded ones).
+        // slice, connected back to it with a small leader line.
         legend: { display: false },
         tooltip: {
           ...sharedTooltip(),

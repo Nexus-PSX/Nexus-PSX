@@ -450,8 +450,17 @@
 
   <!-- ===== SECTOR TAB ===== -->
   <div id="tab-sector" class="tab-content">
-    <!-- KSE 100 vs Top 5 Sectors — populated by buildSectorCompareCards() in app.js -->
-    <div id="sectorCompareCards" style="margin-bottom:4px;"></div>
+    <!-- Sector Rotation — populated by buildSectorRotation()/renderSectorRotationList() in app.js.
+         Replaces the old KSE 100 vs Top 5 Sectors comparison cards in this slot. -->
+    <div class="table-card" style="margin-bottom:16px;">
+      <div class="table-header">
+        <div class="table-title" style="position:relative;">
+          Sector Rotation
+          <span style="font-size:11px;font-weight:400;color:var(--text2);margin-left:8px;">vs KSE 100 — 1M trend × WTD momentum</span>
+        </div>
+      </div>
+      <div id="sectorRotationList"></div>
+    </div>
     <div class="table-card">
       <div class="table-header">
         <div class="table-title" style="position:relative;">Sector Performance Summary</div>
