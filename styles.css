@@ -867,6 +867,29 @@
   }
   .cmp-kpi-toggle:hover { filter: brightness(1.08); }
 
+  /* Mobile browsers (esp. iOS/Android Chrome) will sometimes drop a
+     position:sticky cell from its own compositing layer mid-scroll,
+     causing it to flicker or briefly vanish during a fast swipe. Promoting
+     every frozen/sticky first column onto its own layer up front fixes
+     this. Applies to the Ticker column in screener/watchlist/home/top/
+     portfolio and the frozen first column in the sector/kpi tables. */
+  #screenerTable th:nth-child(1), #screenerTable td:nth-child(1),
+  #watchlistTableGH th:nth-child(1), #watchlistTableGH td:nth-child(1),
+  #watchlistTableGuest th:nth-child(1), #watchlistTableGuest td:nth-child(1),
+  #homeSignalsTable th:nth-child(1), #homeSignalsTable td:nth-child(1),
+  #pfOpenTable th:nth-child(1), #pfOpenTable td:nth-child(1),
+  #pfClosedTable th:nth-child(1), #pfClosedTable td:nth-child(1),
+  #pfTxTable th:nth-child(1), #pfTxTable td:nth-child(1),
+  #pfTxTable th:nth-child(2), #pfTxTable td:nth-child(2),
+  .top-mini-table th:nth-child(1), .top-mini-table td:nth-child(1),
+  .top-mini-table th:nth-child(2), .top-mini-table td:nth-child(2),
+  #sectorTable th:first-child, #sectorTable td:first-child,
+  .kpi-table th:first-child, .kpi-table .metric-name {
+    will-change: transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
   /* SCROLLABLE */
   .scroll-table { overflow-x: auto; max-height: 600px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--accent3) var(--surface2); -webkit-overflow-scrolling: touch; }
   .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -1377,11 +1400,26 @@
        estate for the columns scrolling in next to it. */
     #screenerTable th:nth-child(1),
     #screenerTable td:nth-child(1) {
-      min-width: 78px;
+      min-width: 100px;
+      max-width: 100px;
       padding-left: 6px;
       padding-right: 6px;
     }
     #screenerTable .ticker-link { font-size: 12px; }
+    /* Safety net: the Ticker cell holds an add-button + ticker text + up to
+       several badges (T/N/KMI/liquid/V). If that combined content ever
+       exceeds the cell's fixed width above, clip it with an ellipsis
+       instead of letting it visually spill into the next scrolling column
+       (which is what was reported as the ticker "overlapping the data"). */
+    #screenerTable td:nth-child(1) > span {
+      display: inline-flex;
+      align-items: center;
+      max-width: calc(100% - 21px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
 
     /* The sticky "Market Avg" footer row shares columns with the body rows —
        an HTML table sizes each column to its widest cell across ALL rows,
@@ -1398,7 +1436,14 @@
     .modal { min-width: unset; width: 92vw; padding: 20px 16px; }
     .modal-stats { grid-template-columns: 1fr 1fr; }
 
-    /* Stock Screener: all columns shown on mobile too (table scrolls horizontally instead) */
+    /* Stock Screener on mobile: hide the secondary/detail columns (financial
+       breakdown, sector, etc.) so only the core columns + whatever the user
+       has toggled on are shown. This class is applied throughout the
+       screener/watchlist markup in index.html and app.js, but the rule that
+       hides it had gone missing — without it every column renders at once
+       on mobile, which is what was pushing the frozen Ticker column's
+       content toward overflow/overlap while scrolling. */
+    .screener-hide-mobile { display: none; }
     /* Sector table: all columns now shown on mobile too (table scrolls horizontally instead) */
     /* Constrain sector name on mobile */
     .sector-name-cell { min-width: 110px; max-width: 140px; font-size: 12px; }
