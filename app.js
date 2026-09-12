@@ -3482,6 +3482,17 @@ function pfCalloutLabelsPlugin(weightPct) {
 
       if (!items.length) return;
 
+      // The tooltip has no awareness of where our custom labels sit, so it
+      // can still land right on/next to a *different* slice's label (e.g.
+      // hovering NETSOL popped a tooltip that clipped straight through
+      // AKBL's label). Rather than try to reposition the tooltip, just hide
+      // any callout whose bounding box would collide with it while it's
+      // showing — the tooltip already conveys that slice's info anyway.
+      const tt = chart.tooltip;
+      const ttRect = (tt && tt.opacity > 0.05 && tt.width && tt.height)
+        ? { left: tt.x, top: tt.y, right: tt.x + tt.width, bottom: tt.y + tt.height }
+        : null;
+
       const baseOffset = 18;   // default label distance from the slice edge — every slice gets a visible connector now, not just crowded ones
       const stepOffset = 14;   // extra distance added per collision, fanning crowded labels out further
       const minGap = 0.33;     // ~19° — closer than this counts as "crowded"
@@ -3515,6 +3526,23 @@ function pfCalloutLabelsPlugin(weightPct) {
         const lineEndX = it.x + (it.radius - textGap) * cosA;
         const lineEndY = it.y + (it.radius - textGap) * sinA;
 
+        const align = cosA > 0.15 ? 'left' : cosA < -0.15 ? 'right' : 'center';
+        const tx = labelX + (cosA > 0.15 ? 3 : cosA < -0.15 ? -3 : 0);
+
+        // Check this label's own bounding box against the tooltip's before
+        // drawing anything for this slice.
+        if (ttRect) {
+          const w = Math.max(
+            ctx.measureText(labels[it.i]).width,
+            ctx.measureText(`${weightPct[it.i].toFixed(1)}%`).width
+          );
+          const boxLeft = align === 'left' ? tx : align === 'right' ? tx - w : tx - w / 2;
+          const labelRect = { left: boxLeft - 3, right: boxLeft + w + 3, top: labelY - 12, bottom: labelY + 12 };
+          const collides = !(labelRect.right < ttRect.left || labelRect.left > ttRect.right ||
+                              labelRect.bottom < ttRect.top || labelRect.top > ttRect.bottom);
+          if (collides) return; // skip the dot, line, and text for this slice this frame
+        }
+
         // Small dot at the slice edge, colored to match the slice — makes
         // the connector read as "this line belongs to this slice" at a
         // glance, and looks nicer than a bare line.
@@ -3534,9 +3562,8 @@ function pfCalloutLabelsPlugin(weightPct) {
         ctx.restore();
 
         ctx.fillStyle = th.tick;
-        ctx.textAlign = cosA > 0.15 ? 'left' : cosA < -0.15 ? 'right' : 'center';
+        ctx.textAlign = align;
         ctx.textBaseline = 'middle';
-        const tx = labelX + (cosA > 0.15 ? 3 : cosA < -0.15 ? -3 : 0);
         ctx.fillText(labels[it.i], tx, labelY - 5);
         ctx.fillText(`${weightPct[it.i].toFixed(1)}%`, tx, labelY + 5);
       });
