@@ -891,6 +891,19 @@
   }
 
   /* SCROLLABLE */
+  /* Data options button hover — previously done via inline onmouseenter/
+     onmouseleave handlers that read the global dataMenuOpen variable. That
+     caused "dataMenuOpen is not defined" console errors if the button was
+     hovered before app.js finished loading. Pure CSS has no such race.
+     !important is needed because the button also carries inline
+     border-color/color (both as its base style and as set by
+     toggleDataMenu()/closeDataMenu() when the menu opens/closes) — a plain
+     stylesheet rule can't win against inline styles otherwise. This still
+     composes correctly with that JS: hovering always shows the accent
+     color, and moving the mouse away while the menu is open correctly
+     leaves it accent-colored too (that's the JS-set open-state color,
+     simply no longer overwritten on mouseleave). */
+  #dataMenuBtn:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
   .scroll-table { overflow-x: auto; max-height: 600px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--accent3) var(--surface2); -webkit-overflow-scrolling: touch; }
   .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
   .scroll-table::-webkit-scrollbar-track { background: var(--surface2); border-radius: 6px; }

@@ -2151,7 +2151,7 @@ let activeColFilterKey = null;
 // Columns whose underlying data is a raw fraction (e.g. 0.05) displayed as "5.00%".
 // For these, the filter box accepts a plain percent number (e.g. "5") and we convert
 // to/from the fraction under the hood, so typing "5" means 5% rather than 500%.
-const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q']);
+const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q', 'REV Q G%']);
 // Signal date / NEMI Signal date are stored as an 8-digit YYYYMMDD number — still
 // perfectly comparable with > / <, but the filter box gets a format hint for these.
 const DATE_COL_FILTER_KEYS = new Set(['Signal date', 'NEMI Signal date', 'Last Period End Date']);
@@ -2350,14 +2350,14 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%'];
   const key = sortKeys[screenerSort.col];
   // Keys that must be compared numerically. Kept as a Set (built once per call is
   // cheap here) so the comparator below can do a single, fast lookup.
   // NOTE: "Last Period End Date" is deliberately NOT here — unlike Signal date
   // (a YYYYMMDD integer), it's stored as an ISO "YYYY-MM-DD" string, which the
   // default string comparison below already sorts correctly (chronologically).
-  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%']);
+  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%']);
 
   // Compares two rows on a single sort level ({col, dir}). Returns 0 when the rows
   // tie on that level's column, so the caller can fall through to the next level.
@@ -3892,6 +3892,7 @@ function renderScreenerPage() {
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%'),2):'—'}</td>
       <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtBig(dget(d,'Revenue - Q'))}</td>
+      <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'REV Q G%'))}">${dget(d,'REV Q G%')!=null?fmtPct(dget(d,'REV Q G%'),2):'—'}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Op Income-Q'))}">${fmtPct(dget(d,'Op Income-Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Net Income -Q'))}">${fmtPct(dget(d,'Net Income -Q'),2)}</td>
@@ -3993,6 +3994,7 @@ function updateScreenerAvgRow() {
     <td class="mono screener-hide-mobile screener-fin-col">${avg('EPS Q G%') != null ? fmtPct(avg('EPS Q G%'),2) : '—'}</td>
     <td class="mono screener-fin-col">${fmt(avg('P/E Ratio'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmtBig(avg('Revenue - Q'))}</td>
+    <td class="mono screener-hide-mobile screener-fin-col">${avg('REV Q G%') != null ? fmtPct(avg('REV Q G%'),2) : '—'}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Latest TTM EPS Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('Op Income-Q'))}">${fmtPct(avg('Op Income-Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('Net Income -Q'))}">${fmtPct(avg('Net Income -Q'),2)}</td>
