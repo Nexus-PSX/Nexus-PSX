@@ -737,28 +737,24 @@
     background-color: var(--surface2) !important;
   }
 
-  /* ── TOP TAB — frozen Rank + Ticker columns ───────────────────────────
-     Both frozen together (not just Ticker alone) so there's no gap/jump
-     between the rank number and the ticker it belongs to while scrolling. */
+  /* ── TOP TAB — frozen Ticker column ───────────────────────────────────
+     The separate # rank column was removed (redundant with sort order and
+     was eating up scroll width on mobile) — Ticker is now the first column
+     and the only one frozen. Name scrolls normally right after it, so
+     there's no risk of a mismatched offset causing a gap/overlap like the
+     old two-column freeze could. */
   .top-mini-table th:nth-child(1),
   .top-mini-table td:nth-child(1) {
     position: sticky;
     left: 0;
   }
-  .top-mini-table th:nth-child(2),
-  .top-mini-table td:nth-child(2) {
-    position: sticky;
-    left: 42px; /* approx. rendered width of the # rank column */
-  }
-  .top-mini-table td:nth-child(1),
-  .top-mini-table td:nth-child(2) {
+  .top-mini-table td:nth-child(1) {
     z-index: 3;
     background: var(--surface) !important;
     background-color: var(--surface) !important;
     box-shadow: 2px 0 6px rgba(0,0,0,0.25);
   }
-  .top-mini-table tr:hover td:nth-child(1),
-  .top-mini-table tr:hover td:nth-child(2) {
+  .top-mini-table tr:hover td:nth-child(1) {
     background: var(--accent3-dim) !important;
   }
   /* Header cells already have their own opaque background (solid for the
@@ -1481,7 +1477,14 @@
        hides it had gone missing — without it every column renders at once
        on mobile, which is what was pushing the frozen Ticker column's
        content toward overflow/overlap while scrolling. */
-    .screener-hide-mobile { display: none; }
+    /* Previously this hid these columns unconditionally on mobile,
+       regardless of the Hide/Show Financials toggle — so tapping "Show
+       Financials" on mobile had no visible effect, since .screener-hide-mobile
+       kept them hidden anyway. Scoping it to #screenerTable.hide-financials
+       means tapping "Show Financials" (which removes that class) now
+       reveals every one of these columns on mobile too, matching what the
+       toggle already does on desktop. */
+    #screenerTable.hide-financials .screener-hide-mobile { display: none; }
     /* Sector table: all columns now shown on mobile too (table scrolls horizontally instead) */
     /* Constrain sector name on mobile */
     .sector-name-cell { min-width: 110px; max-width: 140px; font-size: 12px; }
@@ -2577,7 +2580,6 @@
 .top-mini-table td { padding: 7px 12px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .top-mini-table tr:last-child td { border-bottom: none; }
 .top-mini-table tr:hover td { background: var(--accent3-dim); }
-.top-mini-table .rk { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); width: 26px; }
 .top-mini-table .tk { font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--accent3); cursor: pointer; }
 .top-mini-table .tk:hover { color: var(--accent); text-decoration: underline; }
 .top-mini-table .nm { color: var(--text2); font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

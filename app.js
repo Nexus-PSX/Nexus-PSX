@@ -6130,7 +6130,6 @@ function topTableRender(tableId) {
 
   let html = `<table class="top-mini-table" id="${tableId}" style="width:100%;border-collapse:separate;border-spacing:0;">
     <thead><tr>
-      <th style="${sortCol==='rank'?thA:ths}text-align:center;" onclick="sortTopTable('${tableId}','rank')"># ${arr('rank')}</th>
       <th style="${sortCol==='ticker'?thA:ths}" onclick="sortTopTable('${tableId}','ticker')">Ticker ${arr('ticker')}</th>
       <th style="${sortCol==='name'?thA:ths}" onclick="sortTopTable('${tableId}','name')">Name ${arr('name')}</th>
       ${cols.map((c,i)=>`<th style="${sortCol===i?thA:ths}text-align:${c.key==='Sector'?'left':'right'};" onclick="sortTopTable('${tableId}',${i})">${c.label} ${arr(i)}</th>`).join('')}
@@ -6138,7 +6137,6 @@ function topTableRender(tableId) {
 
   sorted.forEach((d,i) => {
     html += `<tr>
-      <td class="rk" style="text-align:center;padding:7px 8px;">${i+1}</td>
       <td class="tk" style="cursor:pointer;padding:7px 11px;" onclick="switchTab('company');pickTicker('${String(d.Ticker||'').replace(/'/g,"\\'")}');">${d.Ticker||'—'}${tickerBadges(d)}</td>
       <td class="nm" style="padding:7px 11px;" title="${(d.Name||'').replace(/"/g,'&quot;')}">${(d.Name||'').substring(0,26)}${(d.Name||'').length>26?'…':''}</td>
       ${cols.map((c,ci)=>{
