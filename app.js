@@ -61,6 +61,7 @@ function computeSectorRowsFromCompanies(companies) {
     companies:  rows.length,
     epsQ:       avg(rows, 'Latest EPS  Q'),
     epsQG:      avg(rows, 'EPS Q G%'),
+    revQG:      avg(rows, 'REV Q G%'),
     epsTTM:     avg(rows, 'Latest TTM EPS Q'),
     opMargin:   avg(rows, 'Op Income-Q'),
     netMargin:  avg(rows, 'Net Income -Q'),
@@ -106,6 +107,7 @@ function buildMarketAvgRowFromCompanies(companies, sectorRows) {
     companies:  companies.length,
     epsQ:       avg('Latest EPS  Q'),
     epsQG:      avg('EPS Q G%'),
+    revQG:      avg('REV Q G%'),
     epsTTM:     avg('Latest TTM EPS Q'),
     opMargin:   avg('Op Income-Q'),
     netMargin:  avg('Net Income -Q'),
@@ -1580,6 +1582,7 @@ function renderSectorTable(data) {
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG,2):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.revQG)}">${s.revQG!=null?fmtPct(s.revQG,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin,2):'—'}</td>
@@ -1683,7 +1686,7 @@ function filterSectorTable() {
   updateSectorClearBtn();
 }
 function sortSectorTable(col) {
-  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y','epsQG'];
+  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y','epsQG','revQG'];
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
@@ -3382,6 +3385,86 @@ function pfCenterTextPlugin(count) {
   };
 }
 
+// Draws the ticker + weight% label next to each donut slice, like the
+// built-in chartjs-plugin-datalabels config it replaces — but with actual
+// overlap avoidance. datalabels placed every label at the same fixed
+// radius, so slices that sit close together in angle (e.g. several small
+// positions bunched near the top of the ring) had their labels collide.
+// This walks the slices in angular order and, whenever two neighboring
+// labels would be closer together than `minGap` radians, pushes the
+// second one further out along its own radial line and draws a thin
+// "leader line" back to its slice — a standard callout-label treatment.
+// Well-spaced/large slices are untouched (no line, same position as before).
+function pfCalloutLabelsPlugin(weightPct) {
+  return {
+    id: 'pfCalloutLabels',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      const labels = chart.data.labels;
+      const th = getChartTheme();
+      const ctx = chart.ctx;
+
+      const items = meta.data.map((arc, i) => {
+        if (weightPct[i] < 2) return null; // same "too thin to label" threshold as before
+        const p = arc.getProps(['x', 'y', 'startAngle', 'endAngle', 'outerRadius'], true);
+        let mid = (p.startAngle + p.endAngle) / 2;
+        mid = ((mid % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2); // normalize to [0, 2π)
+        return { i, mid, x: p.x, y: p.y, outerRadius: p.outerRadius };
+      }).filter(Boolean).sort((a, b) => a.mid - b.mid);
+
+      if (!items.length) return;
+
+      const baseOffset = 14;   // default label distance from the slice edge
+      const stepOffset = 13;   // extra distance added per collision, fanning crowded labels out
+      const minGap = 0.33;     // ~19° — closer than this counts as "crowded"
+
+      let lastMid = null, lastRadius = null;
+      items.forEach(it => {
+        let radius = it.outerRadius + baseOffset;
+        if (lastMid != null && (it.mid - lastMid) < minGap) radius = lastRadius + stepOffset;
+        it.radius = radius;
+        lastMid = it.mid;
+        lastRadius = radius;
+      });
+      // The ring wraps around (0 and 2π are adjacent) — check the last vs first too.
+      if (items.length > 1) {
+        const first = items[0], last = items[items.length - 1];
+        if ((first.mid + Math.PI * 2 - last.mid) < minGap && last.radius <= first.radius) {
+          last.radius = first.radius + stepOffset;
+        }
+      }
+
+      ctx.save();
+      ctx.font = `700 9px ${CHART_FONT}`;
+      ctx.fillStyle = th.tick;
+      items.forEach(it => {
+        const cosA = Math.cos(it.mid), sinA = Math.sin(it.mid);
+        const arcX = it.x + it.outerRadius * cosA, arcY = it.y + it.outerRadius * sinA;
+        const labelX = it.x + it.radius * cosA, labelY = it.y + it.radius * sinA;
+
+        if (it.radius > it.outerRadius + baseOffset + 1) {
+          ctx.save();
+          ctx.strokeStyle = th.tick;
+          ctx.globalAlpha = 0.45;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(arcX, arcY);
+          ctx.lineTo(labelX, labelY);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.textAlign = cosA > 0.15 ? 'left' : cosA < -0.15 ? 'right' : 'center';
+        ctx.textBaseline = 'middle';
+        const tx = labelX + (cosA > 0.15 ? 3 : cosA < -0.15 ? -3 : 0);
+        ctx.fillText(labels[it.i], tx, labelY - 5);
+        ctx.fillText(`${weightPct[it.i].toFixed(1)}%`, tx, labelY + 5);
+      });
+      ctx.restore();
+    }
+  };
+}
+
 function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
   // Plugin registration happens once in init() — before any chart in the app
   // is built — not here, since this function only runs when the user
@@ -3434,9 +3517,9 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
         borderWidth: 2,
       }]
     },
-    // pfCenterTextPlugin is passed per-instance (not globally registered),
-    // so the stock count only ever appears on this chart.
-    plugins: [pfCenterTextPlugin(rows.length)],
+    // pfCenterTextPlugin and pfCalloutLabelsPlugin are passed per-instance
+    // (not globally registered), so they only ever affect this chart.
+    plugins: [pfCenterTextPlugin(rows.length), pfCalloutLabelsPlugin(weightPct)],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -3445,30 +3528,15 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
       // actually fixes label clipping on narrow screens — a fixed pixel
       // padding doesn't scale down with a small mobile canvas, but a radius
       // percentage does, so labels keep proportional room on any screen size.
-      radius: '72%',
-      layout: { padding: 16 },
+      radius: '68%',
+      layout: { padding: 20 },
       animation: { duration: 400, easing: 'easeOutCubic' },
       plugins: {
         // The built-in legend (a separate list off to the side) is what put
-        // tickers "far from the chart" — replaced with datalabels below,
-        // which draw the ticker + weight% directly next to each slice.
+        // tickers "far from the chart" — replaced by pfCalloutLabelsPlugin
+        // above, which draws the ticker + weight% directly next to each
+        // slice (with a leader line for crowded ones).
         legend: { display: false },
-        datalabels: {
-          // Slices under 2% are too thin to fit a two-line label without
-          // colliding with a neighbor — hiding just those (rather than
-          // shrinking font further) is what actually fixes the crowded/
-          // overlapping labels seen with many similar-sized positions.
-          // The exact number is always available on hover via the tooltip.
-          display: (ctx) => weightPct[ctx.dataIndex] >= 2,
-          color: th.tick,
-          font: { size: 9, weight: '700', family: CHART_FONT },
-          textAlign: 'center',
-          anchor: 'end',
-          align: 'end',
-          offset: 4,
-          clip: false,
-          formatter: (_, ctx) => `${ctx.chart.data.labels[ctx.dataIndex]}\n${weightPct[ctx.dataIndex].toFixed(1)}%`,
-        },
         tooltip: {
           ...sharedTooltip(),
           callbacks: {

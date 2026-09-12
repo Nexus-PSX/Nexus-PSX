@@ -695,10 +695,30 @@
     left: 0;
     z-index: 2;
   }
+  /* The Ticker column's left:96px sticky offset below only lines up
+     correctly if the Type column is *actually* 96px wide. It previously
+     wasn't pinned to any width — its real rendered width depended on the
+     badge text (BUY/SELL/DEPOSIT/WITHDRAW are all different lengths), so
+     on many devices it came out narrower or wider than the assumed 96px.
+     Narrower left a visible gap between Type and Ticker; wider pushed the
+     Ticker column's true layout position past 96px while its sticky box
+     still rendered pinned there — leaving Qty (the next real column)
+     starting underneath/behind the visually-pinned Ticker cell. Locking
+     Type to an exact width fixes both at once. This only applies to
+     pfTxTable — pfOpenTable/pfClosedTable's first column is Ticker
+     itself and should keep sizing to its content as before. */
+  #pfTxTable th:nth-child(1),
+  #pfTxTable td:nth-child(1) {
+    width: 96px;
+    min-width: 96px;
+    max-width: 96px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
   #pfTxTable th:nth-child(2),
   #pfTxTable td:nth-child(2) {
     position: sticky;
-    left: 96px; /* approx. rendered width of the Type badge column */
+    left: 96px; /* matches the Type column's locked width above exactly */
     z-index: 2;
   }
   #pfOpenTable td:nth-child(1),
@@ -867,28 +887,16 @@
   }
   .cmp-kpi-toggle:hover { filter: brightness(1.08); }
 
-  /* Mobile browsers (esp. iOS/Android Chrome) will sometimes drop a
-     position:sticky cell from its own compositing layer mid-scroll,
-     causing it to flicker or briefly vanish during a fast swipe. Promoting
-     every frozen/sticky first column onto its own layer up front fixes
-     this. Applies to the Ticker column in screener/watchlist/home/top/
-     portfolio and the frozen first column in the sector/kpi tables. */
-  #screenerTable th:nth-child(1), #screenerTable td:nth-child(1),
-  #watchlistTableGH th:nth-child(1), #watchlistTableGH td:nth-child(1),
-  #watchlistTableGuest th:nth-child(1), #watchlistTableGuest td:nth-child(1),
-  #homeSignalsTable th:nth-child(1), #homeSignalsTable td:nth-child(1),
-  #pfOpenTable th:nth-child(1), #pfOpenTable td:nth-child(1),
-  #pfClosedTable th:nth-child(1), #pfClosedTable td:nth-child(1),
-  #pfTxTable th:nth-child(1), #pfTxTable td:nth-child(1),
-  #pfTxTable th:nth-child(2), #pfTxTable td:nth-child(2),
-  .top-mini-table th:nth-child(1), .top-mini-table td:nth-child(1),
-  .top-mini-table th:nth-child(2), .top-mini-table td:nth-child(2),
-  #sectorTable th:first-child, #sectorTable td:first-child,
-  .kpi-table th:first-child, .kpi-table .metric-name {
-    will-change: transform;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
+  /* NOTE: previously this rule promoted every frozen/sticky first column
+     onto its own GPU compositing layer via transform:translateZ(0) to fix
+     a mid-scroll flicker. That combination (transform + position:sticky on
+     a <td>) is a known bad interaction on Android/Chromium: it can cause
+     the browser to paint a stale/wrong frame into that cell's layer during
+     fast horizontal scroll — which showed up as the Ticker column
+     displaying the Name column's text instead of the ticker. Removed. The
+     opaque background + z-index already set on these cells (see the
+     nth-child(1) rules above/below) is what actually keeps them correctly
+     layered above the scrolling columns, without the layer-promotion risk. */
 
   /* SCROLLABLE */
   /* Data options button hover — previously done via inline onmouseenter/
@@ -1411,19 +1419,36 @@
        80px+ of horizontal padding-heavy space just for a 4-6 character
        code. Narrower min-width and tighter side padding claws back real
        estate for the columns scrolling in next to it. */
+    /* Shrink the frozen/sticky Ticker column itself — it was reserving
+       80px+ of horizontal padding-heavy space just for a 4-6 character
+       code. Narrower min-width and tighter side padding claws back real
+       estate for the columns scrolling in next to it. Widened from an
+       earlier 100px to 128px: some tickers carry 2-3 badges (KMI/N/T/
+       liquid/V) alongside the add-button, and 100px wasn't enough room —
+       badges were getting squeezed down to invisible slivers or clipped
+       by the ellipsis safety net below. */
     #screenerTable th:nth-child(1),
     #screenerTable td:nth-child(1) {
-      min-width: 100px;
-      max-width: 100px;
+      min-width: 128px;
+      max-width: 128px;
       padding-left: 6px;
       padding-right: 6px;
     }
     #screenerTable .ticker-link { font-size: 12px; }
+    /* Badges themselves, sized down a touch on mobile so 2-3 of them sit
+       comfortably next to the ticker text instead of competing for the
+       same cramped space they'd need at desktop size. */
+    #screenerTable .ticker-badge {
+      width: 12px; height: 12px; font-size: 8px; margin-left: 3px; flex-shrink: 0;
+    }
+    #screenerTable .ticker-badge-liquid { font-size: 10px; }
     /* Safety net: the Ticker cell holds an add-button + ticker text + up to
        several badges (T/N/KMI/liquid/V). If that combined content ever
        exceeds the cell's fixed width above, clip it with an ellipsis
        instead of letting it visually spill into the next scrolling column
-       (which is what was reported as the ticker "overlapping the data"). */
+       (which is what was reported as the ticker "overlapping the data").
+       With the wider column and smaller badges above, this should now
+       only kick in for genuinely unusual cases. */
     #screenerTable td:nth-child(1) > span {
       display: inline-flex;
       align-items: center;
@@ -1503,12 +1528,14 @@
     #screenerTable td { padding: 5px 5px; font-size: 11px; }
     #screenerTable th:nth-child(1),
     #screenerTable td:nth-child(1) {
-      min-width: 68px;
+      min-width: 112px;
+      max-width: 128px;
       padding-left: 5px;
       padding-right: 5px;
     }
     #screenerTable .ticker-link { font-size: 11px; }
     #screenerTable .screener-add-btn { width: 14px; height: 14px; margin-right: 4px; }
+    #screenerTable .ticker-badge { width: 11px; height: 11px; font-size: 7px; margin-left: 2px; }
     #screenerAvgRow td { padding: 5px 5px; font-size: 10px; }
     #screenerAvgRow td:nth-child(1) { padding-left: 5px; padding-right: 5px; }
     .badge { font-size: 10px; padding: 3px 7px; }
