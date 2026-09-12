@@ -3417,7 +3417,7 @@ function pfSetAllocationBasis(basis) {
 function pfCenterTextPlugin(count) {
   return {
     id: 'pfCenterText',
-    afterDraw(chart) {
+    afterDatasetsDraw(chart) {
       const { ctx, chartArea: { left, right, top, bottom } } = chart;
       const cx = (left + right) / 2;
       const cy = (top + bottom) / 2;
@@ -3456,7 +3456,16 @@ function pfCenterTextPlugin(count) {
 function pfCalloutLabelsPlugin(weightPct) {
   return {
     id: 'pfCalloutLabels',
-    afterDraw(chart) {
+    // afterDatasetsDraw (not afterDraw) is deliberate: Chart.js's built-in
+    // tooltip plugin paints the hover popup in its own afterDraw hook, which
+    // always runs after afterDatasetsDraw in the chart's draw lifecycle.
+    // These labels are drawn every frame regardless of hover state, so if
+    // they were also in afterDraw they could end up painted on top of the
+    // tooltip (depending on plugin registration order) — making the popup
+    // unreadable wherever it happened to land near another slice's label.
+    // Drawing here instead means the tooltip is always painted after (and
+    // therefore on top of) these labels, guaranteed.
+    afterDatasetsDraw(chart) {
       const meta = chart.getDatasetMeta(0);
       const labels = chart.data.labels;
       const colors = chart.data.datasets[0].backgroundColor;
