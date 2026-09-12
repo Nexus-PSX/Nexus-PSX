@@ -2531,6 +2531,28 @@ function toggleFinancials() {
   const hidden = table.classList.toggle('hide-financials');
   btn.classList.toggle('active', !hidden);
   document.getElementById('finToggleLabel').textContent = hidden ? 'Show Financials' : 'Hide Financials';
+  resyncScreenerStickyColumn();
+}
+
+// Toggling a column group (Financials/Technical/Daily/Performance/NEMI)
+// changes the table's total width dramatically — Show Financials alone
+// adds/removes ~15 columns. On some Android/Chromium WebViews, changing a
+// scrollable table's width while the frozen Ticker column is mid-scroll
+// (position:sticky) leaves its rendering in a stale state: it can start
+// showing the pixels of whatever column used to be under it (this is what
+// showed up as things like "285B"/"156B" instead of a ticker in a bug
+// report — those are Market Cap values from a column that had scrolled
+// under that spot before the toggle). Snapping the scroll position back to
+// the start whenever the columns change sidesteps the stale state entirely
+// — there's no "was scrolled to X, now the layout changed" moment for the
+// browser to get wrong. The forced reflow (reading offsetHeight) makes sure
+// the browser recomputes the sticky cell's position immediately rather than
+// leaving it until the next scroll/paint event.
+function resyncScreenerStickyColumn() {
+  const scrollBox = document.querySelector('#tab-screener .scroll-table');
+  if (!scrollBox) return;
+  scrollBox.scrollLeft = 0;
+  void scrollBox.offsetHeight; // force a synchronous reflow
 }
 
 function toggleTechnical() {
@@ -2539,6 +2561,7 @@ function toggleTechnical() {
   const hidden = table.classList.toggle('hide-technical');
   btn.classList.toggle('active', !hidden);
   document.getElementById('techToggleLabel').textContent = hidden ? 'Show Technical' : 'Hide Technical';
+  resyncScreenerStickyColumn();
 }
 
 function toggleDaily() {
@@ -2547,6 +2570,7 @@ function toggleDaily() {
   const hidden = table.classList.toggle('hide-daily');
   btn.classList.toggle('active', !hidden);
   document.getElementById('dailyToggleLabel').textContent = hidden ? 'Show Daily Movement' : 'Hide Daily Movement';
+  resyncScreenerStickyColumn();
 }
 
 // ===== WATCHLIST — three modes: localStorage (guest) + Firestore (signed-in account) + GitHub Gist (legacy sync option) =====
@@ -4216,6 +4240,7 @@ function togglePerformance() {
   const hidden = tbl.classList.toggle('hide-performance');
   btn.classList.toggle('active', !hidden);
   document.getElementById('perfToggleLabel').textContent = hidden ? 'Show Performance' : 'Hide Performance';
+  resyncScreenerStickyColumn();
 }
 
 
@@ -4271,6 +4296,7 @@ function toggleNemi() {
   const hidden = tbl.classList.toggle('hide-nemi');
   btn.classList.toggle('active', !hidden);
   document.getElementById('nemiToggleLabel').textContent = hidden ? 'Show NEMI' : 'Hide NEMI';
+  resyncScreenerStickyColumn();
 }
 function renderPagination() {
   const total = filteredScreener.length;
