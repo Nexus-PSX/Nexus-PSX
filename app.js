@@ -87,11 +87,40 @@ function computeSectorRowsFromCompanies(companies) {
   }));
 }
 
+// Sector name → rotation category (used by the Sectors tab's Sector
+// Rotation list, where the unit being classified genuinely is the sector).
+const SECTOR_ROTATION_MAP = {};
+// Ticker → rotation category, computed straight from that stock's own WTD%
+// and Rolling 1M% (already present in the source data) vs the KSE 100
+// benchmark — NOT inherited from its sector's aggregate. Used by the
+// Screener's per-ticker badges and the Sector Rotation screener filter,
+// since a stock's own return can differ meaningfully from its sector's
+// average return.
+const STOCK_ROTATION_MAP = {};
+
+function computeStockRotationMap() {
+  Object.keys(STOCK_ROTATION_MAP).forEach(k => delete STOCK_ROTATION_MAP[k]);
+  const bench = getRotationBenchmark();
+  if (!bench) return;
+  SOURCE_DATA.forEach(d => {
+    if (!d.Ticker || d.Ticker === '0' || d.Ticker === 0) return;
+    const roll1m = parseFloat(dget(d, 'Rolling 1M%'));
+    const wtd    = parseFloat(dget(d, 'Current Week Return %'));
+    STOCK_ROTATION_MAP[d.Ticker] = classifyRotation(isNaN(roll1m) ? null : roll1m, isNaN(wtd) ? null : wtd, bench);
+  });
+}
+
 function computeSectorDataFromSource() {
   const validRows = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
   SECTOR_DATA.length = 0;
   computeSectorRowsFromCompanies(validRows).forEach(s => SECTOR_DATA.push(s));
   // Market Average is computed dynamically at render time from the visible rows.
+
+  Object.keys(SECTOR_ROTATION_MAP).forEach(k => delete SECTOR_ROTATION_MAP[k]);
+  const rotationData = computeSectorRotationData();
+  if (rotationData) rotationData.forEach(r => { SECTOR_ROTATION_MAP[r.sector] = r.category; });
+
+  computeStockRotationMap();
 }
 
 // Build a Market Average row by averaging directly from the filtered company rows.
@@ -1487,37 +1516,44 @@ function updateSortArrows(headRowId, activeCol, dir) {
   });
 }
 
-// Pure data step: classifies every sector into one of the 5 rotation
-// categories. Shared by the list widget below (and reusable elsewhere if
-// needed) so the classification logic lives in exactly one place.
-function computeSectorRotationData() {
+// Shared by both the sector-level rotation (Sectors tab) and the per-stock
+// rotation (Screener badges/filter) below, so the benchmark lookup and the
+// classification rule live in exactly one place each.
+function getRotationBenchmark() {
   const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
   const kse100   = SOURCE_DATA.find(d => String(d.Ticker || '').toUpperCase() === 'KSE100') || null;
   const bench1D  = kse100 ? toN(kse100['Day Change %']) : null;
   const benchWTD = kse100 ? toN(kse100['Current Week Return %']) : null;
   const bench1M  = kse100 ? toN(kse100['Rolling 1M%']) : null;
   if (bench1D == null && benchWTD == null && bench1M == null) return null;
+  return { bench1D, benchWTD, bench1M };
+}
+
+function classifyRotation(roll1m, wtd, bench) {
+  if (roll1m == null || wtd == null || !bench || bench.bench1M == null || bench.benchWTD == null) return null;
+  const rel1M  = roll1m - bench.bench1M;
+  const relWTD = wtd    - bench.benchWTD;
+  if (rel1M > 0 && relWTD > 0) return (roll1m > 0 && wtd > 0) ? 'absoluteLeading' : 'defensiveOutperforming';
+  if (rel1M > 0)  return 'weakening';
+  if (relWTD > 0) return 'improving';
+  return 'lagging';
+}
+
+// Pure data step: classifies every sector into one of the 5 rotation
+// categories. Shared by the list widget below (and reusable elsewhere if
+// needed) so the classification logic lives in exactly one place.
+function computeSectorRotationData() {
+  const bench = getRotationBenchmark();
+  if (!bench) return null;
 
   const companies  = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
   const sectorRows = computeSectorRowsFromCompanies(companies);
 
   return sectorRows.map(s => {
-    const rel1D  = (s.p1d     != null && bench1D  != null) ? s.p1d     - bench1D  : null;
-    const relWTD = (s.p1w     != null && benchWTD != null) ? s.p1w     - benchWTD : null;
-    const rel1M  = (s.pRoll1m != null && bench1M  != null) ? s.pRoll1m - bench1M  : null;
-    let category = null;
-    if (rel1M != null && relWTD != null) {
-      if (rel1M > 0 && relWTD > 0) {
-        const actualPositive = s.pRoll1m != null && s.pRoll1m > 0 && s.p1w != null && s.p1w > 0;
-        category = actualPositive ? 'absoluteLeading' : 'defensiveOutperforming';
-      } else if (rel1M > 0) {
-        category = 'weakening';
-      } else if (relWTD > 0) {
-        category = 'improving';
-      } else {
-        category = 'lagging';
-      }
-    }
+    const rel1D  = (s.p1d     != null && bench.bench1D  != null) ? s.p1d     - bench.bench1D  : null;
+    const relWTD = (s.p1w     != null && bench.benchWTD != null) ? s.p1w     - bench.benchWTD : null;
+    const rel1M  = (s.pRoll1m != null && bench.bench1M  != null) ? s.pRoll1m - bench.bench1M  : null;
+    const category = classifyRotation(s.pRoll1m, s.p1w, bench);
     return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, roll1m: s.pRoll1m, wtd: s.p1w, category };
   });
 }
@@ -1809,7 +1845,7 @@ function drillSectorToScreener(sectorName) {
   // mselRegistry — including sectorFilter/sectorIndex/sectorPeriod — which wiped
   // out whatever the user had selected on the Sector tab the moment they drilled
   // through, so it looked "forgotten" when they navigated back.
-  const SCREENER_OWN_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'period'];
+  const SCREENER_OWN_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'rotation', 'period'];
   SCREENER_OWN_KEYS.forEach(key => {
     if (mselRegistry[key]) {
       mselRegistry[key].selected.clear();
@@ -1854,6 +1890,16 @@ const LIQUID_OPTIONS = [
 const VOLPHASE_OPTIONS = [
   {value:'1',  label:'🟢 High Phase (+1)'},
   {value:'-1', label:'⚪ Normal Phase (-1)'}
+];
+// Same 5 categories/order as SECTOR_ROTATION_CATEGORIES (Sectors tab) and
+// the glyphs used in tickerBadges() — kept as one static list here since a
+// stock's rotation category is derived from its sector, not stored per-row.
+const ROTATION_OPTIONS = [
+  {value:'absoluteLeading',        label:'▲ Absolute Leading'},
+  {value:'defensiveOutperforming', label:'◆ Defensive Outperforming'},
+  {value:'improving',              label:'↗ Improving'},
+  {value:'weakening',              label:'↘ Weakening'},
+  {value:'lagging',                label:'▼ Lagging'}
 ];
 
 // Generic multi-select registry. Each entry: options() returns [{value,label}], selected: Set of values, ids + labels for the button.
@@ -1922,6 +1968,14 @@ const mselRegistry = {
     allLabel: 'Volume Phase',
     oneLabel: v => (VOLPHASE_OPTIONS.find(o=>o.value===v)||{}).label || v,
     manyLabel: n => `Phases`,
+  },
+  rotation: {
+    options: () => ROTATION_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'Sector Rotation',
+    oneLabel: v => (ROTATION_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `Rotation`,
   },
   period: {
     // Distinct reporting period-end dates across all companies, newest first.
@@ -2151,7 +2205,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid', 'rotation']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
@@ -2333,6 +2387,7 @@ function filterScreener() {
   const q = document.getElementById('screenerSearch').value.toLowerCase();
   const selLiquid = mselRegistry.liquid.selected;
   const selVolPhase = mselRegistry.volPhase.selected;
+  const selRotation = mselRegistry.rotation.selected;
   const selPeriod = mselRegistry.period.selected;
   const selSectors = mselRegistry.sector.selected;
   const selIndices = mselRegistry.index.selected;
@@ -2388,6 +2443,7 @@ function filterScreener() {
       for (const v of selVolPhase) { if (Number(d['Accumulation']) === Number(v)) { matched = true; break; } }
       if (!matched) return false;
     }
+    if (selRotation.size > 0 && !selRotation.has(STOCK_ROTATION_MAP[d.Ticker])) return false;
     if (selPeriod.size > 0 && !selPeriod.has(String(dget(d,'Last Period End Date')))) return false;
     if (selStatuses.size > 0 && !selStatuses.has(String(sigStatusCode(d['Signal Status'])))) return false;
     const selNemi = mselRegistry.nemi.selected;
@@ -4076,6 +4132,17 @@ function tickerBadges(d) {
   }
   if ((parseFloat(d['Accumulation'])||0) > 0) {
     badges += '<span class="ticker-badge ticker-badge-vol" title="High Volume Accumulation Phase">V</span>';
+  }
+  const rot = STOCK_ROTATION_MAP[d.Ticker];
+  const ROT_BADGE = {
+    absoluteLeading:        { glyph: '▲', cls: 'ticker-badge-rot-al', title: 'Sector Rotation: Absolute Leading' },
+    defensiveOutperforming: { glyph: '◆', cls: 'ticker-badge-rot-do', title: 'Sector Rotation: Defensive Outperforming' },
+    improving:              { glyph: '↗', cls: 'ticker-badge-rot-im', title: 'Sector Rotation: Improving' },
+    weakening:              { glyph: '↘', cls: 'ticker-badge-rot-wk', title: 'Sector Rotation: Weakening' },
+    lagging:                { glyph: '▼', cls: 'ticker-badge-rot-lg', title: 'Sector Rotation: Lagging' },
+  }[rot];
+  if (ROT_BADGE) {
+    badges += `<span class="ticker-badge ${ROT_BADGE.cls}" title="${ROT_BADGE.title}">${ROT_BADGE.glyph}</span>`;
   }
   return badges;
 }

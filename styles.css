@@ -560,6 +560,16 @@
   .ticker-badge-kmi    { background: none; width: auto; height: auto; color: #0d9e7e; }
   .ticker-badge-liquid { background: none; font-size: 11px; width: auto; height: auto; padding: 0; }
   .ticker-badge-vol    { background: #9ca3af; }
+  /* Sector Rotation badges — colors match the categories used in the
+     Sector Rotation list (Sectors tab) and the sector table's AVG EPS/Rev
+     G% columns, so the same category always reads as the same color
+     everywhere in the app. Distinct glyph shapes (not just color) keep
+     them distinguishable for colorblind users. */
+  .ticker-badge-rot-al { background: var(--success); font-size: 9px; }
+  .ticker-badge-rot-do { background: var(--accent); font-size: 9px; }
+  .ticker-badge-rot-im { background: var(--warn); font-size: 9px; }
+  .ticker-badge-rot-wk { background: var(--danger); font-size: 9px; }
+  .ticker-badge-rot-lg { background: var(--text3); font-size: 9px; }
   .ticker-link:hover { text-decoration: underline; color: var(--accent); }
 
   /* SECTOR TABLE — frozen first column */

@@ -1682,6 +1682,20 @@
               <div class="msel-list" id="volPhaseMselList"></div>
             </div>
           </div>
+          <div class="msel" id="rotationMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="rotationMselBtn" style="position:relative;" aria-label="Filter by sector rotation" aria-haspopup="listbox" onclick="mselTogglePanel('rotation', event)" title="Sector Rotation: Filter by the stock's sector's rotation category vs KSE 100 — Absolute Leading, Defensive Outperforming, Improving, Weakening, Lagging.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a4 4 0 0 1 4-4h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a4 4 0 0 1-4 4H3"></path></svg>
+              <span id="rotationMselLabel">Sector Rotation</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="rotationMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('rotation')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('rotation')">Clear</button>
+              </div>
+              <div class="msel-list" id="rotationMselList"></div>
+            </div>
+          </div>
           <div class="msel" id="othersMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="othersMselBtn" style="position:relative;" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)" title="Other Filters: Circuit Breakers, Turnaround Candidates, NI > OI, Shariah-compliant stocks.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
