@@ -3353,6 +3353,11 @@ function buildPortfolioTab() {
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Net Worth</div>
         <div style="font-size:18px;font-weight:700;">${fmtPKR(netWorth)}</div>
       </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Stock Value</div>
+        <div style="font-size:18px;font-weight:700;">${fmtPKR(holdingsValue)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${netWorth ? fmtPct((holdingsValue/netWorth)*100).replace('+','') + ' of portfolio' : '—'}</div>
+      </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;${pfCash<0?`border-left:4px solid var(--danger);`:''}">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">Cash <button onclick="pfToggleCashForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;padding:0;">Manage</button></div>
         <div style="font-size:18px;font-weight:700;color:${pfCash<0?'var(--danger)':'var(--text)'};">${fmtPKR(pfCash)}</div>
