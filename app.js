@@ -2797,11 +2797,20 @@ function pfNormalizeState(raw) {
 function pfReadLocal()       { try { return pfNormalizeState(JSON.parse(wlLocalGet(PF_LOCAL_KEY) || 'null')); } catch { return { cash: 0, open: [], closed: [], transactions: [], legacyClosed: [] }; } }
 function pfWriteLocal(state) { wlLocalSet(PF_LOCAL_KEY, JSON.stringify(state)); }
 
-// Applies one transaction's effect to a working {cash, open, closed} state
-// object, in place. This is the ONLY place transaction effects are computed —
-// both the live "do this action now" path and the "replay history from
-// scratch" path (used after any edit/delete) call this exact same function,
-// so they can never drift apart or disagree.
+// Applies one transaction's effect to a working {cash, open, closed, lots}
+// state object, in place. This is the ONLY place transaction effects are
+// computed — both the live "do this action now" path and the "replay
+// history from scratch" path (used after any edit/delete) call this exact
+// same function, so they can never drift apart or disagree.
+//
+// Cost basis on sell follows FIFO: state.lots[ticker] holds each buy as its
+// own lot (oldest first); a sell consumes lots from the front, splitting
+// the oldest lot if it's larger than the sell. state.open stays a single
+// aggregated row per ticker (qty + a blended avgPrice for display, buyDate
+// = the oldest remaining lot's date) — re-derived from the lots after every
+// buy/sell — so every other part of the app (open positions table, buy/sell
+// forms, allocation chart) keeps working exactly as before; only the
+// realized P&L on a sell is actually computed FIFO-style underneath.
 function pfApplyTxToState(state, t, pnlMap) {
   if (t.type === 'deposit') {
     state.cash += t.amount;
@@ -2809,28 +2818,52 @@ function pfApplyTxToState(state, t, pnlMap) {
     state.cash -= t.amount;
   } else if (t.type === 'buy') {
     state.cash -= t.qty * t.price;
-    const idx = state.open.findIndex(h => h.ticker === t.ticker);
-    if (idx >= 0) {
-      const existing = state.open[idx];
-      const newQty = existing.qty + t.qty;
-      const newAvg = ((existing.qty * existing.avgPrice) + (t.qty * t.price)) / newQty;
-      state.open[idx] = { ...existing, qty: newQty, avgPrice: newAvg };
-    } else {
-      state.open.push({ ticker: t.ticker, qty: t.qty, avgPrice: t.price, buyDate: t.date });
-    }
+    if (!state.lots) state.lots = {};
+    if (!state.lots[t.ticker]) state.lots[t.ticker] = [];
+    state.lots[t.ticker].push({ qty: t.qty, price: t.price, date: t.date });
+    pfSyncOpenFromLots(state, t.ticker);
   } else if (t.type === 'sell') {
-    const idx = state.open.findIndex(h => h.ticker === t.ticker);
-    const h = state.open[idx];
-    const costBasis = h.avgPrice * t.qty;
+    const lots = (state.lots && state.lots[t.ticker]) || [];
+    const idxBefore = state.open.findIndex(h => h.ticker === t.ticker);
+    const hBefore = state.open[idxBefore];
+    const firstLotDate = lots.length ? lots[0].date : ((hBefore && hBefore.buyDate) || null);
+
+    let remaining = t.qty;
+    let costBasis = 0;
+    while (remaining > 0 && lots.length) {
+      const lot = lots[0];
+      const take = Math.min(lot.qty, remaining);
+      costBasis += take * lot.price;
+      lot.qty -= take;
+      remaining -= take;
+      if (lot.qty <= 0) lots.shift(); // this lot fully consumed — move to the next-oldest
+    }
+
     const proceeds = t.price * t.qty;
     const realizedPnl = proceeds - costBasis;
     const realizedPnlPct = costBasis ? (realizedPnl / costBasis) * 100 : null;
-    state.closed.push({ ticker: h.ticker, qty: t.qty, avgPrice: h.avgPrice, buyDate: h.buyDate || null, sellPrice: t.price, sellDate: t.date, realizedPnl, realizedPnlPct });
+    const avgCostSold = t.qty ? costBasis / t.qty : 0; // blended cost of specifically the FIFO lots this sale consumed
+    state.closed.push({ ticker: t.ticker, qty: t.qty, avgPrice: avgCostSold, buyDate: firstLotDate, sellPrice: t.price, sellDate: t.date, realizedPnl, realizedPnlPct });
     state.cash += proceeds;
     if (pnlMap && t.id) pnlMap.set(t.id, realizedPnl);
-    if (t.qty === h.qty) state.open.splice(idx, 1);
-    else state.open[idx] = { ...h, qty: h.qty - t.qty };
+    pfSyncOpenFromLots(state, t.ticker);
   }
+}
+
+// Rebuilds the single aggregated open-position row for a ticker from its
+// underlying FIFO lots (or removes the row if no lots remain).
+function pfSyncOpenFromLots(state, ticker) {
+  const lots = (state.lots && state.lots[ticker]) || [];
+  const idx = state.open.findIndex(h => h.ticker === ticker);
+  if (!lots.length) {
+    if (idx >= 0) state.open.splice(idx, 1);
+    return;
+  }
+  const qty = lots.reduce((s, l) => s + l.qty, 0);
+  const avgPrice = lots.reduce((s, l) => s + l.qty * l.price, 0) / qty;
+  const buyDate = lots[0].date; // oldest remaining lot
+  if (idx >= 0) state.open[idx] = { ...state.open[idx], qty, avgPrice, buyDate };
+  else state.open.push({ ticker, qty, avgPrice, buyDate });
 }
 
 // Replays a set of transactions in chronological order into a fresh state,
@@ -2841,7 +2874,7 @@ function pfApplyTxToState(state, t, pnlMap) {
 // pointing at shares that (after the edit) were never bought.
 function pfTryReplay(transactions) {
   const sorted = [...transactions].sort((a, b) => a.ts - b.ts);
-  const state = { cash: 0, open: [], closed: [] };
+  const state = { cash: 0, open: [], closed: [], lots: {} };
   const pnlMap = new Map();
   for (const t of sorted) {
     if (t.type === 'sell') {
