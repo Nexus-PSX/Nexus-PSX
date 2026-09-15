@@ -1973,9 +1973,9 @@ const mselRegistry = {
     options: () => ROTATION_OPTIONS,
     selected: new Set(),
     searchable: false,
-    allLabel: 'Sector Rotation',
+    allLabel: 'Relative Performance',
     oneLabel: v => (ROTATION_OPTIONS.find(o=>o.value===v)||{}).label || v,
-    manyLabel: n => `Rotation`,
+    manyLabel: n => `Rel. Performance`,
   },
   period: {
     // Distinct reporting period-end dates across all companies, newest first.
@@ -4173,11 +4173,11 @@ function tickerBadges(d) {
   }
   const rot = STOCK_ROTATION_MAP[d.Ticker];
   const ROT_BADGE = {
-    absoluteLeading:        { glyph: '▲', cls: 'ticker-badge-rot-al', title: 'Sector Rotation: Absolute Leading' },
-    defensiveOutperforming: { glyph: '◆', cls: 'ticker-badge-rot-do', title: 'Sector Rotation: Defensive Outperforming' },
-    improving:              { glyph: '↗', cls: 'ticker-badge-rot-im', title: 'Sector Rotation: Improving' },
-    weakening:              { glyph: '↘', cls: 'ticker-badge-rot-wk', title: 'Sector Rotation: Weakening' },
-    lagging:                { glyph: '▼', cls: 'ticker-badge-rot-lg', title: 'Sector Rotation: Lagging' },
+    absoluteLeading:        { glyph: '▲', cls: 'ticker-badge-rot-al', title: 'Relative Performance: Absolute Leading' },
+    defensiveOutperforming: { glyph: '◆', cls: 'ticker-badge-rot-do', title: 'Relative Performance: Defensive Outperforming' },
+    improving:              { glyph: '↗', cls: 'ticker-badge-rot-im', title: 'Relative Performance: Improving' },
+    weakening:              { glyph: '↘', cls: 'ticker-badge-rot-wk', title: 'Relative Performance: Weakening' },
+    lagging:                { glyph: '▼', cls: 'ticker-badge-rot-lg', title: 'Relative Performance: Lagging' },
   }[rot];
   if (ROT_BADGE) {
     badges += `<span class="ticker-badge ${ROT_BADGE.cls}" title="${ROT_BADGE.title}">${ROT_BADGE.glyph}</span>`;
