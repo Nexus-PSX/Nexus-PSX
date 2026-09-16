@@ -73,6 +73,7 @@ function computeSectorRowsFromCompanies(companies) {
     qtrScore:   null,
     ttmScore:   null,
     peRatio:    avg(rows, 'P/E Ratio'),
+    pbRatio:    avg(rows, 'P/B Ratio'),
     relVol:     avg(rows, 'Relative Vol'),
     discRatio:  avg(rows, 'Discount Ratio'),
     p1d:        avg(rows, 'Day Change %'),
@@ -148,6 +149,7 @@ function buildMarketAvgRowFromCompanies(companies, sectorRows) {
     qtrScore:   null,
     ttmScore:   null,
     peRatio:    avg('P/E Ratio'),
+    pbRatio:    avg('P/B Ratio'),
     relVol:     avg('Relative Vol'),
     discRatio:  avg('Discount Ratio'),
     p1d:        avg('Day Change %'),
@@ -1674,10 +1676,8 @@ function renderSectorTable(data) {
     tr.innerHTML = `
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}</td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQ)}">${fmt(s.epsQ,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.revQG)}">${s.revQG!=null?fmtPct(s.revQG,2):'—'}</td>
-      <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsTTM)}">${fmt(s.epsTTM,2)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.opMargin)}">${s.opMargin!=null?fmtPct(s.opMargin,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.netMargin)}">${s.netMargin!=null?fmtPct(s.netMargin,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.roe)}">${fmtPct(s.roe,2)}</td>
@@ -1685,6 +1685,7 @@ function renderSectorTable(data) {
       <td class="sector-hide-mobile sector-fin-col mono ${s.cfo!=null&&s.cfo<0?'negative':s.cfo!=null&&s.cfo>0?'positive':''}">${fmtBig(s.cfo)}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.divYield)}">${s.divYield!=null?fmtPct(s.divYield,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono">${s.peRatio!=null?fmt(s.peRatio,2):'—'}</td>
+      <td class="sector-hide-mobile sector-fin-col mono">${s.pbRatio!=null?fmt(s.pbRatio,2):'—'}</td>
       <td class="mono"><span class="${scoreColor(s.totalScore)}" style="font-weight:700">${fmt(s.totalScore,2)}</span>
         <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,s.totalScore)}%; background:${s.totalScore>=60?'var(--success)':s.totalScore>=40?'var(--warn)':'var(--danger)'}"></div></div>
       </td>
@@ -1780,7 +1781,7 @@ function filterSectorTable() {
   updateSectorClearBtn();
 }
 function sortSectorTable(col) {
-  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y','epsQG','revQG'];
+  const cols = ['sector','companies','epsQ','epsTTM','opMargin','netMargin','roe','de','cfo','divYield','peRatio','totalScore','relVol','discRatio','p1d','p1w','p1m','p3m','pYTD','pRoll1m','pRoll3m','pRoll6m','pRoll1y','epsQG','revQG','pbRatio'];
   const key = cols[col];
   if (sectorSort.col === col) sectorSort.dir *= -1; else { sectorSort.col = col; sectorSort.dir = -1; }
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
