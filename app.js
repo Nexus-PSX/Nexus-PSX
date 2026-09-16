@@ -2467,14 +2467,14 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%','P/B Ratio'];
   const key = sortKeys[screenerSort.col];
   // Keys that must be compared numerically. Kept as a Set (built once per call is
   // cheap here) so the comparator below can do a single, fast lookup.
   // NOTE: "Last Period End Date" is deliberately NOT here — unlike Signal date
   // (a YYYYMMDD integer), it's stored as an ISO "YYYY-MM-DD" string, which the
   // default string comparison below already sorts correctly (chronologically).
-  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%']);
+  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%','P/B Ratio']);
 
   // Compares two rows on a single sort level ({col, dir}). Returns 0 when the rows
   // tie on that level's column, so the caller can fall through to the next level.
@@ -2610,6 +2610,38 @@ function resyncScreenerStickyColumn() {
   scrollBox.scrollLeft = 0;
   void scrollBox.offsetHeight; // force a synchronous reflow
 }
+
+// Self-heal for the same underlying Chromium/Android-WebView bug as above,
+// but for the case where the corruption shows up from plain scrolling (both
+// vertical and horizontal — this table scrolls both ways) rather than from
+// a column-group toggle. There's no reliable way to *prevent* the browser
+// from mispainting a stale sticky cell mid-scroll in the first place — this
+// is a browser rendering bug, not something one CSS rule can fully rule
+// out — so instead this listens for scrolling to settle (120ms after the
+// last scroll event) and forces a real repaint of just the sticky column's
+// cells (toggling display off/on, which is a stronger reset than a mere
+// layout read) so any corruption from the scroll that just happened
+// self-corrects almost immediately, without resetting the user's scroll
+// position the way resyncScreenerStickyColumn() above does.
+(function () {
+  let settleTimer = null;
+  function repaintStickyColumn() {
+    const table = document.getElementById('screenerTable');
+    if (!table) return;
+    const cells = table.querySelectorAll('td:nth-child(1), th:nth-child(1)');
+    cells.forEach(c => { c.style.display = 'none'; });
+    void table.offsetHeight; // commit the layout-less state before restoring, forcing a real repaint
+    cells.forEach(c => { c.style.display = ''; });
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const scrollBox = document.querySelector('#tab-screener .scroll-table');
+    if (!scrollBox) return;
+    scrollBox.addEventListener('scroll', () => {
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(repaintStickyColumn, 120);
+    }, { passive: true });
+  });
+})();
 
 function toggleTechnical() {
   const table = document.getElementById('screenerTable');
@@ -4202,6 +4234,7 @@ function renderScreenerPage() {
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest EPS  Q'))}">${fmt(dget(d,'Latest EPS  Q'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'EPS Q G%'))}">${dget(d,'EPS Q G%')!=null?fmtPct(dget(d,'EPS Q G%'),2):'—'}</td>
       <td class="screener-fin-col mono">${fmt(dget(d,'P/E Ratio'),2)}</td>
+      <td class="screener-fin-col mono">${fmt(dget(d,'P/B Ratio'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmtBig(dget(d,'Revenue - Q'))}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'REV Q G%'))}">${dget(d,'REV Q G%')!=null?fmtPct(dget(d,'REV Q G%'),2):'—'}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'Latest TTM EPS Q'))}">${fmt(dget(d,'Latest TTM EPS Q'),2)}</td>
@@ -4304,6 +4337,7 @@ function updateScreenerAvgRow() {
     <td class="mono screener-fin-col ${valColor(avg('Latest EPS  Q'))}">${fmt(avg('Latest EPS  Q'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${avg('EPS Q G%') != null ? fmtPct(avg('EPS Q G%'),2) : '—'}</td>
     <td class="mono screener-fin-col">${fmt(avg('P/E Ratio'),2)}</td>
+    <td class="mono screener-fin-col">${fmt(avg('P/B Ratio'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmtBig(avg('Revenue - Q'))}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${avg('REV Q G%') != null ? fmtPct(avg('REV Q G%'),2) : '—'}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Latest TTM EPS Q'),2)}</td>
