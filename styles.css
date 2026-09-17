@@ -919,6 +919,26 @@
      nth-child(1) rules above/below) is what actually keeps them correctly
      layered above the scrolling columns, without the layer-promotion risk. */
 
+  /* Top mirror scrollbar — a thin strip that scrolls horizontally in sync
+     with the table below it, so the columns can be panned without first
+     scrolling down past every row to reach the table's own scrollbar.
+     It holds no content; its inner div is just sized to the table's real
+     scrollWidth by app.js so the browser renders a proportional thumb.
+     Hidden automatically when the table isn't actually overflowing. */
+  .top-scrollbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 12px;
+    margin-bottom: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent3) var(--surface2);
+    -webkit-overflow-scrolling: touch;
+  }
+  .top-scrollbar-inner { height: 1px; }
+  .top-scrollbar::-webkit-scrollbar { height: 8px; }
+  .top-scrollbar::-webkit-scrollbar-track { background: var(--surface2); border-radius: 4px; }
+  .top-scrollbar::-webkit-scrollbar-thumb { background: var(--accent3); border-radius: 4px; }
+
   /* SCROLLABLE */
   /* Data options button hover — previously done via inline onmouseenter/
      onmouseleave handlers that read the global dataMenuOpen variable. That

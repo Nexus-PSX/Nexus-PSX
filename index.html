@@ -1749,6 +1749,10 @@
           <button type="button" onclick="clearColFilterActive()">Clear</button>
         </div>
       </div>
+      <!-- Mirror of the screener table's horizontal scrollbar, placed at the
+           top so you don't have to scroll to the bottom of 100 rows to pan
+           the columns left/right. Kept in sync both ways by app.js. -->
+      <div class="top-scrollbar" id="screenerTopScroll"><div class="top-scrollbar-inner"></div></div>
       <div class="scroll-table">
         <table class="data-table hide-financials hide-performance hide-daily hide-nemi" id="screenerTable" aria-label="Stock screener results">
           <thead>

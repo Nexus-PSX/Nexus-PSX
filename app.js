@@ -2663,11 +2663,58 @@ function toggleFinancials() {
 // browser to get wrong. The forced reflow (reading offsetHeight) makes sure
 // the browser recomputes the sticky cell's position immediately rather than
 // leaving it until the next scroll/paint event.
+// ── Top mirror scrollbar for the screener table ───────────────────────────
+// Keeps a thin scrollbar strip above the table in sync with the table's own
+// horizontal scroll, so columns can be panned from the top of the list
+// instead of having to scroll down past every row first.
+//
+// The strip's inner div is sized to the table's real scrollWidth, which is
+// what makes the browser draw a correctly-proportioned thumb. That width has
+// to be refreshed whenever the table's width can change — column-group
+// toggles, re-renders, window resize — hence syncScreenerTopScrollbar()
+// being called from those paths too.
+let _topScrollSyncing = false;
+function syncScreenerTopScrollbar() {
+  const bar = document.getElementById('screenerTopScroll');
+  const scrollBox = document.querySelector('#tab-screener .scroll-table');
+  const table = document.getElementById('screenerTable');
+  if (!bar || !scrollBox || !table) return;
+  const inner = bar.firstElementChild;
+  if (inner) inner.style.width = table.scrollWidth + 'px';
+  // Nothing to scroll → hide the strip rather than show a dead scrollbar.
+  const overflowing = table.scrollWidth > scrollBox.clientWidth + 1;
+  bar.style.display = overflowing ? '' : 'none';
+  if (overflowing) bar.scrollLeft = scrollBox.scrollLeft;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const bar = document.getElementById('screenerTopScroll');
+  const scrollBox = document.querySelector('#tab-screener .scroll-table');
+  if (!bar || !scrollBox) return;
+  // Two-way sync, guarded so each one's programmatic scroll doesn't bounce
+  // back and re-trigger the other.
+  bar.addEventListener('scroll', () => {
+    if (_topScrollSyncing) return;
+    _topScrollSyncing = true;
+    scrollBox.scrollLeft = bar.scrollLeft;
+    _topScrollSyncing = false;
+  }, { passive: true });
+  scrollBox.addEventListener('scroll', () => {
+    if (_topScrollSyncing) return;
+    _topScrollSyncing = true;
+    bar.scrollLeft = scrollBox.scrollLeft;
+    _topScrollSyncing = false;
+  }, { passive: true });
+  window.addEventListener('resize', syncScreenerTopScrollbar);
+  syncScreenerTopScrollbar();
+});
+
 function resyncScreenerStickyColumn() {
   const scrollBox = document.querySelector('#tab-screener .scroll-table');
   if (!scrollBox) return;
   scrollBox.scrollLeft = 0;
   void scrollBox.offsetHeight; // force a synchronous reflow
+  syncScreenerTopScrollbar();  // table width just changed — resize the mirror bar
 }
 
 // Self-heal for the same underlying Chromium/Android-WebView bug as above,
@@ -4339,6 +4386,7 @@ function renderScreenerPage() {
     tbody.appendChild(tr);
   });
   renderPagination();
+  syncScreenerTopScrollbar();
 }
 
 // ── Market Average row in the Screener tfoot ───────────────────────────────
