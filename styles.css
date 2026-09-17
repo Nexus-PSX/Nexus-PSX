@@ -578,12 +578,27 @@
   .sector-name-cell {
     min-width: 160px;
     max-width: 260px;
+    color: var(--text) !important;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  /* The name itself truncates with an ellipsis when long; min-width:0 is
+     required for a flex child to actually shrink/truncate instead of
+     forcing the row wider. The relative-performance badge sits outside
+     this span (flex-shrink:0 below), so it always stays fully visible
+     no matter how long the sector name is — previously both were inside
+     one nowrap+ellipsis cell, so a long name like "TEXTILE COMPOSITE" or
+     "OIL & GAS EXPLORATION" could push the badge past the cut-off point
+     and hide it entirely. */
+  .sector-name-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text) !important;
-    font-weight: 500;
+    min-width: 0;
   }
+  .sector-name-cell .ticker-badge { flex-shrink: 0; }
   .screener-sector-cell {
     color: var(--text2);
     font-size: 12px;

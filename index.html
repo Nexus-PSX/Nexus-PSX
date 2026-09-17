@@ -450,18 +450,7 @@
 
   <!-- ===== SECTOR TAB ===== -->
   <div id="tab-sector" class="tab-content">
-    <!-- Relative Performance (formerly "Sector Rotation") — populated by buildSectorRotation()/renderSectorRotationList() in app.js.
-         Replaces the old KSE 100 vs Top 5 Sectors comparison cards in this slot. -->
     <div class="table-card" style="margin-bottom:16px;">
-      <div class="table-header">
-        <div class="table-title" style="position:relative;">
-          Relative Performance
-          <span style="font-size:11px;font-weight:400;color:var(--text2);margin-left:8px;">vs KSE 100 — 1M trend × WTD momentum</span>
-        </div>
-      </div>
-      <div id="sectorRotationList"></div>
-    </div>
-    <div class="table-card">
       <div class="table-header">
         <div class="table-title" style="position:relative;">Sector Performance Summary</div>
         <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -509,6 +498,20 @@
                 <button type="button" class="msel-action-btn" onclick="mselClear('sectorFilter')">Clear</button>
               </div>
               <div class="msel-list" id="sectorFilterMselList"></div>
+            </div>
+          </div>
+          <div class="msel" id="sectorRotationMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="sectorRotationMselBtn" aria-label="Filter by relative performance" aria-haspopup="listbox" onclick="mselTogglePanel('sectorRotation', event)" title="Relative Performance: Show only sectors in the selected categories, based on each sector's WTD%/Roll 1M% vs KSE 100 — Absolute Leading, Defensive Outperforming, Improving, Weakening, Lagging.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a4 4 0 0 1 4-4h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a4 4 0 0 1-4 4H3"></path></svg>
+              <span id="sectorRotationMselLabel">Relative Performance</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="sectorRotationMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('sectorRotation')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('sectorRotation')">Clear</button>
+              </div>
+              <div class="msel-list" id="sectorRotationMselList"></div>
             </div>
           </div>
           <button type="button" id="clearSectorFiltersBtn" onclick="clearSectorFilters()" title="Clear all active sector filters." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
@@ -1531,6 +1534,17 @@
     </tr></tbody>
         </table>
       </div>
+    </div>
+    <!-- Relative Performance (formerly "Sector Rotation") — populated by buildSectorRotation()/renderSectorRotationList() in app.js.
+         Replaces the old KSE 100 vs Top 5 Sectors comparison cards in this slot. -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-title" style="position:relative;">
+          Relative Performance
+          <span style="font-size:11px;font-weight:400;color:var(--text2);margin-left:8px;">vs KSE 100 — 1M trend × WTD momentum</span>
+        </div>
+      </div>
+      <div id="sectorRotationList"></div>
     </div>
   </div>
 

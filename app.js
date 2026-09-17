@@ -1654,11 +1654,30 @@ function renderSectorRotationList() {
 }
 
 // ===== SECTOR TABLE =====
+// Default ordering for the Sector Performance Summary: group sectors by
+// their relative-performance category, strongest first, and rank by
+// total improvement score within each group. Sectors with no category
+// (e.g. missing WTD%/Roll 1M% data) sort to the end.
+const ROTATION_SORT_RANK = {
+  absoluteLeading: 0,
+  improving: 1,
+  defensiveOutperforming: 2,
+  weakening: 3,
+  lagging: 4,
+};
+function compareSectorsByRotation(a, b) {
+  const ra = ROTATION_SORT_RANK[SECTOR_ROTATION_MAP[a.sector]];
+  const rb = ROTATION_SORT_RANK[SECTOR_ROTATION_MAP[b.sector]];
+  const na = ra == null ? 99 : ra;
+  const nb = rb == null ? 99 : rb;
+  if (na !== nb) return na - nb;
+  return (b.totalScore || 0) - (a.totalScore || 0);
+}
 let sectorTableData = [];
 function buildSectorTable() {
   const companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
   const regular = computeSectorRowsFromCompanies(companies)
-    .sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
+    .sort(compareSectorsByRotation);
   sectorTableData = regular;
   updateSortArrows('sectorTableHead', sectorSort.col, sectorSort.dir);
   renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
@@ -1688,7 +1707,7 @@ function renderSectorTable(data) {
     const rotBadge = ROTATION_BADGE_META[SECTOR_ROTATION_MAP[s.sector]];
     const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}">${rotBadge.glyph}</span>` : '';
     tr.innerHTML = `
-      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}${rotBadgeHtml}</td>
+      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')"><span class="sector-name-text">${s.sector}</span>${rotBadgeHtml}</td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.revQG)}">${s.revQG!=null?fmtPct(s.revQG,2):'—'}</td>
@@ -1743,7 +1762,7 @@ function syncWatchlistToComparison(active) {
 }
 
 function clearSectorFilters() {
-  ['sectorFilter', 'sectorIndex', 'sectorPeriod'].forEach(key => {
+  ['sectorFilter', 'sectorIndex', 'sectorPeriod', 'sectorRotation'].forEach(key => {
     if (mselRegistry[key]) {
       mselRegistry[key].selected.clear();
       mselUpdateLabel(key);
@@ -1755,10 +1774,11 @@ function clearSectorFilters() {
 function updateSectorClearBtn() {
   const btn = document.getElementById('clearSectorFiltersBtn');
   if (!btn) return;
-  const hasSector = mselRegistry.sectorFilter && mselRegistry.sectorFilter.selected.size > 0;
-  const hasIndex  = mselRegistry.sectorIndex  && mselRegistry.sectorIndex.selected.size  > 0;
-  const hasPeriod = mselRegistry.sectorPeriod && mselRegistry.sectorPeriod.selected.size > 0;
-  btn.style.display = (hasSector || hasIndex || hasPeriod) ? '' : 'none';
+  const hasSector   = mselRegistry.sectorFilter   && mselRegistry.sectorFilter.selected.size   > 0;
+  const hasIndex    = mselRegistry.sectorIndex    && mselRegistry.sectorIndex.selected.size    > 0;
+  const hasPeriod   = mselRegistry.sectorPeriod   && mselRegistry.sectorPeriod.selected.size   > 0;
+  const hasRotation = mselRegistry.sectorRotation && mselRegistry.sectorRotation.selected.size > 0;
+  btn.style.display = (hasSector || hasIndex || hasPeriod || hasRotation) ? '' : 'none';
 }
 
 function filterSectorTable() {
@@ -1787,8 +1807,14 @@ function filterSectorTable() {
     companies = companies.filter(d => selPeriod.has(String(dget(d,'Last Period End Date'))));
   }
 
-  const regular = computeSectorRowsFromCompanies(companies)
-    .sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
+  const selRotation = mselRegistry.sectorRotation ? mselRegistry.sectorRotation.selected : new Set();
+  let regular = computeSectorRowsFromCompanies(companies)
+    .sort(compareSectorsByRotation);
+  // Applied after aggregation because it filters *sectors* by their own
+  // relative-performance category, not individual companies.
+  if (selRotation.size > 0) {
+    regular = regular.filter(s => selRotation.has(SECTOR_ROTATION_MAP[s.sector]));
+  }
 
   // Market Average recomputed from the same filtered companies
   renderSectorTable([...regular, buildMarketAvgRowFromCompanies(companies, regular)]);
@@ -1820,7 +1846,12 @@ function sortSectorTable(col) {
     companies = companies.filter(d => selPeriod.has(String(dget(d,'Last Period End Date'))));
   }
 
-  const sorted = computeSectorRowsFromCompanies(companies).sort((a,b) => {
+  const selRotation = mselRegistry.sectorRotation ? mselRegistry.sectorRotation.selected : new Set();
+  let sectorRows = computeSectorRowsFromCompanies(companies);
+  if (selRotation.size > 0) {
+    sectorRows = sectorRows.filter(s => selRotation.has(SECTOR_ROTATION_MAP[s.sector]));
+  }
+  const sorted = sectorRows.sort((a,b) => {
     const av = a[key], bv = b[key];
     if (av == null) return 1; if (bv == null) return -1;
     return typeof av === 'string' ? av.localeCompare(bv) * sectorSort.dir : (av - bv) * sectorSort.dir;
@@ -2031,6 +2062,19 @@ const mselRegistry = {
     manyLabel: n => `${n} Sectors`,
     onChange: () => filterSectorTable(),
   },
+  sectorRotation: {
+    // Same 5 categories/options as the Screener's 'rotation' filter, but
+    // filters the Sector table's own rows by SECTOR_ROTATION_MAP (each
+    // sector's own relative performance vs KSE 100) — kept as its own
+    // independent selection/state from the Screener's per-ticker filter.
+    options: () => ROTATION_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'Relative Performance',
+    oneLabel: v => (ROTATION_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `Rel. Performance`,
+    onChange: () => filterSectorTable(),
+  },
   sectorIndex: {
     // Options built dynamically from SOURCE_DATA index membership
     options: () => {
@@ -2220,7 +2264,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid', 'rotation']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'sectorRotation', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid', 'rotation']);
 window.addEventListener('scroll', function() {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
