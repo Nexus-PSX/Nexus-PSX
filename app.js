@@ -1568,6 +1568,18 @@ const SECTOR_ROTATION_CATEGORIES = [
   { key: 'lagging',                label: 'Lagging',                 color: 'var(--text3)' },
 ];
 
+// Glyph/color/tooltip for each rotation category's small badge — shared by
+// tickerBadges() (Screener, per-stock) and the sector-name cell in
+// renderSectorTable() (Sector Performance Summary, per-sector), so both
+// places always render the exact same icon for the same category.
+const ROTATION_BADGE_META = {
+  absoluteLeading:        { glyph: '▲', cls: 'ticker-badge-rot-al', title: 'Relative Performance: Absolute Leading' },
+  defensiveOutperforming: { glyph: '◆', cls: 'ticker-badge-rot-do', title: 'Relative Performance: Defensive Outperforming' },
+  improving:              { glyph: '↗', cls: 'ticker-badge-rot-im', title: 'Relative Performance: Improving' },
+  weakening:              { glyph: '↘', cls: 'ticker-badge-rot-wk', title: 'Relative Performance: Weakening' },
+  lagging:                { glyph: '▼', cls: 'ticker-badge-rot-lg', title: 'Relative Performance: Lagging' },
+};
+
 // ===== SECTOR TAB: Sector Rotation ranked list (replaces the old KSE 100
 // vs Top 5 Sectors comparison cards, same slot above Sector Performance
 // Summary) =====
@@ -1673,8 +1685,10 @@ function renderSectorTable(data) {
     if (isPinned) {
       tr.style.cssText = 'border-top:2px solid var(--border);font-weight:600;background:var(--surface2);position:sticky;bottom:0;z-index:1;';
     }
+    const rotBadge = ROTATION_BADGE_META[SECTOR_ROTATION_MAP[s.sector]];
+    const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}">${rotBadge.glyph}</span>` : '';
     tr.innerHTML = `
-      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}</td>
+      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')">${s.sector}${rotBadgeHtml}</td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.revQG)}">${s.revQG!=null?fmtPct(s.revQG,2):'—'}</td>
@@ -4220,13 +4234,7 @@ function tickerBadges(d) {
     badges += '<span class="ticker-badge ticker-badge-vol" title="High Volume Accumulation Phase">V</span>';
   }
   const rot = STOCK_ROTATION_MAP[d.Ticker];
-  const ROT_BADGE = {
-    absoluteLeading:        { glyph: '▲', cls: 'ticker-badge-rot-al', title: 'Relative Performance: Absolute Leading' },
-    defensiveOutperforming: { glyph: '◆', cls: 'ticker-badge-rot-do', title: 'Relative Performance: Defensive Outperforming' },
-    improving:              { glyph: '↗', cls: 'ticker-badge-rot-im', title: 'Relative Performance: Improving' },
-    weakening:              { glyph: '↘', cls: 'ticker-badge-rot-wk', title: 'Relative Performance: Weakening' },
-    lagging:                { glyph: '▼', cls: 'ticker-badge-rot-lg', title: 'Relative Performance: Lagging' },
-  }[rot];
+  const ROT_BADGE = ROTATION_BADGE_META[rot];
   if (ROT_BADGE) {
     badges += `<span class="ticker-badge ${ROT_BADGE.cls}" title="${ROT_BADGE.title}">${ROT_BADGE.glyph}</span>`;
   }
