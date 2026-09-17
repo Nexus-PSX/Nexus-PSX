@@ -2620,19 +2620,34 @@ function resyncScreenerStickyColumn() {
 // is a browser rendering bug, not something one CSS rule can fully rule
 // out — so instead this listens for scrolling to settle (120ms after the
 // last scroll event) and forces a real repaint of just the sticky column's
-// cells (toggling display off/on, which is a stronger reset than a mere
-// layout read) so any corruption from the scroll that just happened
-// self-corrects almost immediately, without resetting the user's scroll
-// position the way resyncScreenerStickyColumn() above does.
+// cells, so any corruption from the scroll that just happened self-corrects
+// almost immediately.
+//
+// IMPORTANT: this previously toggled display:none/'' to force the repaint,
+// which — because it briefly removes the cells from the table's layout —
+// shrinks the table's total scrollable width for an instant. If you were
+// scrolled near the right edge (e.g. trying to see the Volume/1D% columns),
+// the browser clamps scrollLeft down to fit that temporarily-smaller width
+// and does not restore it afterwards, which made the table feel like it
+// "pushes back" and refused to reach the last couple of columns. Toggling
+// visibility instead never removes the cells from layout (the space stays
+// reserved), so the table's scrollable width — and therefore the user's
+// scroll position — is never touched, while still forcing the same repaint.
+// The explicit scrollLeft/scrollTop save+restore below is an extra safety
+// net in case anything else could shift it.
 (function () {
   let settleTimer = null;
   function repaintStickyColumn() {
     const table = document.getElementById('screenerTable');
+    const scrollBox = document.querySelector('#tab-screener .scroll-table');
     if (!table) return;
+    const savedLeft = scrollBox ? scrollBox.scrollLeft : null;
+    const savedTop = scrollBox ? scrollBox.scrollTop : null;
     const cells = table.querySelectorAll('td:nth-child(1), th:nth-child(1)');
-    cells.forEach(c => { c.style.display = 'none'; });
-    void table.offsetHeight; // commit the layout-less state before restoring, forcing a real repaint
-    cells.forEach(c => { c.style.display = ''; });
+    cells.forEach(c => { c.style.visibility = 'hidden'; });
+    void table.offsetHeight; // commit the state before restoring, forcing a real repaint
+    cells.forEach(c => { c.style.visibility = ''; });
+    if (scrollBox && savedLeft != null) { scrollBox.scrollLeft = savedLeft; scrollBox.scrollTop = savedTop; }
   }
   document.addEventListener('DOMContentLoaded', () => {
     const scrollBox = document.querySelector('#tab-screener .scroll-table');
