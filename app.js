@@ -3484,7 +3484,9 @@ function buildPortfolioTab() {
     const pnlPct = (marketValue != null && costBasis) ? (pnl / costBasis) * 100 : null;
     // Today's PKR contribution = today's price move (already in currency units) × shares held
     const dayPnlPKR = dayChangeAbs != null ? dayChangeAbs * h.qty : null;
-    return { ...h, row, price, sector, score, signalStatus, marketValue, costBasis, pnl, pnlPct, dayPnlPKR };
+    // Today's % move is per-share and independent of qty — same "Day Change %" figure shown elsewhere in the app for this ticker.
+    const dayPnlPct = row ? toN(dget(row,'Day Change %')) : null;
+    return { ...h, row, price, sector, score, signalStatus, marketValue, costBasis, pnl, pnlPct, dayPnlPKR, dayPnlPct };
   });
 
   const holdingsValue = rows.reduce((s,r) => s + (r.marketValue||0), 0);
@@ -3506,23 +3508,23 @@ function buildPortfolioTab() {
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Net Worth</div>
         <div style="font-size:18px;font-weight:700;">${fmtPKR(netWorth)}</div>
       </div>
-      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
-        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Stock Value</div>
-        <div style="font-size:18px;font-weight:700;">${fmtPKR(holdingsValue)}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${netWorth ? fmtPct((holdingsValue/netWorth)*100).replace('+','') + ' of portfolio' : '—'}</div>
-      </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;${pfCash<0?`border-left:4px solid var(--danger);`:''}">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">Cash <button onclick="pfToggleCashForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;padding:0;">Manage</button></div>
         <div style="font-size:18px;font-weight:700;color:${pfCash<0?'var(--danger)':'var(--text)'};">${fmtPKR(pfCash)}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${cashWeightPct != null ? fmtPct(cashWeightPct).replace('+','') + ' of portfolio' : '—'}</div>
       </div>
-      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(unrealizedPnl)};">
-        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Unrealized P&amp;L</div>
-        <div style="font-size:18px;font-weight:700;color:${clr(unrealizedPnl)};">${fmtPKR(unrealizedPnl)} (${fmtPct(unrealizedPnlPct)})</div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Stock Value</div>
+        <div style="font-size:18px;font-weight:700;">${fmtPKR(holdingsValue)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${netWorth ? fmtPct((holdingsValue/netWorth)*100).replace('+','') + ' of portfolio' : '—'}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(realizedPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Realized P&amp;L</div>
         <div style="font-size:18px;font-weight:700;color:${clr(realizedPnl)};">${fmtPKR(realizedPnl)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(unrealizedPnl)};">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Unrealized P&amp;L</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(unrealizedPnl)};">${fmtPKR(unrealizedPnl)} (${fmtPct(unrealizedPnlPct)})</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(totalDayPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Today's Change</div>
@@ -3535,7 +3537,7 @@ function buildPortfolioTab() {
       <table class="data-table" id="pfOpenTable">
         <thead><tr>
           <th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg Price</th><th>Current Price</th>
-          <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Signal</th><th></th>
+          <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Day P&amp;L</th><th>Day P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Signal</th><th></th>
         </tr></thead>
         <tbody>
           ${rows.map(r => `
@@ -3548,6 +3550,8 @@ function buildPortfolioTab() {
               <td class="mono">${r.marketValue != null ? fmtPKR(r.marketValue) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? fmtPKR(r.pnl) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${fmtPct(r.pnlPct)}</td>
+              <td class="mono" style="color:${clr(r.dayPnlPKR)}">${r.dayPnlPKR != null ? fmtPKR(r.dayPnlPKR) : '—'}</td>
+              <td class="mono" style="color:${clr(r.dayPnlPct)}">${fmtPct(r.dayPnlPct)}</td>
               <td class="mono">${netWorth ? ((r.marketValue/netWorth)*100).toFixed(1)+'%' : '—'}</td>
               <td class="mono">${r.score != null ? r.score.toFixed(0) : '—'}</td>
               <td>${r.signalStatus || '—'}</td>
