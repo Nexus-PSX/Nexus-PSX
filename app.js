@@ -1562,8 +1562,8 @@ function computeSectorRotationData() {
 
 const SECTOR_ROTATION_CATEGORIES = [
   { key: 'absoluteLeading',        label: 'Absolute Leading',        color: 'var(--success)' },
-  { key: 'defensiveOutperforming', label: 'Defensive Outperforming', color: 'var(--accent)' },
   { key: 'improving',              label: 'Improving',               color: 'var(--warn)' },
+  { key: 'defensiveOutperforming', label: 'Defensive Outperforming', color: 'var(--accent)' },
   { key: 'weakening',              label: 'Weakening',               color: 'var(--danger)' },
   { key: 'lagging',                label: 'Lagging',                 color: 'var(--text3)' },
 ];
@@ -1942,8 +1942,8 @@ const VOLPHASE_OPTIONS = [
 // stock's rotation category is derived from its sector, not stored per-row.
 const ROTATION_OPTIONS = [
   {value:'absoluteLeading',        label:'▲ Absolute Leading'},
-  {value:'defensiveOutperforming', label:'◆ Defensive Outperforming'},
   {value:'improving',              label:'↗ Improving'},
+  {value:'defensiveOutperforming', label:'◆ Defensive Outperforming'},
   {value:'weakening',              label:'↘ Weakening'},
   {value:'lagging',                label:'▼ Lagging'}
 ];
@@ -2916,6 +2916,7 @@ const PF_LOCAL_KEY = 'psx_portfolio_local';
 let pfCash = 0;
 let pfOpen = [];              // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate}]
 let pfClosed = [];            // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
+let pfLots = {};              // COMPUTED by replay — {ticker: [{qty, price, date}, ...]} oldest-first FIFO lots still open. Used for Day P&L so shares bought today are measured from their own buy price, not from yesterday's close.
 let pfLegacyClosed = [];      // Frozen pre-log-model closed positions — read-only, not part of the replay
 let pfTransactions = [];      // SOURCE OF TRUTH — [{id, type:'buy'|'sell'|'deposit'|'withdraw', ticker?, qty?, price?, amount?, date, ts}]
 let pfMode = 'local';         // 'local' | 'firestore'
@@ -3044,7 +3045,7 @@ function pfTryReplay(transactions) {
 
 function pfRecomputeFromTransactions() {
   const result = pfTryReplay(pfTransactions);
-  if (result.ok) { pfCash = result.state.cash; pfOpen = result.state.open; pfClosed = result.state.closed; pfRealizedPnlByTxId = result.pnlMap; }
+  if (result.ok) { pfCash = result.state.cash; pfOpen = result.state.open; pfClosed = result.state.closed; pfLots = result.state.lots || {}; pfRealizedPnlByTxId = result.pnlMap; }
   return result;
 }
 
@@ -3078,7 +3079,7 @@ function pfApplyState(s) {
     if (!result.ok) {
       // Shouldn't normally happen — fall back to the last-known-good stored
       // snapshot rather than showing broken/empty data.
-      pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed;
+      pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; pfLots = {};
     }
   } else if ((s.open && s.open.length) || s.cash) {
     // Pre-existing data from before the transaction log existed. Seed
@@ -3090,7 +3091,7 @@ function pfApplyState(s) {
     pfRecomputeFromTransactions();
     pfSave(); // persist the seeded log so this migration only ever runs once
   } else {
-    pfCash = 0; pfOpen = []; pfClosed = [];
+    pfCash = 0; pfOpen = []; pfClosed = []; pfLots = {};
   }
 }
 
@@ -3276,9 +3277,10 @@ function renderPfPendingForm() {
     <div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Made a mistake later? You can edit or delete this buy from Transaction History below.</div>`;
 }
 
-// Adding a ticker that's already held merges into a single quantity-weighted
-// average cost position (standard "average cost basis" behavior) rather than
-// tracking separate lots — keeps Open Positions to one row per ticker. Fixing
+// Adding a ticker that's already held merges into a single row showing a
+// quantity-weighted average cost (standard "average cost basis" display) —
+// but internally each buy is still tracked as its own FIFO lot (see
+// pfApplyTxToState/pfLots), used for sell cost-basis and Day P&L. Fixing
 // a mistake now happens by editing the logged transaction in Transaction
 // History (below), not by overwriting the position directly — since the
 // position is a computed result of the log, not independently stored.
@@ -3434,7 +3436,7 @@ async function pfConfirmTxEdit() {
   }
 
   pfTransactions = candidate;
-  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfRealizedPnlByTxId = check.pnlMap;
+  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfLots = check.state.lots || {}; pfRealizedPnlByTxId = check.pnlMap;
   pfEditingTxId = null;
   await pfSave();
   buildPortfolioTab();
@@ -3453,7 +3455,7 @@ async function pfDeleteTransaction(id) {
   }
 
   pfTransactions = candidate;
-  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfRealizedPnlByTxId = check.pnlMap;
+  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfLots = check.state.lots || {}; pfRealizedPnlByTxId = check.pnlMap;
   if (pfEditingTxId === id) pfEditingTxId = null;
   await pfSave();
   buildPortfolioTab();
@@ -3482,10 +3484,38 @@ function buildPortfolioTab() {
     const costBasis = h.avgPrice * h.qty;
     const pnl = marketValue != null ? marketValue - costBasis : null;
     const pnlPct = (marketValue != null && costBasis) ? (pnl / costBasis) * 100 : null;
-    // Today's PKR contribution = today's price move (already in currency units) × shares held
-    const dayPnlPKR = dayChangeAbs != null ? dayChangeAbs * h.qty : null;
-    // Today's % move is per-share and independent of qty — same "Day Change %" figure shown elsewhere in the app for this ticker.
-    const dayPnlPct = row ? toN(dget(row,'Day Change %')) : null;
+    // Day P&L needs to treat shares differently depending on when they were
+    // bought, or it either overstates or understates today's real gain:
+    //  - Shares already held at yesterday's close experienced the full
+    //    "Day Change" move (current price − previous close), so that figure
+    //    applies to them directly.
+    //  - Shares bought TODAY (a fresh position, or averaging more into an
+    //    existing one) never existed at yesterday's close — they only
+    //    existed from their own buy price onward, so their day gain is
+    //    (current price − their own buy price), not the market's Day Change.
+    // pfLots[ticker] holds the FIFO lots still open, each tagged with its
+    // buy date, which is exactly what's needed to split the current
+    // quantity into "bought today" vs "held from before" and price each
+    // portion correctly.
+    const todayStr = new Date().toISOString().slice(0,10);
+    const lots = pfLots[h.ticker] || [];
+    const lotsToday = lots.filter(l => l.date === todayStr);
+    const qtyToday = lotsToday.reduce((s,l) => s + l.qty, 0);
+    const costToday = lotsToday.reduce((s,l) => s + l.qty * l.price, 0);
+    const qtyBefore = h.qty - qtyToday;
+    const previousClose = (price != null && dayChangeAbs != null) ? price - dayChangeAbs : null;
+
+    let dayPnlPKR = null, dayPnlPct = null;
+    if (price != null) {
+      const gainBefore = (qtyBefore > 0 && dayChangeAbs != null) ? dayChangeAbs * qtyBefore : (qtyBefore > 0 ? null : 0);
+      const gainToday  = qtyToday > 0 ? (price * qtyToday - costToday) : 0;
+      dayPnlPKR = (gainBefore == null) ? null : gainBefore + gainToday;
+      // Baseline for the % figure: yesterday's close value for the
+      // "held before" portion, plus what was actually paid for today's
+      // portion — i.e. the position's value at the start of today.
+      const baseline = (qtyBefore > 0 && previousClose != null ? previousClose * qtyBefore : 0) + costToday;
+      dayPnlPct = (dayPnlPKR != null && baseline > 0) ? (dayPnlPKR / baseline) * 100 : null;
+    }
     return { ...h, row, price, sector, score, signalStatus, marketValue, costBasis, pnl, pnlPct, dayPnlPKR, dayPnlPct };
   });
 
