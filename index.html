@@ -1723,6 +1723,20 @@
               <div class="msel-list" id="othersMselList"></div>
             </div>
           </div>
+          <div class="msel" id="savedFiltersMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="savedFiltersMselBtn" aria-label="Saved filter sets" aria-haspopup="listbox" onclick="toggleSavedFiltersPanel(event)" title="Save your current combination of filters above under a name, or apply one you saved before, instead of re-picking each dropdown every time.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+              <span id="savedFiltersMselLabel">Saved Filters</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="savedFiltersMselPanel">
+              <div style="padding:10px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
+                <input type="text" id="savedFilterNameInput" placeholder="Name this filter set…" maxlength="40" style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentScreenerFilterSet();}">
+                <button type="button" class="msel-action-btn" onclick="saveCurrentScreenerFilterSet()">Save</button>
+              </div>
+              <div class="msel-list" id="savedFiltersList"></div>
+            </div>
+          </div>
           </div>
           <div id="screenerToggleChips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; width:100%; margin-top:8px;">
           <button class="fin-toggle-btn" id="finToggleBtn" onclick="toggleFinancials()" title="Hide/show EPS, Revenue, Margins, CFO columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="finToggleLabel">Show Financials</span></button>

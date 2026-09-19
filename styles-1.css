@@ -1,0 +1,2730 @@
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  /* ===== DARK THEME (default) ===== */
+  :root {
+    --bg:       #0b0f19;
+    --surface:  #131929;
+    --surface2: #1a2236;
+    --surface3: #202c42;
+    --border:   #253048;
+    --border2:  #2e3a52;
+
+    --accent:   #00c49a;
+    --accent-dim: rgba(0,196,154,0.12);
+    --accent2:  #f97316;
+    --accent3:  #3b82f6;
+    --accent3-dim: rgba(59,130,246,0.12);
+
+    --warn:     #f59e0b;
+    --danger:   #ef4444;
+    --success:  #22c55e;
+    --good:     #22c55e;
+    --bad:      #ef4444;
+    --neutral:  #f59e0b;
+
+    --text:     #f0f4ff;
+    --text2:    #8a9bc0;
+    --text3:    #5e6f8f;
+
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+
+    --header-bg: #0b0f19;
+    --chart-grid: rgba(255,255,255,0.05);
+  }
+
+  /* ===== LIGHT THEME ===== */
+  [data-theme="light"] {
+    --bg:       #f4f6fb;
+    --surface:  #ffffff;
+    --surface2: #eef1f8;
+    --surface3: #e4e9f4;
+    --border:   #d3daea;
+    --border2:  #bfc9dc;
+
+    --accent:   #0d9e7e;
+    --accent-dim: rgba(13,158,126,0.10);
+    --accent2:  #ea6b10;
+    --accent3:  #2563eb;
+    --accent3-dim: rgba(37,99,235,0.10);
+
+    --warn:     #d97706;
+    --danger:   #dc2626;
+    --success:  #16a34a;
+    --good:     #16a34a;
+    --bad:      #dc2626;
+    --neutral:  #d97706;
+
+    --text:     #0f172a;
+    --text2:    #475569;
+    --text3:    #94a3b8;
+
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.13);
+
+    --header-bg: #ffffff;
+    --chart-grid: rgba(0,0,0,0.06);
+  }
+
+  /* ===== DISCLAIMER MODAL ===== */
+  #disclaimerOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  #disclaimerOverlay.open { display: flex; }
+  #disclaimerModal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    max-width: 520px;
+    width: calc(100% - 32px);
+    padding: 28px 28px 24px;
+    animation: disclaimerIn 0.22s ease;
+  }
+  @keyframes disclaimerIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+  .disclaimer-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .disclaimer-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--warn);
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .disclaimer-title svg { flex-shrink: 0; }
+  .disclaimer-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text2);
+    margin-bottom: 20px;
+    border-left: 3px solid var(--warn);
+    padding-left: 14px;
+  }
+  .disclaimer-body strong { color: var(--text); font-weight: 600; }
+  .disclaimer-ok {
+    display: block;
+    width: 100%;
+    padding: 10px 0;
+    background: var(--accent3);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .disclaimer-ok:hover { opacity: 0.88; transform: translateY(-1px); }
+  .disclaimer-ok:active { transform: translateY(0); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: hidden; max-width: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 13px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .header-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .header-title .brand-accent { color: var(--accent); }
+  .header-subtitle { color: var(--text2); font-size: 12px; margin-top: 2px; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    letter-spacing: 0.03em;
+  }
+
+  /* LAYOUT */
+  .dashboard { padding: 20px 24px; max-width: 1900px; margin: 0 auto; }
+  /* On very wide/ultra-wide monitors, scale past the fixed cap so the extra
+     space (e.g. the Stock Screener's wide table) keeps getting used instead
+     of sitting as empty margin on either side. */
+  @media (min-width: 2000px) {
+    .dashboard { max-width: 96vw; }
+  }
+
+  /* CONTROLS */
+  .controls {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: start;
+  }
+
+  .ticker-selector {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .selector-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .ticker-search {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .ticker-search:focus { border-color: var(--accent); }
+  .ticker-autocomplete {
+    display: none;
+    position: absolute;
+    left: 16px; right: 16px;
+    top: calc(100% - 8px);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    z-index: 999;
+    max-height: 260px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .ticker-autocomplete.open { display: block; }
+  .ac-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.selected { background: var(--surface3); }
+  .ac-ticker { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 14px; color: var(--accent3); font-weight: 600; }
+  .ac-name { font-size: 12px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ac-score { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 11px; float: right; margin-top: 1px; }
+  .current-ticker {
+    margin-top: 10px;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .current-ticker span { color: var(--accent); font-weight: 600; }
+
+  /* COMPANY CARD */
+  .company-info {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto;
+    gap: 16px;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .info-item {}
+  .info-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text2); margin-bottom: 4px; }
+  .info-value { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+  .info-value.mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+
+  .score-box {
+    background: var(--surface2);
+    border-radius: var(--radius-md);
+    padding: 14px 22px;
+    text-align: center;
+    border: 1px solid var(--border);
+    min-width: 120px;
+    transition: background 0.25s;
+  }
+  .score-label { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.1em; }
+  .score-value { font-size: 32px; font-weight: 700; font-family: 'IBM Plex Mono', 'Courier New', monospace; margin: 4px 0 2px; letter-spacing: -0.03em; }
+  .score-hint { font-size: 12px; font-weight: 500; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.green::before { background: var(--accent); }
+  .kpi-card.orange::before { background: var(--accent2); }
+  .kpi-card.blue::before { background: var(--accent3); }
+  .kpi-card.yellow::before { background: var(--warn); }
+  .kpi-name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2); margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', 'Courier New', monospace; letter-spacing: -0.02em; }
+  .kpi-trend {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; margin-top: 4px; color: var(--text2);
+  }
+  .kpi-trend .up { color: var(--success); }
+  .kpi-trend .down { color: var(--danger); }
+  .kpi-subtitle { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px 14px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .chart-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+  }
+  .chart-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text2);
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chart-title span { color: var(--accent); font-weight: 700; font-size: 14px; text-transform: none; letter-spacing: 0; font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  .chart-wrap { position: relative; height: 300px; }
+  /* Smaller than the default chart-wrap on purpose — a doughnut with outside
+     labels needs real margin around it to avoid clipping, so a smaller ring
+     with headroom looks better than a large one with cramped/cut-off labels. */
+  .pf-alloc-chart { max-width: 360px; height: 300px; margin: 0 auto; }
+
+  /* SCORE BREAKDOWN */
+  .score-breakdown {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s;
+  }
+  .breakdown-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text2);
+    margin-bottom: 14px;
+  }
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+  }
+  .breakdown-item {
+    text-align: center;
+  }
+  .breakdown-label { font-size: 10px; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; line-height: 1.3; }
+  .breakdown-bar-wrap { height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px; }
+  .breakdown-bar { width: 28px; border-radius: 3px 3px 0 0; transition: height 0.5s ease; }
+  .breakdown-score { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 14px; font-weight: 600; }
+
+  /* TABLE */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .table-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .table-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  .table-filters { display: flex; gap: 8px; }
+  .filters-toggle-btn { display: none; }
+  .filter-select {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: 2px;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+  .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .data-table thead { position: sticky; top: 0; z-index: 10; }
+  /* Freeze the Ticker column in the screener table so it stays visible
+     while scrolling horizontally through the financial/technical/daily/
+     performance column groups. */
+  #screenerTable th:first-child,
+  #screenerTable td:first-child,
+  #watchlistTableGH th:first-child,
+  #watchlistTableGH td:first-child,
+  #watchlistTableGuest th:first-child,
+  #watchlistTableGuest td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--surface);
+    box-shadow: 2px 0 5px rgba(0,0,0,0.08);
+  }
+  #screenerTable thead th:first-child,
+  #watchlistTableGH thead th:first-child,
+  #watchlistTableGuest thead th:first-child {
+    z-index: 12;
+    background: var(--surface2);
+  }
+  /* Subtle color-coded tint per column group (header only) so the eye can
+     orient across the 27 columns even when everything is shown at once. */
+  #screenerTable th.screener-fin-col   { background-color: var(--surface2); background-image: linear-gradient(rgba(59,130,246,0.09), rgba(59,130,246,0.09)); }
+  #screenerTable th.screener-tech-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(168,85,247,0.09), rgba(168,85,247,0.09)); }
+  #screenerTable th.screener-daily-col { background-color: var(--surface2); background-image: linear-gradient(rgba(245,158,11,0.09), rgba(245,158,11,0.09)); }
+  #screenerTable th.screener-perf-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(34,197,94,0.09), rgba(34,197,94,0.09)); }
+  #screenerTable th.screener-nemi-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(6,182,212,0.09), rgba(6,182,212,0.09)); }
+  #sectorTable th.sector-perf-col  { background-color: var(--surface2); background-image: linear-gradient(rgba(34,197,94,0.07), rgba(34,197,94,0.07)); }
+  .data-table th {
+    background: var(--surface2);
+    background-color: var(--surface2);
+    padding: 9px 13px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text2);
+    border-bottom: 2px solid var(--border2);
+    box-shadow: 0 2px 0 var(--border2);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+  }
+  .data-table th:hover { color: var(--accent); }
+  /* Desktop/tablet default: show the full column-header wording (e.g. "Financial
+     Score", "Signal Date"). Swapped for the shortened version only under the
+     mobile breakpoint below — see .th-full/.th-short there. */
+  .th-full { display: inline; }
+  .th-short { display: none; }
+  .data-table td {
+    padding: 8px 13px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    white-space: nowrap;
+    transition: background 0.1s;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  /* Dark theme explicit text colors — ensures readability in dark mode */
+  .data-table td { color: var(--text); }
+  .data-table td.mono { color: var(--text); }
+  .sector-name-cell { color: var(--text); }
+  .screener-sector-cell { color: var(--text2); }
+  /* Positive/negative must win over the td color rules */
+  .data-table td .positive, .data-table td.positive,
+  .data-table .positive { color: var(--success) !important; }
+  .data-table td .negative, .data-table td.negative,
+  .data-table .negative { color: var(--danger) !important; }
+  .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  .positive { color: var(--success); }
+  .negative { color: var(--danger); }
+  .neutral { color: var(--warn); }
+  .ticker-link { color: var(--accent3); cursor: pointer; font-weight: 700; font-size: 13px; }
+
+  /* Compact "+" button embedded in the sticky Ticker cell, and its popup menu */
+  .screener-add-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; margin-right: 5px; vertical-align: -3px;
+    background: var(--accent3-dim); border: 1px solid rgba(59,130,246,0.35); border-radius: 4px;
+    color: var(--accent3); cursor: pointer; padding: 0; flex-shrink: 0;
+  }
+  .screener-add-menu {
+    display: none; position: fixed; z-index: 100000; min-width: 180px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.25); padding: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  .screener-add-menu.open { display: block; }
+  .screener-add-menu button {
+    display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box;
+    padding: 9px 10px; border: none; background: none; border-radius: 7px;
+    color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; text-align: left;
+  }
+  .screener-add-menu button:hover { background: var(--surface2); }
+  .ticker-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%; margin-left: 4px;
+    font-size: 9px; font-weight: 800; color: #fff; vertical-align: middle;
+    cursor: default;
+  }
+  .ticker-badge-turn { background: #f59e0b; }
+  .ticker-badge-ni { background: #22c55e; }
+  .ticker-badge-kmi    { background: none; width: auto; height: auto; color: #0d9e7e; }
+  .ticker-badge-liquid { background: none; font-size: 11px; width: auto; height: auto; padding: 0; }
+  .ticker-badge-vol    { background: #9ca3af; }
+  /* Sector Rotation badges — colors match the categories used in the
+     Sector Rotation list (Sectors tab) and the sector table's AVG EPS/Rev
+     G% columns, so the same category always reads as the same color
+     everywhere in the app. Distinct glyph shapes (not just color) keep
+     them distinguishable for colorblind users. */
+  .ticker-badge-rot-al { background: var(--success); font-size: 9px; }
+  .ticker-badge-rot-do { background: var(--accent); font-size: 9px; }
+  .ticker-badge-rot-im { background: var(--warn); font-size: 9px; }
+  .ticker-badge-rot-wk { background: var(--warn); font-size: 9px; }
+  .ticker-badge-rot-lg { background: var(--danger); font-size: 9px; }
+  .ticker-link:hover { text-decoration: underline; color: var(--accent); }
+
+  /* SECTOR TABLE — frozen first column */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .sector-name-cell {
+    min-width: 160px;
+    max-width: 260px;
+    color: var(--text) !important;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  /* The name itself truncates with an ellipsis when long; min-width:0 is
+     required for a flex child to actually shrink/truncate instead of
+     forcing the row wider. The relative-performance badge sits outside
+     this span (flex-shrink:0 below), so it always stays fully visible
+     no matter how long the sector name is — previously both were inside
+     one nowrap+ellipsis cell, so a long name like "TEXTILE COMPOSITE" or
+     "OIL & GAS EXPLORATION" could push the badge past the cut-off point
+     and hide it entirely. */
+  .sector-name-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .sector-name-cell .ticker-badge { flex-shrink: 0; }
+  .screener-sector-cell {
+    color: var(--text2);
+    font-size: 12px;
+  }
+
+  #sectorTable th:first-child,
+  #sectorTable td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+  }
+  /* Fully opaque backgrounds so zebra-stripes and hover don't bleed through */
+  #sectorTable th:first-child {
+    background: var(--surface2) !important;
+    background-color: var(--surface2) !important;
+  }
+  #sectorTable td:first-child {
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    z-index: 1;
+  }
+  #sectorTable tbody tr:nth-child(even) td:first-child {
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+  }
+  #sectorTable tr:hover td:first-child {
+    background: var(--surface3) !important;
+    background-color: var(--surface3) !important;
+  }
+
+  /* SCREENER TABLE — frozen Ticker column */
+  #screenerTable th:nth-child(2),
+  #screenerTable td:nth-child(2) {
+    min-width: 180px;
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #screenerTable th:nth-child(1),
+  #screenerTable td:nth-child(1),
+  #watchlistTableGH th:nth-child(1),
+  #watchlistTableGH td:nth-child(1),
+  #watchlistTableGuest th:nth-child(1),
+  #watchlistTableGuest td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    min-width: 80px;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+  }
+  /* Screener's Ticker cell embeds an add-button (Watchlist's doesn't), so it
+     needs a bit more room than the shared baseline above. */
+  #screenerTable th:nth-child(1),
+  #screenerTable td:nth-child(1) {
+    min-width: 108px;
+  }
+  /* Fully opaque backgrounds so zebra-stripes and hover don't bleed through */
+  #screenerTable th:nth-child(1),
+  #watchlistTableGH th:nth-child(1),
+  #watchlistTableGuest th:nth-child(1) {
+    background: var(--surface2) !important;
+    background-color: var(--surface2) !important;
+  }
+  #screenerTable td:nth-child(1),
+  #watchlistTableGH td:nth-child(1),
+  #watchlistTableGuest td:nth-child(1) {
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    z-index: 1;
+  }
+  #screenerTable tbody tr:nth-child(even) td:nth-child(1),
+  #watchlistTableGH tbody tr:nth-child(even) td:nth-child(1),
+  #watchlistTableGuest tbody tr:nth-child(even) td:nth-child(1) {
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+  }
+  #screenerTable tr:hover td:nth-child(1),
+  #watchlistTableGH tr:hover td:nth-child(1),
+  #watchlistTableGuest tr:hover td:nth-child(1) {
+    background: var(--surface3) !important;
+    background-color: var(--surface3) !important;
+  }
+
+  /* ── HOME TAB (Active Buy Signals) — frozen Ticker column ────────────── */
+  #homeSignalsTable th:nth-child(1),
+  #homeSignalsTable td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    min-width: 90px;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.3);
+  }
+  #homeSignalsTable th:nth-child(1) { z-index: 3; }
+  #homeSignalsTable td:nth-child(1) {
+    z-index: 1;
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+  }
+  /* Rows toggle their background inline on hover (JS-driven, not CSS nth-
+     child stripes) — !important on the sticky cell wins over that inline
+     style so it stays a consistent solid color instead of inheriting it. */
+  #homeSignalsTable tr:hover td:nth-child(1) {
+    background: var(--surface3) !important;
+    background-color: var(--surface3) !important;
+  }
+
+  /* ── PORTFOLIO TAB — frozen Ticker column ─────────────────────────────
+     Open/Closed Positions: Ticker is column 1. Transaction History has a
+     Type badge in column 1 and Ticker in column 2 — both are frozen
+     together so there's no gap/jump between them while scrolling. */
+  #pfOpenTable th:nth-child(1),
+  #pfOpenTable td:nth-child(1),
+  #pfClosedTable th:nth-child(1),
+  #pfClosedTable td:nth-child(1),
+  #pfTxTable th:nth-child(1),
+  #pfTxTable td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+  }
+  /* The Ticker column's left:96px sticky offset below only lines up
+     correctly if the Type column is *actually* 96px wide. It previously
+     wasn't pinned to any width — its real rendered width depended on the
+     badge text (BUY/SELL/DEPOSIT/WITHDRAW are all different lengths), so
+     on many devices it came out narrower or wider than the assumed 96px.
+     Narrower left a visible gap between Type and Ticker; wider pushed the
+     Ticker column's true layout position past 96px while its sticky box
+     still rendered pinned there — leaving Qty (the next real column)
+     starting underneath/behind the visually-pinned Ticker cell. Locking
+     Type to an exact width fixes both at once. This only applies to
+     pfTxTable — pfOpenTable/pfClosedTable's first column is Ticker
+     itself and should keep sizing to its content as before. */
+  #pfTxTable th:nth-child(1),
+  #pfTxTable td:nth-child(1) {
+    width: 96px;
+    min-width: 96px;
+    max-width: 96px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  #pfTxTable th:nth-child(2),
+  #pfTxTable td:nth-child(2) {
+    position: sticky;
+    left: 96px; /* matches the Type column's locked width above exactly */
+    z-index: 2;
+  }
+  #pfOpenTable td:nth-child(1),
+  #pfClosedTable td:nth-child(1),
+  #pfTxTable td:nth-child(1),
+  #pfTxTable td:nth-child(2) {
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.25);
+  }
+  #pfOpenTable th:nth-child(1),
+  #pfClosedTable th:nth-child(1),
+  #pfTxTable th:nth-child(1),
+  #pfTxTable th:nth-child(2) {
+    background: var(--surface2) !important;
+    background-color: var(--surface2) !important;
+  }
+
+  /* ── TOP TAB — frozen Ticker column ───────────────────────────────────
+     The separate # rank column was removed (redundant with sort order and
+     was eating up scroll width on mobile) — Ticker is now the first column
+     and the only one frozen. Name scrolls normally right after it, so
+     there's no risk of a mismatched offset causing a gap/overlap like the
+     old two-column freeze could. */
+  .top-mini-table th:nth-child(1),
+  .top-mini-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+  }
+  .top-mini-table td:nth-child(1) {
+    z-index: 3;
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.25);
+  }
+  .top-mini-table tr:hover td:nth-child(1) {
+    background: var(--accent3-dim) !important;
+  }
+  /* Header cells already have their own opaque background (solid for the
+     default header, an opaque gradient for the active-sorted column — see
+     the ths/thA styles in topTableRender()), so only position is added here
+     — forcing a background would override that active-sort highlighting. */
+
+  /* ── SCREENER MARKET AVERAGE ROW (tfoot) ─────────────────────────────────
+     Sticky at the bottom of the scroll-table viewport so it stays visible
+     while scrolling vertically through rows. First cell is also frozen
+     left in sync with the rest of the Ticker column. */
+  #screenerTable tfoot {
+    position: sticky;
+    bottom: 0;
+    z-index: 9;
+  }
+  #screenerAvgRow td {
+    background: var(--surface2) !important;
+    background-color: var(--surface2) !important;
+    border-top: 2px solid var(--accent3);
+    border-bottom: none;
+    font-weight: 600;
+    font-size: 12px;
+    white-space: nowrap;
+    padding: 7px 13px;
+  }
+  /* Freeze the first (Mkt Avg label) cell just like the Ticker column */
+  #screenerAvgRow td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 4;
+    background: var(--surface2) !important;
+    background-color: var(--surface2) !important;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+    color: var(--accent3);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .screener-avg-count {
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  [data-theme="light"] #screenerAvgRow td {
+    background: #eef1f8 !important;
+    background-color: #eef1f8 !important;
+    border-top-color: #3b82f6;
+  }
+  [data-theme="light"] #screenerAvgRow td:nth-child(1) {
+    background: #eef1f8 !important;
+    background-color: #eef1f8 !important;
+    color: #3b82f6;
+  }
+  [data-theme="bloomberg"] #screenerAvgRow td {
+    background: #111 !important;
+    background-color: #111 !important;
+    border-top-color: #ff6600;
+  }
+  [data-theme="bloomberg"] #screenerAvgRow td:nth-child(1) {
+    background: #111 !important;
+    background-color: #111 !important;
+    color: #ffcc00;
+  }
+  [data-theme="tradingview"] #screenerAvgRow td {
+    background: #2a2e39 !important;
+    background-color: #2a2e39 !important;
+    border-top-color: #2962ff;
+  }
+  [data-theme="tradingview"] #screenerAvgRow td:nth-child(1) {
+    background: #2a2e39 !important;
+    background-color: #2a2e39 !important;
+    color: #2962ff;
+  }
+  [data-theme="cream"] #screenerAvgRow td {
+    background: #ede8df !important;
+    background-color: #ede8df !important;
+    border-top-color: #3d8c5c;
+  }
+  [data-theme="cream"] #screenerAvgRow td:nth-child(1) {
+    background: #ede8df !important;
+    background-color: #ede8df !important;
+    color: #3d8c5c;
+  }
+
+
+  /* PILL */
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pill-good { background: rgba(34,197,94,0.12); color: var(--success); border: 1px solid rgba(34,197,94,0.25); }
+  .pill-bad { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); }
+  .pill-neutral { background: rgba(245,158,11,0.12); color: var(--warn); border: 1px solid rgba(245,158,11,0.25); }
+
+  /* COMPARISON TAB — company chips + KPI toggle pills */
+  .cmp-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 8px 5px 10px; border-radius: 100px;
+    border: 1.5px solid var(--border); background: var(--surface2);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+    color: var(--text);
+  }
+  .cmp-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cmp-chip button {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    font-size: 11px; padding: 2px; line-height: 1; border-radius: 50%;
+  }
+  .cmp-chip button:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+
+  .cmp-kpi-toggle {
+    padding: 6px 13px; border-radius: 100px; cursor: pointer;
+    background: var(--accent-dim); border: 1px solid var(--accent);
+    color: var(--accent); font-size: 12px; font-weight: 600;
+    transition: 0.15s;
+  }
+  .cmp-kpi-toggle.off {
+    background: var(--surface2); border-color: var(--border);
+    color: var(--text3); text-decoration: line-through;
+  }
+  .cmp-kpi-toggle:hover { filter: brightness(1.08); }
+
+  /* NOTE: previously this rule promoted every frozen/sticky first column
+     onto its own GPU compositing layer via transform:translateZ(0) to fix
+     a mid-scroll flicker. That combination (transform + position:sticky on
+     a <td>) is a known bad interaction on Android/Chromium: it can cause
+     the browser to paint a stale/wrong frame into that cell's layer during
+     fast horizontal scroll — which showed up as the Ticker column
+     displaying the Name column's text instead of the ticker. Removed. The
+     opaque background + z-index already set on these cells (see the
+     nth-child(1) rules above/below) is what actually keeps them correctly
+     layered above the scrolling columns, without the layer-promotion risk. */
+
+  /* Top mirror scrollbar — a thin strip that scrolls horizontally in sync
+     with the table below it, so the columns can be panned without first
+     scrolling down past every row to reach the table's own scrollbar.
+     It holds no content; its inner div is just sized to the table's real
+     scrollWidth by app.js so the browser renders a proportional thumb.
+     Hidden automatically when the table isn't actually overflowing. */
+  .top-scrollbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 12px;
+    margin-bottom: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent3) var(--surface2);
+    -webkit-overflow-scrolling: touch;
+  }
+  .top-scrollbar-inner { height: 1px; }
+  .top-scrollbar::-webkit-scrollbar { height: 8px; }
+  .top-scrollbar::-webkit-scrollbar-track { background: var(--surface2); border-radius: 4px; }
+  .top-scrollbar::-webkit-scrollbar-thumb { background: var(--accent3); border-radius: 4px; }
+
+  /* SCROLLABLE */
+  /* Data options button hover — previously done via inline onmouseenter/
+     onmouseleave handlers that read the global dataMenuOpen variable. That
+     caused "dataMenuOpen is not defined" console errors if the button was
+     hovered before app.js finished loading. Pure CSS has no such race.
+     !important is needed because the button also carries inline
+     border-color/color (both as its base style and as set by
+     toggleDataMenu()/closeDataMenu() when the menu opens/closes) — a plain
+     stylesheet rule can't win against inline styles otherwise. This still
+     composes correctly with that JS: hovering always shows the accent
+     color, and moving the mouse away while the menu is open correctly
+     leaves it accent-colored too (that's the JS-set open-state color,
+     simply no longer overwritten on mouseleave). */
+  #dataMenuBtn:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+  .scroll-table { overflow-x: auto; max-height: 600px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--accent3) var(--surface2); -webkit-overflow-scrolling: touch; }
+  .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
+  .scroll-table::-webkit-scrollbar-track { background: var(--surface2); border-radius: 6px; }
+  .scroll-table::-webkit-scrollbar-thumb { background: var(--accent3); border-radius: 6px; border: 2px solid var(--surface2); }
+  .scroll-table::-webkit-scrollbar-thumb:hover { background: #00d4aa; }
+  .scroll-table::-webkit-scrollbar-corner { background: var(--surface2); }
+
+  /* SECTION */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text2);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* KPI TABLE inside chart card */
+  .kpi-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .kpi-table tbody tr td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+  .kpi-table tbody tr:last-child td { border-bottom: none; }
+  .kpi-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+  .kpi-table .metric-name { color: var(--text); font-size: 11px; font-weight: 500; letter-spacing: 0.03em; position: sticky; left: 0; z-index: 5; background: var(--surface); }
+  .kpi-table tbody tr:hover td.metric-name { background: var(--surface); }
+  .kpi-table .q-val { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 11px; text-align: right; color: var(--text2); }
+  .kpi-table .q-val.latest-col { color: var(--text) !important; font-weight: 700; background: rgba(0,212,170,0.06); }
+  .kpi-table .sector-val {
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 11px;
+    text-align: right;
+    font-weight: 600;
+    background: rgba(255,107,53,0.07);
+  }
+  /* Sticky headers */
+  .kpi-table thead { position: sticky; top: 0; z-index: 10; }
+  .kpi-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text2);
+    padding: 8px 10px;
+    text-align: right;
+    background: var(--surface2);
+    background-color: var(--surface2);
+    border-bottom: 2px solid var(--border);
+    box-shadow: 0 2px 0 var(--border);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .kpi-table th:first-child { text-align: left; color: var(--text); position: sticky; left: 0; z-index: 11; }
+  .kpi-table th.th-latest {
+    color: var(--accent);
+    background: var(--surface2);
+    background-color: var(--surface2);
+    border-bottom: 2px solid var(--accent);
+    box-shadow: 0 2px 0 var(--accent);
+  }
+  .kpi-table th.th-sector {
+    color: var(--accent2);
+    background: var(--surface2);
+    background-color: var(--surface2);
+    border-bottom: 2px solid var(--accent2);
+    box-shadow: 0 2px 0 var(--accent2);
+  }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+  .tab {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    outline: none;
+    letter-spacing: 0.01em;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); }
+  .page-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .page-btn:hover { color: var(--text); border-color: var(--accent); }
+  .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .page-info { font-size: 12px; color: var(--text2); margin-left: auto; font-weight: 500; }
+
+  /* Search in table */
+  .table-search {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    color: var(--text);
+    font-size: 13px;
+    width: 190px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .table-search:focus { border-color: var(--accent); }
+  /* Wrapper around the company count + legend icons in the screener search
+     row. On desktop it's invisible to layout (children behave as direct flex
+     items, same order as always); on mobile (see media query) it becomes a
+     real box so those two pieces group onto one line together. */
+  .search-row-info { display: contents; }
+
+  /* Progress bar inline */
+  .prog-bar {
+    display: inline-block;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    width: 60px;
+    vertical-align: middle;
+    margin-left: 6px;
+    position: relative;
+  }
+  .prog-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+
+  /* Watchlist toast notification */
+  .wl-toast {
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:var(--surface);border:1px solid var(--accent3);color:var(--text);
+    padding:9px 20px;border-radius:8px;font-size:13px;
+    font-family:"Inter",sans-serif;z-index:9999;transition:opacity 0.3s;
+    pointer-events:none;white-space:nowrap;opacity:0;
+    box-shadow:0 4px 16px rgba(0,0,0,0.15);
+  }
+  [data-theme="light"] .wl-toast  { background:#1e293b; color:#f1f5f9; border-color:#3b82f6; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+  [data-theme="cream"] .wl-toast  { background:#2d3748; color:#f7f3ec; border-color:#3d8c5c; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+  [data-theme="bloomberg"] .wl-toast { background:#1a1a1a; color:#e0e0e0; border-color:#ff6600; }
+  [data-theme="tradingview"] .wl-toast { background:#1e222d; color:#d1d4dc; border-color:#2962ff; }
+
+  /* Info icon */
+  .info-icon { opacity:0.55; transition:opacity 0.15s; }
+  .info-icon:hover { opacity:1; border-color:var(--accent); color:var(--accent); }
+
+  /* Info icon — absolute top-right inside its parent button */
+  .info-icon { opacity:0.55; transition:opacity 0.15s; }
+  .info-icon:hover { opacity:1; color:var(--accent) !important; border-color:var(--accent) !important; }
+  /* Ensure msel-btn and fin-toggle-btn can contain the absolute icon */
+  .msel-btn { position:relative; }
+  .fin-toggle-btn { position:relative; }
+  .tab { position:relative; }
+
+  /* Score circle — used in Home tab signals table and Company View */
+  .score-circle {
+    display:inline-flex;align-items:center;justify-content:center;
+    width:32px;height:32px;border-radius:50%;
+    font-size:12px;font-weight:700;
+  }
+  .score-circle.score-high { background:rgba(34,197,94,0.15); color:var(--success); }
+  .score-circle.score-mid  { background:rgba(245,158,11,0.15); color:var(--warn); }
+  .score-circle.score-low  { background:rgba(239,68,68,0.15); color:var(--danger); }
+
+  /* Sort indicator */
+  .sort-asc::after { content: ' ↑'; color: var(--accent); font-weight: 700; }
+  .sort-desc::after { content: ' ↓'; color: var(--accent); font-weight: 700; }
+
+  /* Prevent flicker of pre-baked static rows before JS renders */
+  #screenerBody.pre-render { visibility: hidden; }
+
+  /* Hide financials columns (EPS Q → CFO) when toggled */
+  #screenerTable.hide-financials .screener-fin-col { display: none; }
+  #screenerTable.hide-performance .screener-perf-col { display:none; }
+  /* Hide daily price/vol columns when toggled */
+  #screenerTable.hide-daily .screener-daily-col { display:none; }
+  /* Hide technical columns (Signal Date, Signal Return%, Signal Status) when toggled */
+  #screenerTable.hide-technical .screener-tech-col { display:none; }
+  /* NEMI columns: hidden by default globally, shown only when body has nemi-allowed class */
+  .screener-nemi-col { display:none !important; }
+  body.nemi-allowed .screener-nemi-col { display:table-cell !important; }
+  body.nemi-allowed #screenerTable.hide-nemi .screener-nemi-col { display:none !important; }
+  #screenerTable.hide-nemi .screener-nemi-col { display:none !important; }
+  #sectorTable.hide-sector-fin .sector-fin-col { display:none; }
+
+
+
+  /* Toggle button */
+  .fin-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .fin-toggle-btn:hover { border-color: var(--accent3); color: var(--accent3); background: var(--accent3-dim); }
+  .fin-toggle-btn.active { background: var(--accent3-dim); border-color: var(--accent3); color: var(--accent3); font-weight: 600; }
+
+  /* Upload confirmation modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 9998;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    min-width: 380px;
+    max-width: 480px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    animation: popIn 0.2s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
+  .modal-title { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .modal-title.success { color: var(--success); }
+  .modal-title.error { color: var(--danger); }
+  .modal-body { color: var(--text2); font-size: 13px; text-align: center; margin-bottom: 20px; line-height: 1.6; }
+  .modal-stats {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .modal-stat-item { text-align: center; }
+  .modal-stat-val { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+  .modal-stat-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+  .modal-close-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .modal-close-btn:hover { opacity: 0.85; }
+  .modal-btn-row { display: flex; gap: 10px; }
+  .modal-btn-row .modal-close-btn { margin: 0; }
+  .modal-secondary-btn {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .modal-secondary-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+  .install-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px 12px;
+    line-height: 1;
+    color: var(--text2);
+    transition: 0.2s;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .install-btn.show { display: flex; }
+  .install-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .install-steps { text-align: left; background: var(--surface3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: var(--text); line-height: 1.8; }
+  .install-steps b { color: var(--accent); }
+  .install-icon-preview { width: 56px; height: 56px; border-radius: 12px; margin: 0 auto 12px; display: block; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+  .modal-error-detail {
+    background: rgba(255,71,87,0.1);
+    border: 1px solid rgba(255,71,87,0.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--danger);
+    margin-bottom: 20px;
+    word-break: break-word;
+  }
+
+  /* Fin. Score color */
+  .score-high { color: var(--success); }
+  .score-mid { color: var(--warn); }
+  .score-low { color: var(--danger); }
+
+  /* Share menu items */
+  .share-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .share-menu-item:hover { background: var(--surface3); }
+
+  .save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+  }
+  .save-btn:hover { background: var(--accent); color: #fff; }
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .upload-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .upload-btn:active { transform: translateY(0); }
+  .upload-status {
+    font-size: 11px;
+    color: var(--success);
+    white-space: nowrap;
+    display: none;
+  }
+  .upload-status.error { color: var(--danger); }
+
+  /* Upload overlay */
+  .upload-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .upload-overlay.show { display: flex; }
+  .upload-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .upload-msg { color: var(--text); font-size: 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .filters-toggle-btn {
+      display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+      white-space: nowrap;
+    }
+    .header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+    .header-title { font-size: 13px; }
+    .header-subtitle { font-size: 11px; }
+    .header-right { gap: 6px; flex-wrap: wrap; }
+    .badge { font-size: 11px; padding: 4px 8px; }
+    .upload-btn { font-size: 12px; padding: 6px 12px; }
+
+    .dashboard { padding: 12px 12px; }
+
+    .tabs { overflow-x: auto; gap: 0; -webkit-overflow-scrolling: touch; }
+    .tab { font-size: 12px; padding: 9px 14px; white-space: nowrap; }
+
+    .controls { grid-template-columns: 1fr; gap: 10px; }
+    .company-info { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .score-box { grid-column: span 2; }
+
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi-value { font-size: 20px; }
+    .kpi-name { font-size: 11px; }
+    .kpi-trend { font-size: 12px; }
+    .kpi-subtitle { font-size: 11px; }
+    .kpi-card { padding: 12px 14px; }
+
+    .charts-grid { grid-template-columns: 1fr; gap: 10px; }
+    .chart-wrap { height: 220px; }
+    .pf-alloc-chart { max-width: 100%; height: 240px; }
+
+    .table-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .table-filters { flex-wrap: wrap; gap: 6px; width: 100%; }
+    #screenerFilterChips, #screenerToggleChips { gap: 10px !important; row-gap: 12px !important; }
+    /* Screener search row: on mobile, let the search box take its own full
+       line, then wrap the company count / legend icons / Filters / Clear All
+       onto the line(s) below instead of forcing them all onto one row. */
+    .screener-search-row { flex-wrap: wrap; row-gap: 8px; }
+    /* Line 1: search box + Filters/Clear All. Line 2: company count + legend
+       icons, each forced onto its own new line via flex-basis:100%. */
+    .screener-search-row .table-search { width: auto !important; flex: 1 1 0% !important; min-width: 100px; font-size: 16px; order: 1; }
+    .screener-search-row #filtersToggleBtn { order: 2; }
+    .screener-search-row #clearAllFiltersBtn { order: 3; }
+    .screener-search-row .search-row-spacer { display: none; }
+    .screener-search-row .search-row-info {
+      order: 4; flex-basis: 100%;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    }
+    /* Liquid Filter / Volume Phase are real <select> elements — iOS Safari auto-zooms
+       the page when focusing any input/select under 16px, so the computed font-size
+       must stay at 16px. We use `zoom` (WebKit) to shrink the rendered text back down
+       so it visually matches the other 12px filter text, without changing the
+       font-size iOS actually checks. */
+    .filter-select { font-size: 16px; zoom: 0.75; }
+    /* iOS Safari auto-zooms the page when focusing any text input under 16px —
+       force 16px on every text input on mobile to prevent that jarring zoom.
+       .msel-btn is a <button> (not a text input), so it isn't subject to that and
+       can stay at its normal 12px size to match the rest of the filter row. */
+    .msel-search, .ticker-search, #wlTokenInput { font-size: 16px !important; }
+    input[type="text"], input[type="password"], input[type="search"] { font-size: 16px; }
+    select:not(.filter-select) { font-size: 16px; }
+
+    .data-table th { font-size: 10.5px; padding: 8px 10px; }
+    .data-table td { padding: 8px 10px; font-size: 12px; }
+    .top-mini-table td { font-size: 12px; }
+    .top-mini-table th { font-size: 10.5px !important; }
+    #homeSignalsTable td { font-size: 12px !important; }
+    #homeSignalsTable th { font-size: 10.5px !important; }
+
+    /* Mobile only: swap Financial Score / Signal Date / Signal Price /
+       Signal Return / Signal Status headers for their shortened wording
+       (Fin Score, Sig Date, ...) to save column width. Desktop/tablet keep
+       the full wording via the default .th-full/.th-short rule above. */
+    .th-full { display: none; }
+    .th-short { display: inline; }
+
+    /* Screener table specifically: tighter padding/font than the general
+       .data-table default above (higher specificity via #screenerTable wins)
+       so more columns fit in the visible strip before the user has to
+       scroll. Kept scoped to the screener so other tables (company info,
+       sector table, watchlist) keep their normal mobile sizing. */
+    #screenerTable th { font-size: 10.5px; padding: 6px 6px; }
+    #screenerTable td { padding: 6px 6px; font-size: 12px; }
+
+    /* Shrink the frozen/sticky Ticker column itself — it was reserving
+       80px+ of horizontal padding-heavy space just for a 4-6 character
+       code. Narrower min-width and tighter side padding claws back real
+       estate for the columns scrolling in next to it. */
+    /* Shrink the frozen/sticky Ticker column itself — it was reserving
+       80px+ of horizontal padding-heavy space just for a 4-6 character
+       code. Narrower min-width and tighter side padding claws back real
+       estate for the columns scrolling in next to it. Widened from an
+       earlier 100px to 128px: some tickers carry 2-3 badges (KMI/N/T/
+       liquid/V) alongside the add-button, and 100px wasn't enough room —
+       badges were getting squeezed down to invisible slivers or clipped
+       by the ellipsis safety net below. */
+    #screenerTable th:nth-child(1),
+    #screenerTable td:nth-child(1) {
+      min-width: 128px;
+      max-width: 128px;
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+    #screenerTable .ticker-link { font-size: 12px; }
+    /* Badges themselves, sized down a touch on mobile so 2-3 of them sit
+       comfortably next to the ticker text instead of competing for the
+       same cramped space they'd need at desktop size. */
+    #screenerTable .ticker-badge {
+      width: 12px; height: 12px; font-size: 8px; margin-left: 3px; flex-shrink: 0;
+    }
+    #screenerTable .ticker-badge-liquid { font-size: 10px; }
+    /* Safety net: the Ticker cell holds an add-button + ticker text + up to
+       several badges (T/N/KMI/liquid/V). If that combined content ever
+       exceeds the cell's fixed width above, clip it with an ellipsis
+       instead of letting it visually spill into the next scrolling column
+       (which is what was reported as the ticker "overlapping the data").
+       With the wider column and smaller badges above, this should now
+       only kick in for genuinely unusual cases. */
+    #screenerTable td:nth-child(1) > span {
+      display: inline-flex;
+      align-items: center;
+      max-width: calc(100% - 21px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    /* The sticky "Market Avg" footer row shares columns with the body rows —
+       an HTML table sizes each column to its widest cell across ALL rows,
+       so leaving this row's wider padding untouched would silently force
+       every column back out to its old width, undoing the tightening above. */
+    #screenerAvgRow td { padding: 6px 6px; font-size: 11px; }
+    #screenerAvgRow td:nth-child(1) { padding-left: 6px; padding-right: 6px; }
+
+    .two-col { grid-template-columns: 1fr; }
+
+    .kpi-table th { font-size: 10.5px; padding: 5px 7px; }
+    .kpi-table tr td { font-size: 12px; padding: 5px 7px; }
+
+    .modal { min-width: unset; width: 92vw; padding: 20px 16px; }
+    .modal-stats { grid-template-columns: 1fr 1fr; }
+
+    /* Stock Screener on mobile: hide the secondary/detail columns (financial
+       breakdown, sector, etc.) so only the core columns + whatever the user
+       has toggled on are shown. This class is applied throughout the
+       screener/watchlist markup in index.html and app.js, but the rule that
+       hides it had gone missing — without it every column renders at once
+       on mobile, which is what was pushing the frozen Ticker column's
+       content toward overflow/overlap while scrolling. */
+    /* Previously this hid these columns unconditionally on mobile,
+       regardless of the Hide/Show Financials toggle — so tapping "Show
+       Financials" on mobile had no visible effect, since .screener-hide-mobile
+       kept them hidden anyway. Scoping it to #screenerTable.hide-financials
+       means tapping "Show Financials" (which removes that class) now
+       reveals every one of these columns on mobile too, matching what the
+       toggle already does on desktop. */
+    #screenerTable.hide-financials .screener-hide-mobile { display: none; }
+    /* Sector table: all columns now shown on mobile too (table scrolls horizontally instead) */
+    /* Constrain sector name on mobile */
+    .sector-name-cell { min-width: 110px; max-width: 140px; font-size: 12px; }
+
+    .pagination { flex-wrap: wrap; gap: 6px; }
+    .page-info { width: 100%; text-align: center; margin: 0; font-size: 13px; }
+
+    .score-box { padding: 12px; }
+    .score-value { font-size: 26px; }
+    .score-label { font-size: 11px; }
+    .score-hint { font-size: 12px; }
+
+    .info-label { font-size: 11px; }
+    .info-value { font-size: 14px; }
+    .breakdown-grid { grid-template-columns: repeat(4, 1fr); }
+    .breakdown-label { font-size: 10px; }
+    .breakdown-score { font-size: 13px; }
+
+    .chart-title { font-size: 11px; }
+    .selector-label { font-size: 11px; }
+    .current-ticker { font-size: 12px; }
+
+    .fin-toggle-btn { font-size: 12px; padding: 6px 10px; }
+    .pill { font-size: 11px; }
+  }
+
+  @media (max-width: 480px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .company-info { grid-template-columns: 1fr; }
+    .score-box { grid-column: span 1; }
+    .header-title { font-size: 12px; }
+    .header-subtitle { font-size: 10px; }
+    .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
+    .kpi-value { font-size: 18px; }
+    .data-table th { font-size: 10px; padding: 7px 8px; }
+    .data-table td { font-size: 11px; padding: 7px 8px; }
+    .kpi-table th { font-size: 10px; padding: 4px 6px; }
+    .kpi-table tr td { font-size: 11px; padding: 4px 6px; }
+    .top-mini-table td { font-size: 11px; }
+    .top-mini-table th { font-size: 10px !important; }
+    #homeSignalsTable td { font-size: 11px !important; }
+    #homeSignalsTable th { font-size: 10px !important; }
+    #screenerTable th { font-size: 10px; padding: 5px 5px; }
+    #screenerTable td { padding: 5px 5px; font-size: 11px; }
+    #screenerTable th:nth-child(1),
+    #screenerTable td:nth-child(1) {
+      min-width: 112px;
+      max-width: 128px;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    #screenerTable .ticker-link { font-size: 11px; }
+    #screenerTable .screener-add-btn { width: 14px; height: 14px; margin-right: 4px; }
+    #screenerTable .ticker-badge { width: 11px; height: 11px; font-size: 7px; margin-left: 2px; }
+    #screenerAvgRow td { padding: 5px 5px; font-size: 10px; }
+    #screenerAvgRow td:nth-child(1) { padding-left: 5px; padding-right: 5px; }
+    .badge { font-size: 10px; padding: 3px 7px; }
+    /* Stack header on very small screens */
+    .header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .header-right { width: 100%; justify-content: flex-start; }
+  }
+
+  /* ===== THEME TRANSITIONS ===== */
+  .surface-transition {
+    transition: background 0.25s, border-color 0.25s, color 0.25s;
+  }
+
+  /* ===== IMPROVED INFO LABELS ===== */
+  .selector-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+
+  /* ===== IMPROVED TABLE HEADER ===== */
+  .table-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface2);
+  }
+
+
+  /* ===== BLOOMBERG TERMINAL THEME ===== */
+  [data-theme="bloomberg"] {
+    --bg:       #000000;
+    --surface:  #080808;
+    --surface2: #0e0e0e;
+    --surface3: #161616;
+    --border:   #252525;
+    --border2:  #303030;
+
+    --accent:   #ff6600;
+    --accent-dim: rgba(255,102,0,0.12);
+    --accent2:  #ffcc00;
+    --accent3:  #00aaff;
+    --accent3-dim: rgba(0,170,255,0.12);
+
+    --warn:     #ffcc00;
+    --danger:   #ff3333;
+    --success:  #00cc44;
+    --good:     #00cc44;
+    --bad:      #ff3333;
+    --neutral:  #ffcc00;
+
+    --text:     #e8d5b0;
+    --text2:    #ff8833;
+    --text3:    #664422;
+
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.8);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.9);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.95);
+
+    --header-bg: #000000;
+    --chart-grid: rgba(255,102,0,0.08);
+    --chart-tick-color: #ff8833;
+  }
+
+  [data-theme="bloomberg"] body {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+  }
+  [data-theme="bloomberg"] .data-table th {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    color: #ff9944;
+    border-bottom-color: #ff6600;
+    border-bottom-width: 1px;
+    background: #060606;
+  }
+  [data-theme="bloomberg"] .data-table td {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 12px;
+    color: #e8d5b0;
+    border-bottom-color: #1c1c1c;
+  }
+  [data-theme="bloomberg"] .data-table td.mono {
+    color: #e8d5b0;
+  }
+  
+  [data-theme="bloomberg"] .score-circle.score-high { background:rgba(0,204,68,0.15); color:#00cc44; }
+  [data-theme="bloomberg"] .score-circle.score-mid  { background:rgba(255,153,0,0.15); color:#ff9900; }
+  [data-theme="bloomberg"] .score-circle.score-low  { background:rgba(255,51,51,0.15); color:#ff3333; }
+  [data-theme="bloomberg"] .data-table .positive { color: #00cc44 !important; }
+  [data-theme="bloomberg"] .data-table .negative { color: #ff3333 !important; }
+  [data-theme="bloomberg"] .data-table tr:hover td {
+    background: rgba(255,102,0,0.09) !important;
+  }
+  [data-theme="bloomberg"] .header-title { color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
+  [data-theme="bloomberg"] .header-subtitle { color: var(--text2); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  [data-theme="bloomberg"] .brand-accent { color: var(--accent2); }
+  [data-theme="bloomberg"] .tab { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.05em; }
+  [data-theme="bloomberg"] .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  [data-theme="bloomberg"] .kpi-name { color: var(--accent2); font-family: 'IBM Plex Mono', monospace; }
+  [data-theme="bloomberg"] .kpi-value { color: var(--accent); }
+  [data-theme="bloomberg"] .kpi-card { border-color: #222; background: #050505; }
+  [data-theme="bloomberg"] .kpi-card.green::before { background: var(--accent); }
+  [data-theme="bloomberg"] .kpi-card.blue::before { background: var(--accent3); }
+  [data-theme="bloomberg"] .chart-card { background: #050505; border-color: #1a1a1a; }
+  [data-theme="bloomberg"] .chart-title { color: var(--accent2); font-family: 'IBM Plex Mono', monospace; }
+  [data-theme="bloomberg"] .section-title { color: var(--accent); border-bottom-color: #222; }
+  [data-theme="bloomberg"] .table-card { background: #050505; border-color: #1a1a1a; }
+  [data-theme="bloomberg"] .table-header { background: #000; border-bottom-color: var(--accent); }
+  [data-theme="bloomberg"] .table-title { color: var(--accent); }
+  [data-theme="bloomberg"] .badge { background: #000; border-color: var(--accent); color: var(--accent2); font-family: 'IBM Plex Mono', monospace; }
+  [data-theme="bloomberg"] .score-value { color: var(--accent); }
+  [data-theme="bloomberg"] .score-label { color: var(--accent2); }
+  [data-theme="bloomberg"] .info-label { color: var(--accent2); }
+  [data-theme="bloomberg"] .info-value { color: var(--accent); }
+  [data-theme="bloomberg"] .ticker-link { color: var(--accent2); }
+  [data-theme="bloomberg"] .fin-toggle-btn { font-family: 'IBM Plex Mono', monospace; border-color: #333; color: var(--text2); }
+  [data-theme="bloomberg"] .fin-toggle-btn.active { background: rgba(255,102,0,0.1); border-color: var(--accent); color: var(--accent); }
+  [data-theme="bloomberg"] .pill-good { background: rgba(0,204,68,0.15); color: #00cc44; border-color: rgba(0,204,68,0.3); }
+  [data-theme="bloomberg"] .pill-bad { background: rgba(255,51,51,0.15); color: #ff3333; border-color: rgba(255,51,51,0.3); }
+  [data-theme="bloomberg"] .pill-neutral { background: rgba(255,204,0,0.15); color: #ffcc00; border-color: rgba(255,204,0,0.3); }
+  [data-theme="bloomberg"] #themeToggleBtn { border-color: var(--accent) !important; color: var(--accent) !important; }
+  [data-theme="bloomberg"] .scroll-table { scrollbar-color: var(--accent) #111; }
+  [data-theme="bloomberg"] .pagination { background: #000; }
+  [data-theme="bloomberg"] .page-btn { background: #000; border-color: #333; color: var(--text2); }
+  [data-theme="bloomberg"] .page-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* ===== THEME-AWARE CHART GRID ===== */
+  :root { --chart-tick: #8a9bc0; }
+  [data-theme="light"] { --chart-tick: #64748b; }
+  [data-theme="tradingview"] { --chart-tick: #787b86; }
+
+  /* ===== FILTER SELECT FOCUS ===== */
+  .filter-select:focus, .ticker-search:focus, .table-search:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  /* ===== THEME TOGGLE BUTTON ICON ROTATE ===== */
+  #themeToggleBtn { min-width: 36px; justify-content: center; }
+
+  /* ===== IMPROVED PAGINATION ===== */
+  .pagination { display: flex; align-items: center; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface2); }
+
+  /* ===== IMPROVED BREAKDOWN LABEL ===== */
+  .breakdown-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text2);
+    margin-bottom: 14px;
+  }
+
+  /* ===== AC SCORE COLOR ===== */
+  .ac-score { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 11px; float: right; margin-top: 1px; font-weight: 600; }
+
+  /* ===== MODAL TITLE ===== */
+  .modal-title { font-size: 17px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .modal-body { color: var(--text2); font-size: 13px; text-align: center; margin-bottom: 20px; line-height: 1.65; }
+
+  /* ===== KPI TABLE IMPROVEMENTS ===== */
+  .kpi-table tbody tr td { padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .kpi-table th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text2);
+    padding: 8px 10px;
+    text-align: right;
+    background: var(--surface2);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-weight: 700;
+  }
+  .kpi-table th.th-latest {
+    color: var(--accent);
+    background: var(--surface2);
+    background-color: var(--surface2);
+    border-bottom: 2px solid var(--accent);
+    box-shadow: 0 2px 0 var(--accent);
+  }
+  .kpi-table th.th-sector {
+    color: var(--accent2);
+    background: var(--surface2);
+    background-color: var(--surface2);
+    border-bottom: 2px solid var(--accent2);
+    box-shadow: 0 2px 0 var(--accent2);
+  }
+
+
+  [data-theme="bloomberg"] #sectorTable th:first-child,
+  [data-theme="bloomberg"] #sectorTable td:first-child {
+    background: #0e0e0e !important;
+    background-color: #0e0e0e !important;
+    box-shadow: 2px 0 8px rgba(255,102,0,0.08);
+  }
+  [data-theme="bloomberg"] #sectorTable tr:hover td:first-child {
+    background: #161616 !important;
+    background-color: #161616 !important;
+  }
+  [data-theme="bloomberg"] #screenerTable th:nth-child(1),
+  [data-theme="bloomberg"] #screenerTable td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGH th:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGH td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGuest th:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGuest td:nth-child(1) {
+    background: #0e0e0e !important;
+    background-color: #0e0e0e !important;
+    box-shadow: 2px 0 8px rgba(255,102,0,0.08);
+  }
+  [data-theme="bloomberg"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="bloomberg"] #watchlistTableGuest tr:hover td:nth-child(1) {
+    background: #161616 !important;
+    background-color: #161616 !important;
+  }
+  [data-theme="bloomberg"] .sector-name-cell {
+    color: #e8d5b0 !important;
+  }
+  [data-theme="bloomberg"] .screener-sector-cell {
+    color: #ff8833 !important;
+  }
+  [data-theme="bloomberg"] .ticker-link {
+    color: #ffcc00 !important;
+  }
+  [data-theme="bloomberg"] .ticker-link:hover {
+    color: #ff6600 !important;
+  }
+
+  [data-theme="light"] .data-table td { color: #1e293b; }
+  [data-theme="light"] .data-table .positive { color: #16a34a !important; }
+  [data-theme="light"] .data-table .negative { color: #dc2626 !important; }
+  [data-theme="light"] .data-table td.mono { color: #1e293b; }
+  [data-theme="light"] .sector-name-cell { color: #0f172a !important; }
+  [data-theme="light"] .screener-sector-cell { color: #475569 !important; }
+  [data-theme="light"] #sectorTable td:first-child { background: #ffffff !important; background-color: #ffffff !important; }
+  [data-theme="light"] #sectorTable th:first-child { background: #eef1f8 !important; background-color: #eef1f8 !important; }
+  [data-theme="light"] #sectorTable tr:hover td:first-child { background: #e4e9f4 !important; background-color: #e4e9f4 !important; }
+  [data-theme="light"] #screenerTable td:nth-child(1),
+  [data-theme="light"] #watchlistTableGH td:nth-child(1),
+  [data-theme="light"] #watchlistTableGuest td:nth-child(1) { background: #ffffff !important; background-color: #ffffff !important; }
+  [data-theme="light"] #screenerTable th:nth-child(1),
+  [data-theme="light"] #watchlistTableGH th:nth-child(1),
+  [data-theme="light"] #watchlistTableGuest th:nth-child(1) { background: #eef1f8 !important; background-color: #eef1f8 !important; }
+  [data-theme="light"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="light"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="light"] #watchlistTableGuest tr:hover td:nth-child(1) { background: #e4e9f4 !important; background-color: #e4e9f4 !important; }
+
+  /* ===== TRADINGVIEW THEME ===== */
+  [data-theme="tradingview"] {
+    --bg:       #131722;
+    --surface:  #1e222d;
+    --surface2: #2a2e39;
+    --surface3: #363a45;
+    --border:   #363a45;
+    --border2:  #434651;
+
+    --accent:   #2962ff;
+    --accent-dim: rgba(41,98,255,0.14);
+    --accent2:  #ff9800;
+    --accent3:  #00bcd4;
+    --accent3-dim: rgba(0,188,212,0.12);
+
+    --warn:     #ff9800;
+    --danger:   #f23645;
+    --success:  #089981;
+    --good:     #089981;
+    --bad:      #f23645;
+    --neutral:  #ff9800;
+
+    --text:     #d1d4dc;
+    --text2:    #787b86;
+    --text3:    #434651;
+
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.5);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.7);
+
+    --header-bg: #1e222d;
+    --chart-grid: rgba(255,255,255,0.04);
+    --chart-tick-color: #787b86;
+  }
+
+  [data-theme="tradingview"] .data-table th {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #787b86;
+    background: #2a2e39;
+    border-bottom: 1px solid #363a45;
+    letter-spacing: 0.05em;
+  }
+  [data-theme="tradingview"] .data-table td {
+    color: #d1d4dc;
+    border-bottom-color: #2a2e39;
+    font-size: 13px;
+  }
+  [data-theme="tradingview"] .data-table tr:hover td {
+    background: rgba(41,98,255,0.07) !important;
+  }
+  [data-theme="tradingview"] .header {
+    background: #1e222d;
+    border-bottom: 1px solid #2a2e39;
+  }
+  [data-theme="tradingview"] .header-title { color: #d1d4dc; }
+  [data-theme="tradingview"] .brand-accent { color: #2962ff; }
+  [data-theme="tradingview"] .header-subtitle { color: #787b86; }
+  [data-theme="tradingview"] .tab { font-size: 13px; }
+  [data-theme="tradingview"] .tab.active { color: #2962ff; border-bottom-color: #2962ff; }
+  [data-theme="tradingview"] .kpi-card { background: #1e222d; border-color: #2a2e39; }
+  [data-theme="tradingview"] .kpi-card.green::before { background: #089981; }
+  [data-theme="tradingview"] .kpi-card.orange::before { background: #ff9800; }
+  [data-theme="tradingview"] .kpi-card.blue::before { background: #2962ff; }
+  [data-theme="tradingview"] .kpi-card.yellow::before { background: #ff9800; }
+  [data-theme="tradingview"] .kpi-name { color: #787b86; }
+  [data-theme="tradingview"] .kpi-value { color: #d1d4dc; }
+  [data-theme="tradingview"] .chart-card { background: #1e222d; border-color: #2a2e39; }
+  [data-theme="tradingview"] .chart-card::before { background: linear-gradient(90deg, #2962ff, #089981); }
+  [data-theme="tradingview"] .chart-title { color: #787b86; }
+  [data-theme="tradingview"] .table-card { background: #1e222d; border-color: #2a2e39; }
+  [data-theme="tradingview"] .table-header { background: #2a2e39; border-bottom-color: #363a45; }
+  [data-theme="tradingview"] .table-title { color: #d1d4dc; }
+  [data-theme="tradingview"] .badge { background: #2a2e39; border-color: #363a45; color: #787b86; }
+  [data-theme="tradingview"] .score-value { color: #2962ff; }
+  [data-theme="tradingview"] .score-label { color: #787b86; }
+  [data-theme="tradingview"] .score-box { background: #2a2e39; border-color: #363a45; }
+  [data-theme="tradingview"] .info-label { color: #787b86; }
+  [data-theme="tradingview"] .info-value { color: #d1d4dc; }
+  [data-theme="tradingview"] .ticker-link { color: #2962ff; }
+  [data-theme="tradingview"] .ticker-link:hover { color: #00bcd4; }
+  [data-theme="tradingview"] .pill-good { background: rgba(8,153,129,0.15); color: #089981; border-color: rgba(8,153,129,0.35); }
+  [data-theme="tradingview"] .pill-bad { background: rgba(242,54,69,0.15); color: #f23645; border-color: rgba(242,54,69,0.35); }
+  [data-theme="tradingview"] .pill-neutral { background: rgba(255,152,0,0.15); color: #ff9800; border-color: rgba(255,152,0,0.35); }
+  
+  [data-theme="tradingview"] .score-circle.score-high { background:rgba(8,153,129,0.15); color:#089981; }
+  [data-theme="tradingview"] .score-circle.score-low  { background:rgba(242,54,69,0.15);  color:#f23645; }
+  [data-theme="tradingview"] .positive { color: #089981 !important; }
+  [data-theme="tradingview"] .negative { color: #f23645 !important; }
+  [data-theme="tradingview"] .scroll-table { scrollbar-color: #2962ff #2a2e39; }
+  [data-theme="tradingview"] .scroll-table::-webkit-scrollbar-thumb { background: #2962ff; }
+  [data-theme="tradingview"] .page-btn { background: #2a2e39; border-color: #363a45; color: #787b86; }
+  [data-theme="tradingview"] .page-btn.active { background: #2962ff; color: #fff; border-color: #2962ff; }
+  [data-theme="tradingview"] .pagination { background: #2a2e39; }
+  [data-theme="tradingview"] .fin-toggle-btn { border-color: #363a45; color: #787b86; }
+  [data-theme="tradingview"] .fin-toggle-btn.active { background: rgba(41,98,255,0.12); border-color: #2962ff; color: #2962ff; }
+  [data-theme="tradingview"] .ticker-selector { background: #1e222d; border-color: #2a2e39; }
+  [data-theme="tradingview"] .ticker-search { background: #2a2e39; border-color: #363a45; color: #d1d4dc; }
+  [data-theme="tradingview"] .company-info { background: #1e222d; border-color: #2a2e39; }
+  [data-theme="tradingview"] .section-title { color: #787b86; border-bottom-color: #2a2e39; }
+  [data-theme="tradingview"] .breakdown-score { font-family: 'IBM Plex Mono', monospace; }
+  [data-theme="tradingview"] #sectorTable th:first-child,
+  [data-theme="tradingview"] #sectorTable td:first-child { background: #2a2e39 !important; background-color: #2a2e39 !important; box-shadow: 2px 0 8px rgba(0,0,0,0.4); }
+  [data-theme="tradingview"] #sectorTable tr:hover td:first-child { background: #363a45 !important; background-color: #363a45 !important; }
+  [data-theme="tradingview"] #screenerTable th:nth-child(1),
+  [data-theme="tradingview"] #screenerTable td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGH th:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGH td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGuest th:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGuest td:nth-child(1) { background: #2a2e39 !important; background-color: #2a2e39 !important; box-shadow: 2px 0 8px rgba(0,0,0,0.4); }
+  [data-theme="tradingview"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="tradingview"] #watchlistTableGuest tr:hover td:nth-child(1) { background: #363a45 !important; background-color: #363a45 !important; }
+  [data-theme="tradingview"] .sector-name-cell { color: #d1d4dc !important; }
+  [data-theme="tradingview"] .screener-sector-cell { color: #787b86 !important; }
+  [data-theme="tradingview"] #themeToggleBtn { border-color: var(--accent) !important; color: var(--accent) !important; }
+  [data-theme="tradingview"] .filter-select { background: #2a2e39; border-color: #363a45; color: #d1d4dc; }
+  [data-theme="tradingview"] .table-search { background: #2a2e39; border-color: #363a45; color: #d1d4dc; }
+  [data-theme="tradingview"] .kpi-table th { background: #2a2e39; border-bottom-color: #363a45; color: #787b86; }
+  [data-theme="tradingview"] .kpi-table th.th-latest { color: #089981; background: #2a2e39; background-color: #2a2e39; border-bottom-color: #089981; box-shadow: 0 2px 0 #089981; }
+  [data-theme="tradingview"] .kpi-table th.th-sector { color: #ff9800; background: rgba(255,152,0,0.1); border-bottom-color: #ff9800; }
+  [data-theme="tradingview"] .kpi-table tbody tr td { border-bottom-color: #2a2e39; color: #d1d4dc; }
+  [data-theme="tradingview"] .kpi-table .sector-val { color: #ff9800; background: rgba(255,152,0,0.07); }
+  [data-theme="tradingview"] .modal { background: #1e222d; border-color: #2a2e39; }
+  [data-theme="tradingview"] .ac-score { color: #787b86; }
+
+  /* ===== CREAM & LIGHT GREEN THEME ===== */
+  [data-theme="cream"] {
+    --bg:       #f5f0e8;
+    --surface:  #faf7f2;
+    --surface2: #ede8df;
+    --surface3: #e2dbd0;
+    --border:   #d4ccbc;
+    --border2:  #c4baa8;
+
+    --accent:   #3d8c5c;
+    --accent-dim: rgba(61,140,92,0.12);
+    --accent2:  #c47c2b;
+    --accent3:  #2e7d5e;
+    --accent3-dim: rgba(46,125,94,0.12);
+
+    --warn:     #c47c2b;
+    --danger:   #c0392b;
+    --success:  #2d7d46;
+    --good:     #2d7d46;
+    --bad:      #c0392b;
+    --neutral:  #c47c2b;
+
+    --text:     #2c2416;
+    --text2:    #6b5c42;
+    --text3:    #a89880;
+
+    --shadow-sm: 0 1px 4px rgba(80,60,20,0.10);
+    --shadow-md: 0 4px 16px rgba(80,60,20,0.13);
+    --shadow-lg: 0 8px 32px rgba(80,60,20,0.16);
+
+    --header-bg: #faf7f2;
+    --chart-grid: rgba(80,60,20,0.07);
+    --chart-tick-color: #8a7560;
+  }
+
+  [data-theme="cream"] body { background: #f5f0e8; }
+
+  [data-theme="cream"] .header {
+    background: #faf7f2;
+    border-bottom: 1px solid #d4ccbc;
+  }
+  [data-theme="cream"] .header-title { color: #2c2416; }
+  [data-theme="cream"] .brand-accent { color: #3d8c5c; }
+  [data-theme="cream"] .header-subtitle { color: #6b5c42; }
+  [data-theme="cream"] .badge { background: #ede8df; border-color: #d4ccbc; color: #6b5c42; }
+
+  [data-theme="cream"] .tab { color: #6b5c42; }
+  [data-theme="cream"] .tab:hover { color: #2c2416; }
+  [data-theme="cream"] .tab.active { color: #3d8c5c; border-bottom-color: #3d8c5c; }
+
+  [data-theme="cream"] .data-table th {
+    background: #ede8df;
+    background-color: #ede8df;
+    color: #6b5c42;
+    border-bottom: 2px solid #c4baa8;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  [data-theme="cream"] .data-table td {
+    color: #2c2416;
+    border-bottom-color: #e2dbd0;
+    font-size: 13px;
+  }
+  [data-theme="cream"] .data-table td.mono { color: #2c2416; }
+  [data-theme="cream"] .data-table tbody tr:nth-child(even) td {
+    background: rgba(61,140,92,0.04);
+  }
+  [data-theme="cream"] .data-table tbody tr:hover td {
+    background: rgba(61,140,92,0.09) !important;
+  }
+  [data-theme="cream"] .data-table tbody tr:hover td:first-child {
+    background: rgba(61,140,92,0.09) !important;
+  }
+
+  /* Sticky column — Sector table */
+  [data-theme="cream"] #sectorTable th:first-child {
+    background: #ede8df !important;
+    background-color: #ede8df !important;
+    box-shadow: 2px 0 8px rgba(80,60,20,0.12);
+  }
+  [data-theme="cream"] #sectorTable td:first-child {
+    background: #faf7f2 !important;
+    background-color: #faf7f2 !important;
+    box-shadow: 2px 0 8px rgba(80,60,20,0.12);
+  }
+  [data-theme="cream"] #sectorTable tbody tr:nth-child(even) td:first-child {
+    background: #faf7f2 !important;
+    background-color: #faf7f2 !important;
+  }
+  [data-theme="cream"] #sectorTable tr:hover td:first-child {
+    background: #dff0e8 !important;
+    background-color: #dff0e8 !important;
+  }
+
+  /* Sticky column — Screener & Watchlist tables */
+  [data-theme="cream"] #screenerTable th:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH th:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest th:nth-child(1) {
+    background: #ede8df !important;
+    background-color: #ede8df !important;
+    box-shadow: 2px 0 8px rgba(80,60,20,0.12);
+  }
+  [data-theme="cream"] #screenerTable td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest td:nth-child(1) {
+    background: #faf7f2 !important;
+    background-color: #faf7f2 !important;
+    box-shadow: 2px 0 8px rgba(80,60,20,0.12);
+  }
+  [data-theme="cream"] #screenerTable tbody tr:nth-child(even) td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH tbody tr:nth-child(even) td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest tbody tr:nth-child(even) td:nth-child(1) {
+    background: #faf7f2 !important;
+    background-color: #faf7f2 !important;
+  }
+  [data-theme="cream"] #screenerTable tr:hover td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGH tr:hover td:nth-child(1),
+  [data-theme="cream"] #watchlistTableGuest tr:hover td:nth-child(1) {
+    background: #dff0e8 !important;
+    background-color: #dff0e8 !important;
+  }
+
+  [data-theme="cream"] .sector-name-cell { color: #2c2416 !important; }
+  [data-theme="cream"] .screener-sector-cell { color: #6b5c42 !important; }
+  [data-theme="cream"] .ticker-link { color: #3d8c5c; font-weight: 600; }
+  [data-theme="cream"] .ticker-link:hover { color: #2e7d5e; }
+
+  [data-theme="cream"] .kpi-card { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .kpi-card.green::before { background: #3d8c5c; }
+  [data-theme="cream"] .kpi-card.blue::before { background: #2e7d5e; }
+  [data-theme="cream"] .kpi-card.orange::before { background: #c47c2b; }
+  [data-theme="cream"] .kpi-name { color: #6b5c42; }
+  [data-theme="cream"] .kpi-value { color: #2c2416; }
+  
+  [data-theme="cream"] .score-circle.score-high { background:rgba(45,125,70,0.15); color:#2d7d46; }
+  [data-theme="cream"] .score-circle.score-mid  { background:rgba(180,100,0,0.15);  color:#b46400; }
+  [data-theme="cream"] .score-circle.score-low  { background:rgba(192,57,43,0.15);  color:#c0392b; }
+  [data-theme="cream"] .kpi-trend.positive { color: #2d7d46 !important; }
+  [data-theme="cream"] .kpi-trend.negative { color: #c0392b !important; }
+
+  [data-theme="cream"] .chart-card { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .chart-card::before { background: linear-gradient(90deg, #3d8c5c, #c47c2b); }
+  [data-theme="cream"] .chart-title { color: #6b5c42; }
+
+  [data-theme="cream"] .table-card { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .table-header { background: #ede8df; border-bottom-color: #d4ccbc; }
+  [data-theme="cream"] .table-title { color: #3d8c5c; font-weight: 700; }
+
+  [data-theme="cream"] .score-value { color: #3d8c5c; }
+  [data-theme="cream"] .score-label { color: #6b5c42; }
+  [data-theme="cream"] .score-box { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .info-label { color: #6b5c42; }
+  [data-theme="cream"] .info-value { color: #2c2416; }
+
+  [data-theme="cream"] .section-title { color: #3d8c5c; border-bottom-color: #d4ccbc; }
+
+  [data-theme="cream"] .pill-good { background: rgba(45,125,70,0.13); color: #2d7d46; border-color: rgba(45,125,70,0.3); }
+  [data-theme="cream"] .pill-bad { background: rgba(192,57,43,0.12); color: #c0392b; border-color: rgba(192,57,43,0.28); }
+  [data-theme="cream"] .pill-neutral { background: rgba(196,124,43,0.12); color: #c47c2b; border-color: rgba(196,124,43,0.28); }
+
+  [data-theme="cream"] .positive { color: #2d7d46 !important; }
+  [data-theme="cream"] .negative { color: #c0392b !important; }
+
+  [data-theme="cream"] .ticker-selector { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .ticker-search { background: #ede8df; border-color: #d4ccbc; color: #2c2416; }
+  [data-theme="cream"] .ticker-autocomplete { background: #faf7f2; border-color: #3d8c5c; }
+  [data-theme="cream"] .ac-item { color: #2c2416; border-bottom-color: #e2dbd0; }
+  [data-theme="cream"] .ac-item:hover, [data-theme="cream"] .ac-item.selected { background: rgba(61,140,92,0.10); }
+
+  [data-theme="cream"] .company-info { background: #faf7f2; border-color: #d4ccbc; }
+
+  [data-theme="cream"] .filter-select { background: #ede8df; border-color: #d4ccbc; color: #2c2416; }
+  [data-theme="cream"] .table-search { background: #ede8df; border-color: #d4ccbc; color: #2c2416; }
+
+  [data-theme="cream"] .fin-toggle-btn { background: #ede8df; border-color: #d4ccbc; color: #6b5c42; }
+  [data-theme="cream"] .fin-toggle-btn:hover { border-color: #3d8c5c; color: #3d8c5c; background: rgba(61,140,92,0.08); }
+  [data-theme="cream"] .fin-toggle-btn.active { background: rgba(61,140,92,0.12); border-color: #3d8c5c; color: #3d8c5c; }
+
+  [data-theme="cream"] .page-btn { background: #ede8df; border-color: #d4ccbc; color: #6b5c42; }
+  [data-theme="cream"] .page-btn:hover { border-color: #3d8c5c; color: #3d8c5c; }
+  [data-theme="cream"] .page-btn.active { background: #3d8c5c; color: #fff; border-color: #3d8c5c; }
+  [data-theme="cream"] .pagination { background: #ede8df; border-top-color: #d4ccbc; }
+
+  [data-theme="cream"] .kpi-table th { background: #ede8df; background-color: #ede8df; border-bottom-color: #d4ccbc; color: #6b5c42; }
+  [data-theme="cream"] .kpi-table th.th-latest { color: #3d8c5c; background: #ede8df; background-color: #ede8df; border-bottom-color: #3d8c5c; box-shadow: 0 2px 0 #3d8c5c; }
+  [data-theme="cream"] .kpi-table th.th-sector { color: #c47c2b; background: rgba(196,124,43,0.08); border-bottom-color: #c47c2b; box-shadow: 0 2px 0 #c47c2b; }
+  [data-theme="cream"] .kpi-table tbody tr td { border-bottom-color: #e2dbd0; color: #2c2416; }
+  [data-theme="cream"] .kpi-table .sector-val { color: #c47c2b; background: rgba(196,124,43,0.07); }
+  [data-theme="cream"] .kpi-table .q-val.latest-col { background: rgba(61,140,92,0.07); }
+
+  [data-theme="cream"] .modal { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .modal-stat-val { color: #3d8c5c; }
+
+  [data-theme="cream"] .scroll-table { scrollbar-color: #3d8c5c #ede8df; }
+  [data-theme="cream"] .scroll-table::-webkit-scrollbar-thumb { background: #3d8c5c; }
+
+  [data-theme="cream"] #themeToggleBtn { border-color: #3d8c5c !important; color: #3d8c5c !important; }
+
+  /* ===== GLOBAL DESIGN IMPROVEMENTS ===== */
+
+  /* KPI Card lift on hover */
+  .kpi-card {
+    transition: background 0.25s, border-color 0.25s, transform 0.18s, box-shadow 0.18s;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  }
+  .kpi-card.green:hover { box-shadow: 0 6px 24px rgba(0,196,154,0.12); }
+  .kpi-card.blue:hover { box-shadow: 0 6px 24px rgba(59,130,246,0.14); }
+  .kpi-card.orange:hover { box-shadow: 0 6px 24px rgba(249,115,22,0.12); }
+  .kpi-card.yellow:hover { box-shadow: 0 6px 24px rgba(245,158,11,0.12); }
+
+  /* Chart card hover */
+  .chart-card {
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.2s;
+  }
+  .chart-card:hover {
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+    border-color: var(--border2);
+  }
+
+  /* Zebra striping for tables */
+  .data-table tbody tr:nth-child(even) td {
+    background: rgba(255,255,255,0.018);
+  }
+  [data-theme="light"] .data-table tbody tr:nth-child(even) td {
+    background: rgba(0,0,0,0.025);
+  }
+  [data-theme="tradingview"] .data-table tbody tr:nth-child(even) td {
+    background: rgba(255,255,255,0.02);
+  }
+  [data-theme="bloomberg"] .data-table tbody tr:nth-child(even) td {
+    background: rgba(255,102,0,0.03);
+  }
+
+  /* Hover must override zebra on ALL rows — use !important to beat nth-child specificity */
+  .data-table tbody tr:hover td,
+  .data-table tbody tr:hover td:first-child {
+    background: var(--accent3-dim) !important;
+  }
+  [data-theme="light"] .data-table tbody tr:hover td,
+  [data-theme="light"] .data-table tbody tr:hover td:first-child {
+    background: rgba(56,189,248,0.10) !important;
+  }
+  [data-theme="tradingview"] .data-table tbody tr:hover td,
+  [data-theme="tradingview"] .data-table tbody tr:hover td:first-child {
+    background: rgba(41,98,255,0.10) !important;
+  }
+  [data-theme="bloomberg"] .data-table tbody tr:hover td,
+  [data-theme="bloomberg"] .data-table tbody tr:hover td:first-child {
+    background: rgba(255,102,0,0.10) !important;
+  }
+
+  /* Top mini-table hover fix */
+  .top-mini-table tbody tr:hover td { background: var(--accent3-dim) !important; }
+
+  /* Active sort column highlight */
+  .data-table th.sort-asc,
+  .data-table th.sort-desc {
+    background: var(--surface2);
+    background-color: var(--surface2);
+    color: var(--accent);
+    outline: 1px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  /* Stronger sticky header shadow */
+  .data-table thead th {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  /* Fin. Score box glow */
+  .score-box {
+    position: relative;
+    overflow: hidden;
+  }
+  .score-value {
+    transition: color 0.4s;
+    text-shadow: 0 0 20px currentColor;
+  }
+
+  /* Header logo accent bar */
+  .header-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+    margin-right: 8px;
+    vertical-align: middle;
+    margin-bottom: 1px;
+  }
+
+  /* Button improvements */
+  .save-btn, .upload-btn, .fin-toggle-btn, .page-btn {
+    transition: all 0.18s;
+  }
+  .page-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Tab underline animation */
+  .tab {
+    position: relative;
+    transition: color 0.2s;
+  }
+
+  /* Autocomplete item improvements */
+  .ac-item {
+    transition: background 0.12s, padding-left 0.12s;
+  }
+  .ac-item:hover, .ac-item.selected {
+    padding-left: 16px;
+  }
+
+  /* Filter selects */
+  .filter-select:hover {
+    border-color: var(--accent3);
+  }
+
+  /* ===== SECTOR MULTI-SELECT DROPDOWN ===== */
+  .msel { position: relative; display: inline-block; }
+  .msel-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.15s;
+    white-space: nowrap;
+  }
+  .msel-btn:hover { border-color: var(--accent3); }
+  .msel-btn.active { border-color: var(--accent); }
+  .msel-btn .msel-caret { font-size: 9px; color: var(--text2); transition: transform 0.15s; }
+  .msel-btn.open .msel-caret { transform: rotate(180deg); }
+  .msel-count {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    line-height: 1.4;
+  }
+  .msel-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 260px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 998;
+    overflow: hidden;
+  }
+  .msel-panel.open { display: block; }
+
+  /* ===== Screener per-column numeric filter (funnel icon + popover) ===== */
+  .col-filter-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; margin-left: 4px; padding: 0; vertical-align: -2px;
+    border: none; background: none; color: var(--text2); opacity: 0.55; cursor: pointer;
+  }
+  .col-filter-icon:hover { opacity: 0.9; }
+  .col-filter-icon.active { color: var(--accent); opacity: 1; }
+  .col-filter-popover {
+    position: fixed; z-index: 99999; width: 190px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg); padding: 10px; box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-size: 12px;
+  }
+  .col-filter-popover.hidden { display: none; }
+  .col-filter-popover-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; font-weight: 700; color: var(--text); font-size: 12px;
+  }
+  .col-filter-popover-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
+  .col-filter-popover-close:hover { color: var(--text); }
+  .col-filter-popover-body { display: flex; gap: 0; margin-bottom: 8px; }
+  #colFilterDir {
+    padding: 6px 9px; border: 1px solid var(--border); border-radius: 7px 0 0 7px; border-right: none;
+    background: var(--surface); color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; min-width: 28px; line-height: 1;
+  }
+  #colFilterVal {
+    flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--border); border-radius: 0 7px 7px 0;
+    background: var(--surface); color: var(--text); font-size: 12px; outline: none;
+  }
+  #colFilterVal:focus, #colFilterDir:focus { border-color: var(--accent); }
+  .col-filter-popover-actions { display: flex; justify-content: flex-end; }
+  .col-filter-popover-actions button { background: none; border: none; color: var(--danger); font-size: 11px; font-weight: 600; cursor: pointer; padding: 0; }
+  .col-filter-popover-actions button:hover { text-decoration: underline; }
+  .msel-search {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .msel-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .msel-action-btn {
+    background: none;
+    border: none;
+    color: var(--accent3);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+  .msel-action-btn:hover { text-decoration: underline; }
+  .msel-list { max-height: 260px; overflow-y: auto; }
+  .msel-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .msel-item:last-child { border-bottom: none; }
+  .msel-item:hover { background: var(--surface3); }
+  .msel-item input[type="checkbox"] {
+    width: 14px; height: 14px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .msel-item .msel-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msel-empty { padding: 14px 10px; font-size: 12px; color: var(--text2); text-align: center; }
+  .data-menu-dropdown { position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px; }
+  [data-theme="tradingview"] .msel-btn { background: #2a2e39; border-color: #363a45; color: #d1d4dc; }
+  [data-theme="tradingview"] .msel-panel { background: #2a2e39; border-color: #363a45; }
+  [data-theme="tradingview"] .msel-search, [data-theme="tradingview"] .msel-actions { background: #1e222d; border-color: #363a45; }
+  [data-theme="tradingview"] .msel-item { color: #d1d4dc; border-color: #363a45; }
+  [data-theme="tradingview"] .msel-item:hover { background: #363a45; }
+  [data-theme="cream"] .msel-btn { background: #ede8df; border-color: #d4ccbc; color: #2c2416; }
+  [data-theme="cream"] .msel-panel { background: #ede8df; border-color: #d4ccbc; }
+  [data-theme="cream"] .msel-search, [data-theme="cream"] .msel-actions { background: #faf7f2; border-color: #d4ccbc; }
+  [data-theme="cream"] .msel-item { color: #2c2416; border-color: #e2dbd0; }
+  [data-theme="cream"] .msel-item:hover { background: rgba(61,140,92,0.10); }
+  @media (max-width: 768px) {
+    .msel-panel { width: 240px; }
+  }
+
+  /* Fin. Score breakdown bar animation */
+  .breakdown-bar {
+    transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Watchlist badge pulse */
+  #watchlistCountBadge {
+    animation: badgePulse 2.5s ease-in-out infinite;
+  }
+  @keyframes badgePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Theme label in badge */
+  #themeToggleBtn { gap: 6px; font-size: 12px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; letter-spacing: 0.04em; padding: 5px 11px; }
+  #themeLabel { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* ===== MOBILE BOTTOM NAV ===== */
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 1000;
+    box-shadow: 0 -6px 28px rgba(0,0,0,0.4);
+    /* Safe area for notched phones */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mobile-nav-inner {
+    display: flex;
+    height: 64px;
+  }
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 8px 4px 6px;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+    overflow: hidden;
+  }
+  .mobile-nav-item:active { background: var(--surface2); }
+  /* Active indicator: pill at top */
+  .mnav-active-pill {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 36px; height: 3px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .mobile-nav-item.active .mnav-active-pill { transform: translateX(-50%) scaleX(1); }
+  /* Icon wrapper */
+  .mobile-nav-icon-wrap {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 32px;
+    border-radius: 12px;
+    transition: background 0.18s, color 0.18s, transform 0.18s;
+    color: var(--text2);
+  }
+  .mobile-nav-item.active .mobile-nav-icon-wrap {
+    background: var(--accent-dim);
+    color: var(--accent);
+    transform: translateY(-2px);
+  }
+  /* Center screener button — slightly bigger pill */
+  .mnav-center-icon {
+    width: 46px; height: 34px;
+    border-radius: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .mobile-nav-item.active .mnav-center-icon {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+  .mobile-nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text2);
+    line-height: 1;
+    transition: color 0.18s;
+  }
+  .mobile-nav-item.active .mobile-nav-label { color: var(--accent); }
+  .mobile-nav-badge {
+    position: absolute;
+    top: 6px;
+    right: calc(50% - 18px);
+    background: var(--accent3);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    min-width: 14px;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .mobile-nav { display: flex; flex-direction: column; }
+    .dashboard { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+    .tabs { display: none; }
+  }
+  @media (min-width: 769px) {
+    .mobile-nav { display: none !important; }
+  }
+
+  /* Theme overrides */
+  [data-theme="bloomberg"] .mobile-nav { background: #111; border-top-color: #2a2a2a; }
+  [data-theme="bloomberg"] .mobile-nav-item.active .mobile-nav-icon-wrap { background: rgba(255,102,0,0.12); color: #ff6600; }
+  [data-theme="bloomberg"] .mobile-nav-item.active .mnav-active-pill { background: #ff6600; }
+  [data-theme="bloomberg"] .mobile-nav-item.active .mobile-nav-label { color: #ff6600; }
+  [data-theme="bloomberg"] .mnav-center-icon { background: #1a1a1a; border-color: #2a2a2a; }
+  [data-theme="tradingview"] .mobile-nav { background: #1e222d; border-top-color: #2a2e39; }
+  [data-theme="tradingview"] .mobile-nav-item.active .mobile-nav-icon-wrap { background: rgba(41,98,255,0.12); color: #2962ff; }
+  [data-theme="tradingview"] .mobile-nav-item.active .mnav-active-pill { background: #2962ff; }
+  [data-theme="tradingview"] .mobile-nav-item.active .mobile-nav-label { color: #2962ff; }
+  [data-theme="tradingview"] .mnav-center-icon { background: #2a2e39; border-color: #363a45; }
+  [data-theme="light"] .mobile-nav { background: #fff; border-top-color: #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.07); }
+  [data-theme="light"] .mobile-nav-item.active .mobile-nav-icon-wrap { background: rgba(14,165,233,0.1); color: var(--accent); }
+  [data-theme="light"] .mobile-nav-item.active .mnav-active-pill { background: var(--accent); }
+  [data-theme="light"] .mobile-nav-item.active .mobile-nav-label { color: var(--accent); }
+  [data-theme="light"] .mnav-center-icon { background: #f1f5f9; border-color: #e2e8f0; }
+  [data-theme="cream"] .mobile-nav { background: #f5f0e8; border-top-color: #d4c9b0; }
+  [data-theme="cream"] .mobile-nav-item.active .mobile-nav-icon-wrap { background: rgba(61,140,92,0.12); color: #3d8c5c; }
+  [data-theme="cream"] .mobile-nav-item.active .mnav-active-pill { background: #3d8c5c; }
+  [data-theme="cream"] .mobile-nav-item.active .mobile-nav-label { color: #3d8c5c; }
+  [data-theme="cream"] .mnav-center-icon { background: #ede8df; border-color: #d4c9b0; }
+
+
+/* ===== TOP TAB STYLES ===== */
+.top-section { margin-bottom: 22px; }
+.top-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text2); margin-bottom: 10px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.top-section-title .ts-icon { font-size: 16px; }
+.top-cards-grid {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.top-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  cursor: pointer; transition: all 0.18s;
+  position: relative; overflow: hidden;
+}
+.top-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); border-color: var(--border2); }
+.top-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: var(--accent); }
+.top-card.ytd-card::before { background: var(--accent3); }
+.top-card.day-gain::before { background: var(--success); }
+.top-card.day-loss::before { background: var(--danger); }
+.top-card.week-gain::before { background: var(--accent); }
+.top-card.week-loss::before { background: var(--accent2); }
+.top-card.rvol-card::before { background: var(--warn); }
+.top-card.disc-card::before { background: #a855f7; }
+.top-card-rank { font-size: 10px; color: var(--text3); font-weight: 700; font-family: 'IBM Plex Mono', monospace; margin-bottom: 3px; }
+.top-card-ticker { font-size: 15px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--accent3); }
+.top-card-name { font-size: 11px; color: var(--text2); margin: 2px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-card-sector { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-card-value { font-size: 20px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+.top-card-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.top-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+.top-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+.top-table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.top-table-head {
+  padding: 11px 14px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text2);
+  display: flex; align-items: center; gap: 7px;
+}
+.top-table-head .th-icon { font-size: 15px; }
+.top-mini-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.top-mini-table td { padding: 7px 12px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.top-mini-table tr:last-child td { border-bottom: none; }
+.top-mini-table tr:hover td { background: var(--accent3-dim); }
+.top-mini-table .tk { font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--accent3); cursor: pointer; }
+.top-mini-table .tk:hover { color: var(--accent); text-decoration: underline; }
+.top-mini-table .nm { color: var(--text2); font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-mini-table .vl { font-family: 'IBM Plex Mono', monospace; text-align: right; white-space: nowrap; }
+.top-mini-table .sc { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-align: right; color: var(--text2); }
+@media (max-width: 768px) {
+  .top-grid-2 { grid-template-columns: 1fr; }
+  .top-grid-3 { grid-template-columns: 1fr; }
+  .top-cards-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Top tab tables: give each table a minimum width so columns don't squash.
+     The parent wrap div already has overflow-x:auto so horizontal scroll kicks in. */
+  .top-mini-table { min-width: 420px; }
+  .top-mini-table .nm { max-width: 100px; }
+  /* KMI / Net Inc>Op Inc / Turnaround / Liquid / High Vol legend under the
+     Screener search box — purely explanatory, not functional, and the
+     first thing worth dropping to reclaim space on a phone. */
+  .search-row-legend { display: none !important; }
+}
+
+
+/* ===== ROLLING MARKET TICKER ================================= */
+.ticker-banner {
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  /* Fade edges for a polished look */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+}
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  animation: tickerScroll 40s linear infinite;
+  padding-left: 16px;
+}
+.ticker-banner:hover .ticker-track { animation-play-state: paused; }
+.tk-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 10px; font-size: 12px; font-weight: 600;
+}
+.tk-name, .tk-ticker {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.tk-ticker { color: var(--accent3); font-family: 'IBM Plex Mono', monospace; }
+.tk-pos { color: var(--success); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.tk-neg { color: var(--danger);  font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.tk-neu { color: var(--text2);   font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.tk-ytd { font-size: 10px; color: var(--text2); opacity: 0.7; }
+.tk-sep { color: var(--border); padding: 0 4px; font-size: 14px; }
+@media (max-width: 768px) {
+  .ticker-banner { height: 30px; }
+  .tk-item { font-size: 11px; padding: 0 7px; }
+}
+
+/* Company name sub-label inside Comparison filter items */
+.msel-item-name {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+/* ===== MOBILE: account menu moved into the bottom nav bar =====
+   On phones, the header's avatar button + theme toggle are hidden (freeing
+   header space) and replaced by a single "Account" item in the bottom nav,
+   in the slot the "Top" tab used to occupy. Tapping it proxies a click to
+   the real (hidden) #authAvatarBtn, so the existing auth.js dropdown logic
+   is reused as-is — nothing about how the dropdown opens/closes changes.
+   "Top" and "Theme" become extra rows inside that same dropdown on mobile,
+   next to FAQ, which already used this exact pattern. */
+@media (max-width: 768px) {
+  /* Scoped with :has() so this only fires on pages that actually have the
+     auth menu (index.html) — admin.html has its own #themeToggleBtn but no
+     auth system at all, and must keep its theme button visible as-is.
+     Important: hide only the avatar BUTTON, not #authUserMenu itself —
+     #authDropdown lives inside that same container, and a display:none
+     ancestor would hide the dropdown too regardless of its own class state,
+     breaking the bottom-nav Account button that proxies a click to it. */
+  body:has(#authUserMenu) #themeToggleBtn,
+  body:has(#authUserMenu) #authAvatarBtn { display: none !important; }
+  .mnav-avatar-circle {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+}
