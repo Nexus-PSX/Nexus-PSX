@@ -1564,8 +1564,8 @@ const SECTOR_ROTATION_CATEGORIES = [
   { key: 'absoluteLeading',        label: 'Absolute Leading',        color: 'var(--success)' },
   { key: 'improving',              label: 'Improving',               color: 'var(--warn)' },
   { key: 'defensiveOutperforming', label: 'Defensive Outperforming', color: 'var(--accent)' },
-  { key: 'weakening',              label: 'Weakening',               color: 'var(--warn)' },
-  { key: 'lagging',                label: 'Lagging',                 color: 'var(--danger)' },
+  { key: 'weakening',              label: 'Weakening',               color: 'var(--danger)' },
+  { key: 'lagging',                label: 'Lagging',                 color: 'var(--text3)' },
 ];
 
 // Glyph/color/tooltip for each rotation category's small badge — shared by
@@ -1573,11 +1573,11 @@ const SECTOR_ROTATION_CATEGORIES = [
 // renderSectorTable() (Sector Performance Summary, per-sector), so both
 // places always render the exact same icon for the same category.
 const ROTATION_BADGE_META = {
-  absoluteLeading:        { glyph: '↑', cls: 'ticker-badge-rot-al', title: 'Relative Performance: Absolute Leading' },
-  defensiveOutperforming: { glyph: '⬢', cls: 'ticker-badge-rot-do', title: 'Relative Performance: Defensive Outperforming' },
+  absoluteLeading:        { glyph: '▲', cls: 'ticker-badge-rot-al', title: 'Relative Performance: Absolute Leading' },
+  defensiveOutperforming: { glyph: '◆', cls: 'ticker-badge-rot-do', title: 'Relative Performance: Defensive Outperforming' },
   improving:              { glyph: '↗', cls: 'ticker-badge-rot-im', title: 'Relative Performance: Improving' },
   weakening:              { glyph: '↘', cls: 'ticker-badge-rot-wk', title: 'Relative Performance: Weakening' },
-  lagging:                { glyph: '↓', cls: 'ticker-badge-rot-lg', title: 'Relative Performance: Lagging' },
+  lagging:                { glyph: '▼', cls: 'ticker-badge-rot-lg', title: 'Relative Performance: Lagging' },
 };
 
 // ===== SECTOR TAB: Sector Rotation ranked list (replaces the old KSE 100
@@ -1891,7 +1891,8 @@ function drillSectorToScreener(sectorName) {
   // mselRegistry — including sectorFilter/sectorIndex/sectorPeriod — which wiped
   // out whatever the user had selected on the Sector tab the moment they drilled
   // through, so it looked "forgotten" when they navigated back.
-  SCREENER_FILTER_KEYS.forEach(key => {
+  const SCREENER_OWN_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'rotation', 'period'];
+  SCREENER_OWN_KEYS.forEach(key => {
     if (mselRegistry[key]) {
       mselRegistry[key].selected.clear();
       mselUpdateLabel(key);
@@ -1940,21 +1941,14 @@ const VOLPHASE_OPTIONS = [
 // the glyphs used in tickerBadges() — kept as one static list here since a
 // stock's rotation category is derived from its sector, not stored per-row.
 const ROTATION_OPTIONS = [
-  {value:'absoluteLeading',        label:'↑ Absolute Leading'},
+  {value:'absoluteLeading',        label:'▲ Absolute Leading'},
   {value:'improving',              label:'↗ Improving'},
-  {value:'defensiveOutperforming', label:'⬢ Defensive Outperforming'},
+  {value:'defensiveOutperforming', label:'◆ Defensive Outperforming'},
   {value:'weakening',              label:'↘ Weakening'},
-  {value:'lagging',                label:'↓ Lagging'}
+  {value:'lagging',                label:'▼ Lagging'}
 ];
 
 // Generic multi-select registry. Each entry: options() returns [{value,label}], selected: Set of values, ids + labels for the button.
-// The Screener tab's own filter keys within mselRegistry (as opposed to the
-// Sector tab's sectorFilter/sectorIndex/sectorPeriod/sectorRotation, which
-// share the same registry but are a separate concern). Used both to clear
-// just the Screener's filters without touching the Sector tab's, and by the
-// Saved Filters feature to know exactly what to snapshot/restore.
-const SCREENER_FILTER_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'rotation', 'period'];
-
 const mselRegistry = {
   sector: {
     options: () => allSectors.map(s => ({value:s, label:s})),
@@ -2202,7 +2196,6 @@ function mselTogglePanel(key, e) {
       document.getElementById(k + 'MselBtn')?.classList.remove('open');
     }
   });
-  closeSavedFiltersPanel();
   panel.classList.toggle('open', opening);
   btn.classList.toggle('open', opening);
   if (opening) {
@@ -2263,7 +2256,6 @@ document.addEventListener('keydown', function(e) {
       document.getElementById(key + 'MselPanel')?.classList.remove('open');
       document.getElementById(key + 'MselBtn')?.classList.remove('open');
     });
-    closeSavedFiltersPanel();
   }
 });
 // Close any open filter panel on scroll/resize rather than letting it drift
@@ -2280,7 +2272,6 @@ window.addEventListener('scroll', function() {
     document.getElementById(key + 'MselPanel')?.classList.remove('open');
     document.getElementById(key + 'MselBtn')?.classList.remove('open');
   });
-  closeSavedFiltersPanel();
 }, true);
 window.addEventListener('resize', function() {
   if (Date.now() - mselOpenedAt < 400) return;
@@ -2289,7 +2280,6 @@ window.addEventListener('resize', function() {
     document.getElementById(key + 'MselPanel')?.classList.remove('open');
     document.getElementById(key + 'MselBtn')?.classList.remove('open');
   });
-  closeSavedFiltersPanel();
 });
 
 // On mobile, tapping a checkbox inside an msel panel fires a touchstart →
@@ -2320,134 +2310,6 @@ function clearAllFilters() {
   resetMselFilters();
   filterScreener();
 }
-
-// ===== SCREENER: Saved Filters =====
-// Lets the person capture their current combination of dropdown filters
-// (Sector, Index, Ticker, Status, NEMI, Other Filters, Liquid, Volume Phase,
-// Relative Performance, Period — i.e. everything in SCREENER_FILTER_KEYS)
-// under a name, and re-apply that whole combination with one tap later,
-// instead of re-picking every dropdown by hand each time. Stored in
-// localStorage so it persists across sessions on this device.
-const SAVED_SCREENER_FILTERS_KEY = 'psx_saved_screener_filters';
-
-function getSavedScreenerFilterSets() {
-  try { return JSON.parse(wlLocalGet(SAVED_SCREENER_FILTERS_KEY) || '[]'); } catch { return []; }
-}
-function setSavedScreenerFilterSets(list) {
-  wlLocalSet(SAVED_SCREENER_FILTERS_KEY, JSON.stringify(list));
-}
-
-// Only the keys that actually have something selected are stored, so old
-// saved sets keep working even if new filter dropdowns are added later —
-// an absent key on apply just means "leave that filter untouched/empty".
-function snapshotCurrentScreenerFilters() {
-  const snap = {};
-  SCREENER_FILTER_KEYS.forEach(key => {
-    if (mselRegistry[key] && mselRegistry[key].selected.size > 0) {
-      snap[key] = [...mselRegistry[key].selected];
-    }
-  });
-  return snap;
-}
-
-function saveCurrentScreenerFilterSet() {
-  const input = document.getElementById('savedFilterNameInput');
-  const name = (input && input.value || '').trim();
-  if (!name) { input && input.focus(); return; }
-  const snap = snapshotCurrentScreenerFilters();
-  if (Object.keys(snap).length === 0) {
-    showToast('No filters are currently selected — pick some filters above first, then save them.');
-    return;
-  }
-  const list = getSavedScreenerFilterSets();
-  list.push({ id: 'sf_' + Date.now(), name, filters: snap });
-  setSavedScreenerFilterSets(list);
-  if (input) input.value = '';
-  renderSavedFiltersList();
-  showToast(`Saved "${name}"`);
-}
-
-function applySavedScreenerFilterSet(id) {
-  const item = getSavedScreenerFilterSets().find(x => x.id === id);
-  if (!item) return;
-  SCREENER_FILTER_KEYS.forEach(key => {
-    if (!mselRegistry[key]) return;
-    mselRegistry[key].selected.clear();
-    (item.filters[key] || []).forEach(v => mselRegistry[key].selected.add(v));
-    mselUpdateLabel(key);
-  });
-  filterScreener();
-  closeSavedFiltersPanel();
-}
-
-function deleteSavedScreenerFilterSet(id, e) {
-  if (e) e.stopPropagation();
-  setSavedScreenerFilterSets(getSavedScreenerFilterSets().filter(x => x.id !== id));
-  renderSavedFiltersList();
-}
-
-function renderSavedFiltersList() {
-  const container = document.getElementById('savedFiltersList');
-  if (!container) return;
-  const list = getSavedScreenerFilterSets();
-  if (!list.length) {
-    container.innerHTML = '<div class="msel-empty">No saved filters yet — choose your filters above, name them, and hit Save.</div>';
-    return;
-  }
-  container.innerHTML = list.map(item => {
-    const count = Object.values(item.filters).reduce((s, arr) => s + arr.length, 0);
-    const safeName = item.name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return `<div class="msel-item" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;" onclick="applySavedScreenerFilterSet('${item.id}')">
-      <span class="msel-label" title="${count} filter value(s)" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeName}</span>
-      <button type="button" onclick="deleteSavedScreenerFilterSet('${item.id}', event)" title="Delete this saved filter set" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;flex-shrink:0;">&times;</button>
-    </div>`;
-  }).join('');
-}
-
-function closeSavedFiltersPanel() {
-  document.getElementById('savedFiltersMselPanel')?.classList.remove('open');
-  document.getElementById('savedFiltersMselBtn')?.classList.remove('open');
-}
-
-function positionSavedFiltersPanel() {
-  const panel = document.getElementById('savedFiltersMselPanel');
-  const btn = document.getElementById('savedFiltersMselBtn');
-  if (!panel || !btn) return;
-  const rect = btn.getBoundingClientRect();
-  const panelWidth = panel.offsetWidth || 240;
-  let left = rect.left;
-  if (left + panelWidth > window.innerWidth - 8) left = window.innerWidth - panelWidth - 8;
-  left = Math.max(8, left);
-  panel.style.position = 'fixed';
-  panel.style.top = (rect.bottom + 4) + 'px';
-  panel.style.left = left + 'px';
-  panel.style.right = 'auto';
-}
-
-function toggleSavedFiltersPanel(e) {
-  e.stopPropagation();
-  const panel = document.getElementById('savedFiltersMselPanel');
-  const btn = document.getElementById('savedFiltersMselBtn');
-  if (!panel || !btn) return;
-  const opening = !panel.classList.contains('open');
-  // Close every other filter dropdown first, same mutual-exclusivity as mselTogglePanel.
-  Object.keys(mselRegistry).forEach(k => {
-    document.getElementById(k + 'MselPanel')?.classList.remove('open');
-    document.getElementById(k + 'MselBtn')?.classList.remove('open');
-  });
-  panel.classList.toggle('open', opening);
-  btn.classList.toggle('open', opening);
-  if (opening) {
-    mselOpenedAt = Date.now();
-    renderSavedFiltersList();
-    positionSavedFiltersPanel();
-  }
-}
-
-document.addEventListener('click', e => {
-  const root = document.getElementById('savedFiltersMsel');
-  if (root && !root.contains(e.target)) closeSavedFiltersPanel();
-});
 
 // ===== SCREENER PER-COLUMN NUMERIC FILTERS =====
 // Clicking the small funnel icon next to a numeric header opens a shared
@@ -2664,14 +2526,14 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%','P/B Ratio','Fair Value'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%','P/B Ratio'];
   const key = sortKeys[screenerSort.col];
   // Keys that must be compared numerically. Kept as a Set (built once per call is
   // cheap here) so the comparator below can do a single, fast lookup.
   // NOTE: "Last Period End Date" is deliberately NOT here — unlike Signal date
   // (a YYYYMMDD integer), it's stored as an ISO "YYYY-MM-DD" string, which the
   // default string comparison below already sorts correctly (chronologically).
-  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%','P/B Ratio','Fair Value']);
+  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%','P/B Ratio']);
 
   // Compares two rows on a single sort level ({col, dir}). Returns 0 when the rows
   // tie on that level's column, so the caller can fall through to the next level.
@@ -2811,6 +2673,7 @@ function toggleFinancials() {
 // to be refreshed whenever the table's width can change — column-group
 // toggles, re-renders, window resize — hence syncScreenerTopScrollbar()
 // being called from those paths too.
+let _topScrollSyncing = false;
 function syncScreenerTopScrollbar() {
   const bar = document.getElementById('screenerTopScroll');
   const scrollBox = document.querySelector('#tab-screener .scroll-table');
@@ -2828,38 +2691,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const bar = document.getElementById('screenerTopScroll');
   const scrollBox = document.querySelector('#tab-screener .scroll-table');
   if (!bar || !scrollBox) return;
-  // Two-way sync. The previous version reset its "don't re-trigger" guard
-  // synchronously right after writing scrollLeft — but the resulting
-  // 'scroll' event on the *other* element usually fires asynchronously
-  // (a browser-scheduled task, not immediately), so the guard was often
-  // already cleared by the time it arrived. That let the two elements
-  // volley scroll events back and forth during fast/momentum scrolling,
-  // each write forcing a synchronous style recalculation — which is what
-  // showed up as flickering. Fixed two ways: the lock is released on the
-  // next animation frame instead of synchronously (so it actually covers
-  // the induced event), and the mirrored write itself is also deferred to
-  // rAF and only applied if the value actually changed, instead of writing
-  // on every single native scroll event.
-  let lock = false;
-  let pending = null; // { source: 'bar'|'box' } — coalesces rapid-fire scroll events into one write per frame
-  function flush() {
-    if (!pending) return;
-    const from = pending.source === 'bar' ? bar : scrollBox;
-    const to   = pending.source === 'bar' ? scrollBox : bar;
-    pending = null;
-    if (to.scrollLeft !== from.scrollLeft) {
-      lock = true;
-      to.scrollLeft = from.scrollLeft;
-      requestAnimationFrame(() => { lock = false; });
-    }
-  }
-  function onScroll(source) {
-    if (lock) return;
-    if (!pending) requestAnimationFrame(flush);
-    pending = { source };
-  }
-  bar.addEventListener('scroll', () => onScroll('bar'), { passive: true });
-  scrollBox.addEventListener('scroll', () => onScroll('box'), { passive: true });
+  // Two-way sync, guarded so each one's programmatic scroll doesn't bounce
+  // back and re-trigger the other.
+  bar.addEventListener('scroll', () => {
+    if (_topScrollSyncing) return;
+    _topScrollSyncing = true;
+    scrollBox.scrollLeft = bar.scrollLeft;
+    _topScrollSyncing = false;
+  }, { passive: true });
+  scrollBox.addEventListener('scroll', () => {
+    if (_topScrollSyncing) return;
+    _topScrollSyncing = true;
+    bar.scrollLeft = scrollBox.scrollLeft;
+    _topScrollSyncing = false;
+  }, { passive: true });
   window.addEventListener('resize', syncScreenerTopScrollbar);
   syncScreenerTopScrollbar();
 });
@@ -4552,7 +4397,6 @@ function renderScreenerPage() {
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
-      <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}</td>
       <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
@@ -4657,7 +4501,6 @@ function updateScreenerAvgRow() {
     <td class="mono">${scoreHtml}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-tech-col">${fmt(avg('Signal Price'),2)}</td>
-    <td class="mono screener-tech-col">${fmt(avg('Fair Value'),2)}</td>
     <td class="mono screener-tech-col ${sigRet != null ? sigRet > 0 ? 'positive' : 'negative' : ''}">${sigRet != null ? (sigRet >= 0 ? '+' : '') + sigRet.toFixed(2) + '%' : '—'}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-daily-col">${avg('Price') != null ? avg('Price').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
