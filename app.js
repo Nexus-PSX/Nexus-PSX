@@ -2664,14 +2664,14 @@ function filterScreener() {
   });
 
   // Sort
-  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%','P/B Ratio'];
+  const sortKeys = ['Ticker','Name','Sector','Latest EPS  Q','Latest TTM EPS Q','Revenue - Q','Op Income-Q','Net Income -Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Signal date','Signal Price','Signal Return %','Signal Status','Price','Day Change','Relative Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','NEMI Signal Status','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','EPS Q G%','Last Period End Date','REV Q G%','P/B Ratio','Fair Value'];
   const key = sortKeys[screenerSort.col];
   // Keys that must be compared numerically. Kept as a Set (built once per call is
   // cheap here) so the comparator below can do a single, fast lookup.
   // NOTE: "Last Period End Date" is deliberately NOT here — unlike Signal date
   // (a YYYYMMDD integer), it's stored as an ISO "YYYY-MM-DD" string, which the
   // default string comparison below already sorts correctly (chronologically).
-  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%','P/B Ratio']);
+  const NUMERIC_SORT_KEYS = new Set(['Signal date','Signal Price','Signal Return %','Latest EPS  Q','Latest TTM EPS Q','EPS Q G%','Revenue - Q','ROE 2026-Q1','Debt/Equity 2026-Q1','CFO 2026-Q1','Latest Div Y Q','P/E Ratio','Market Cap','total improvement','Price','Day Change','Relative Vol','Relative Volume','Rel Vol','Volume','Day Change %','Current Week Return %','Current Month Return %','Past 3 Months Return %','YTD Return %','NEMI Signal date','NEMI Signal Price','NEMI Signal Return %','Rolling 1M%','Rolling 3M%','Rolling 6M%','Rolling 1Y%','REV Q G%','P/B Ratio','Fair Value']);
 
   // Compares two rows on a single sort level ({col, dir}). Returns 0 when the rows
   // tie on that level's column, so the caller can fall through to the next level.
@@ -4552,6 +4552,7 @@ function renderScreenerPage() {
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
+      <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}</td>
       <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
@@ -4656,6 +4657,7 @@ function updateScreenerAvgRow() {
     <td class="mono">${scoreHtml}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-tech-col">${fmt(avg('Signal Price'),2)}</td>
+    <td class="mono screener-tech-col">${fmt(avg('Fair Value'),2)}</td>
     <td class="mono screener-tech-col ${sigRet != null ? sigRet > 0 ? 'positive' : 'negative' : ''}">${sigRet != null ? (sigRet >= 0 ? '+' : '') + sigRet.toFixed(2) + '%' : '—'}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-daily-col">${avg('Price') != null ? avg('Price').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
