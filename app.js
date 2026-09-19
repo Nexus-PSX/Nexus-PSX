@@ -36,6 +36,19 @@ const SOURCE_DATA = [];
 window.SOURCE_DATA = SOURCE_DATA;
 
 let SECTOR_DATA = [];
+// The trading day the currently-loaded price data actually represents (as
+// a 'YYYY-MM-DD' string) — e.g. from data.json's updatedAt timestamp. This
+// is deliberately NOT the same as "the device's current calendar date":
+// markets don't trade on weekends/holidays, so if today is Saturday, the
+// data on screen is still Friday's close, and anything bought on Friday is
+// still "today's" purchase in trading-day terms even though the calendar
+// date has since ticked over. Used by the Portfolio's Day P&L split (a lot
+// bought on this date is treated as bought "today"; anything earlier is
+// treated as already held through the prior close) — comparing against the
+// raw device clock there would misclassify same-session buys as "held
+// since before" the moment a weekend/holiday passes, which is exactly the
+// bug this fixes.
+let DATA_AS_OF_DATE = null;
 
 // ── computeSectorDataFromSource ──────────────────────────────────────────────
 // Builds SECTOR_DATA entirely from SOURCE_DATA averages — no external sheet needed.
@@ -3652,7 +3665,7 @@ function buildPortfolioTab() {
     // buy date, which is exactly what's needed to split the current
     // quantity into "bought today" vs "held from before" and price each
     // portion correctly.
-    const todayStr = new Date().toISOString().slice(0,10);
+    const todayStr = DATA_AS_OF_DATE || new Date().toISOString().slice(0,10);
     const lots = pfLots[h.ticker] || [];
     const lotsToday = lots.filter(l => l.date === todayStr);
     const qtyToday = lotsToday.reduce((s,l) => s + l.qty, 0);
@@ -5497,6 +5510,7 @@ function handleExcelUpload(event) {
       });
 
       computeSectorDataFromSource();
+      DATA_AS_OF_DATE = new Date().toISOString().slice(0,10);
 
       reinitDashboard(file.name);
       hideOverlay();
@@ -5774,6 +5788,7 @@ function closeModal() {
       clearTimeout(timeout);
       SOURCE_DATA.length = 0;
       (data.source || []).forEach(d => SOURCE_DATA.push(d));
+      DATA_AS_OF_DATE = data.updatedAt ? new Date(data.updatedAt).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
       computeSectorDataFromSource();
       init();
       updateDataBadges(data.updatedAt);
