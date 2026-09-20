@@ -954,6 +954,13 @@
      simply no longer overwritten on mouseleave). */
   #dataMenuBtn:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
   .scroll-table { overflow-x: auto; max-height: 600px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--accent3) var(--surface2); -webkit-overflow-scrolling: touch; }
+  /* Screener only: taller viewport than the generic 600px above, sized to
+     show roughly 18-20 data rows (accounting for the header row and the
+     sticky Mkt Avg footer row eating into the same fixed height) before the
+     rest scrolls. Scoped to #tab-screener specifically so the Sector
+     Performance Summary, Portfolio, and Watchlist tables — which also use
+     .scroll-table — keep their existing shorter default. */
+  #tab-screener .scroll-table { max-height: 720px; }
   .scroll-table::-webkit-scrollbar { width: 10px; height: 10px; }
   .scroll-table::-webkit-scrollbar-track { background: var(--surface2); border-radius: 6px; }
   .scroll-table::-webkit-scrollbar-thumb { background: var(--accent3); border-radius: 6px; border: 2px solid var(--surface2); }
@@ -1436,6 +1443,10 @@
 
     .data-table th { font-size: 10.5px; padding: 8px 10px; }
     .data-table td { padding: 8px 10px; font-size: 12px; }
+    /* Mobile rows are shorter (less padding, smaller font) than desktop, so
+       the desktop-oriented 720px above would show noticeably more than the
+       intended ~18-20 rows here — scale it down to match. */
+    #tab-screener .scroll-table { max-height: 620px; }
     .top-mini-table td { font-size: 12px; }
     .top-mini-table th { font-size: 10.5px !important; }
     #homeSignalsTable td { font-size: 12px !important; }
