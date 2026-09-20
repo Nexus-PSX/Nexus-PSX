@@ -6178,14 +6178,18 @@ function buildHomeTab() {
     </div>`;
 
   const pulseRow = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="home-section">
+      <div class="home-section-label">Market Pulse<span class="home-section-sub">— major indices and today's advance/decline count</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
       ${idxCard('KSE 100',   fmtPx(kse100_px),  kse100_chg,  kse100_1d,  'KSE 100 Index')}
       ${idxCard('KSE 30',    fmtPx(kse30_px),   kse30_chg,   kse30_1d,   'KSE 30 Index')}
       ${idxCard('KMI 30',    fmtPx(kmi30_px),   kmi30_chg,   kmi30_1d,   'Shariah Index')}
       ${idxCard('PSX DIV 20',fmtPx(psxdiv_px),  psxdiv_chg,  psxdiv_1d,  'Dividend Index')}
       ${pulseCard('Advances', advances, 'var(--success)', 'Stocks up today')}
       ${pulseCard('Declines', declines, 'var(--danger)',  'Stocks down today')}
-    </div>`;
+      </div>
+    </div>
+    <div class="home-section-divider"></div>`;
 
   // ── Row 2: Sector Bar Chart + Top 5 cards ────────────────────────────────
   const companies = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
@@ -6215,10 +6219,11 @@ function buildHomeTab() {
 
 
   const sectorRow = `
-    <div style="margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">Top 5 Sectors — Day Change %</div>
+    <div class="home-section">
+      <div class="home-section-label">Top 5 Sectors<span class="home-section-sub">— ranked by average Day Change %</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">${top5Cards}</div>
-    </div>`;
+    </div>
+    <div class="home-section-divider"></div>`;
 
 
   // ── Row 3: Active Signals table (Initial Buy, Continuation, Extended) ─────
@@ -6297,11 +6302,8 @@ function buildHomeTab() {
   };
 
   const signalsSection = `
-    <div style="margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">
-        Active Buy Signals
-        <span style="font-size:11px;font-weight:400;color:var(--text3);">— ${sortedSignals.length} stocks · Initial Buy, Continuation Buy, Extended (Cautious) · click row to open Company View</span>
-      </div>
+    <div class="home-section">
+      <div class="home-section-label">Active Buy Signals<span class="home-section-sub">— ${sortedSignals.length} stocks · Initial Buy, Continuation Buy, Extended (Cautious) · click row to open Company View</span></div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
         <div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
           <table id="homeSignalsTable" style="width:100%;border-collapse:separate;border-spacing:0;min-width:700px;">
@@ -6342,7 +6344,7 @@ function buildHomeTab() {
 
   // ── Assemble ──────────────────────────────────────────────────────────────
   el.innerHTML = `
-    <div style="padding:16px;max-width:1400px;">
+    <div style="padding:20px;max-width:1400px;">
       ${pulseRow}
       ${sectorRow}
       ${signalsSection}

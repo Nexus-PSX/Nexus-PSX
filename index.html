@@ -1562,7 +1562,7 @@
           <div class="screener-search-row" style="display:flex; align-items:center; gap:10px; width:100%;">
             <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:0 1 280px; min-width:160px;">
             <div class="search-row-info">
-              <span id="screenerCount" class="search-row-count" style="font-size:11px; color: var(--text2); white-space:nowrap;">497 companies</span>
+              <span id="screenerCount" class="search-row-count" style="font-size:15px; font-weight:600; color: var(--text); white-space:nowrap;">497 companies</span>
               <span class="search-row-legend" style="font-size:10px; color: var(--text2); display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
                 <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-ni" style="margin-left:0;">N</span>Net Inc&gt;Op Inc</span>
@@ -1574,156 +1574,7 @@
             <div class="search-row-spacer" style="flex:1; min-width:8px;"></div>
             <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
             <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active screener filters and reset the search box." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
-          </div>
-          <div id="screenerFilterChips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <div class="msel" id="indexMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="indexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('index', event)" title="Indices: Filter by index membership — KSE 100, KSE 30, KMI 30 (Shariah), KSE All Share. Multi-select.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-              <span id="indexMselLabel">Indices</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="indexMselPanel">
-              <input type="text" class="msel-search" id="indexMselSearch" placeholder="Search indices..." oninput="mselRenderList('index')">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('index')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('index')">Clear</button>
-              </div>
-              <div class="msel-list" id="indexMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="sectorMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="sectorMselBtn" style="position:relative;" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sector', event)" title="Sectors: Filter by one or more of the 44+ PSX sectors. Multi-select.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-              <span id="sectorMselLabel">Sectors</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="sectorMselPanel">
-              <input type="text" class="msel-search" id="sectorMselSearch" placeholder="Search sectors..." oninput="mselRenderList('sector')">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('sector')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('sector')">Clear</button>
-              </div>
-              <div class="msel-list" id="sectorMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="tickerMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="tickerMselBtn" style="position:relative;" aria-label="Filter by comparison tickers" aria-haspopup="listbox" onclick="mselTogglePanel('ticker', event)" title="Comparison: Load specific tickers side by side for peer analysis.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              <span id="tickerMselLabel">Comparison</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="tickerMselPanel">
-              <input type="text" class="msel-search" id="tickerMselSearch" placeholder="Search tickers..." oninput="mselRenderList('ticker')">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('ticker')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('ticker')">Clear</button>
-              </div>
-              <div class="msel-list" id="tickerMselList"></div>
-            </div>
-          </div>
-          
-          
-          <div class="msel" id="statusMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="statusMselBtn" style="position:relative;" aria-label="Filter by signal status" aria-haspopup="listbox" onclick="mselTogglePanel('status', event)" title="Signal Status: Filter by recommendation — Initial Buy, Continuation Buy, Hold, Cautious, Take Profit, Exit, No Trade.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
-              <span id="statusMselLabel">Signals</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="statusMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('status')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('status')">Clear</button>
-              </div>
-              <div class="msel-list" id="statusMselList"></div>
-            </div>
-          </div>
-
-          <div class="msel" id="nemiMsel" style="display:none;">
-            <button type="button" class="msel-btn" style="position:relative;" id="nemiMselBtn" style="position:relative;" aria-label="Filter by NEMI signal status" aria-haspopup="listbox" onclick="mselTogglePanel('nemi', event)" title="NEMI Signal: Separate proprietary signal filter. Restricted to authorised users only.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <span id="nemiMselLabel">NEMI</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="nemiMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('nemi')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('nemi')">Clear</button>
-              </div>
-              <div class="msel-list" id="nemiMselList" style="max-height:220px;overflow-y:auto;"></div>
-            </div>
-          </div>
-          <div class="msel" id="periodMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="periodMselBtn" style="position:relative;" aria-label="Filter by latest period" aria-haspopup="listbox" onclick="mselTogglePanel('period', event)" title="Latest Period: Filter by the company's latest reported quarter-end date. Multi-select.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-              <span id="periodMselLabel">Latest Period</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="periodMselPanel">
-              <input type="text" class="msel-search" id="periodMselSearch" placeholder="Search periods..." oninput="mselRenderList('period')">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('period')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('period')">Clear</button>
-              </div>
-              <div class="msel-list" id="periodMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="liquidMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="liquidMselBtn" style="position:relative;" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)" title="Liquidity: Minimum average daily trading turnover threshold.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
-              <span id="liquidMselLabel">Liquidity</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="liquidMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('liquid')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('liquid')">Clear</button>
-              </div>
-              <div class="msel-list" id="liquidMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="volPhaseMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="volPhaseMselBtn" style="position:relative;" aria-label="Filter by volume phase" aria-haspopup="listbox" onclick="mselTogglePanel('volPhase', event)" title="Volume Phase: Filter by volume behaviour — Accumulation, Breakout, Distribution, Contraction.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-              <span id="volPhaseMselLabel">Volume Phase</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="volPhaseMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('volPhase')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('volPhase')">Clear</button>
-              </div>
-              <div class="msel-list" id="volPhaseMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="rotationMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="rotationMselBtn" style="position:relative;" aria-label="Filter by relative performance" aria-haspopup="listbox" onclick="mselTogglePanel('rotation', event)" title="Relative Performance: Filter by the stock's own WTD%/Roll 1M% performance vs KSE 100 — Absolute Leading, Defensive Outperforming, Improving, Weakening, Lagging.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a4 4 0 0 1 4-4h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a4 4 0 0 1-4 4H3"></path></svg>
-              <span id="rotationMselLabel">Relative Performance</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="rotationMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('rotation')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('rotation')">Clear</button>
-              </div>
-              <div class="msel-list" id="rotationMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="othersMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="othersMselBtn" style="position:relative;" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)" title="Other Filters: Circuit Breakers, Turnaround Candidates, NI > OI, Shariah-compliant stocks.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-              <span id="othersMselLabel">Other Filters</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="othersMselPanel">
-              <div class="msel-actions">
-                <button type="button" class="msel-action-btn" onclick="mselSelectAll('others')">Select All</button>
-                <button type="button" class="msel-action-btn" onclick="mselClear('others')">Clear</button>
-              </div>
-              <div class="msel-list" id="othersMselList"></div>
-            </div>
-          </div>
-          <div class="msel" id="savedFiltersMsel">
+            <div class="msel" id="savedFiltersMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="savedFiltersMselBtn" aria-label="Saved filter sets" aria-haspopup="listbox" onclick="toggleSavedFiltersPanel(event)" title="Save your current combination of filters above under a name, or apply one you saved before, instead of re-picking each dropdown every time.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
               <span id="savedFiltersMselLabel">Saved Filters</span>
@@ -1738,12 +1589,175 @@
             </div>
           </div>
           </div>
-          <div id="screenerToggleChips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; width:100%; margin-top:8px;">
+          <div class="screener-filter-groups" id="screenerFilterChips" style="width:100%;">
+            <div class="screener-filter-group">
+              <div class="screener-filter-group-label">Scope</div>
+              <div class="screener-filter-group-row">
+                <div class="msel" id="indexMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="indexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('index', event)" title="Indices: Filter by index membership — KSE 100, KSE 30, KMI 30 (Shariah), KSE All Share. Multi-select.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+              <span id="indexMselLabel">Indices</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="indexMselPanel">
+              <input type="text" class="msel-search" id="indexMselSearch" placeholder="Search indices..." oninput="mselRenderList('index')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('index')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('index')">Clear</button>
+              </div>
+              <div class="msel-list" id="indexMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="sectorMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="sectorMselBtn" style="position:relative;" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sector', event)" title="Sectors: Filter by one or more of the 44+ PSX sectors. Multi-select.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span id="sectorMselLabel">Sectors</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="sectorMselPanel">
+              <input type="text" class="msel-search" id="sectorMselSearch" placeholder="Search sectors..." oninput="mselRenderList('sector')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('sector')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('sector')">Clear</button>
+              </div>
+              <div class="msel-list" id="sectorMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="periodMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="periodMselBtn" style="position:relative;" aria-label="Filter by latest period" aria-haspopup="listbox" onclick="mselTogglePanel('period', event)" title="Latest Period: Filter by the company's latest reported quarter-end date. Multi-select.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span id="periodMselLabel">Latest Period</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="periodMselPanel">
+              <input type="text" class="msel-search" id="periodMselSearch" placeholder="Search periods..." oninput="mselRenderList('period')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('period')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('period')">Clear</button>
+              </div>
+              <div class="msel-list" id="periodMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="tickerMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="tickerMselBtn" style="position:relative;" aria-label="Filter by comparison tickers" aria-haspopup="listbox" onclick="mselTogglePanel('ticker', event)" title="Comparison: Load specific tickers side by side for peer analysis.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              <span id="tickerMselLabel">Comparison</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="tickerMselPanel">
+              <input type="text" class="msel-search" id="tickerMselSearch" placeholder="Search tickers..." oninput="mselRenderList('ticker')">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('ticker')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('ticker')">Clear</button>
+              </div>
+              <div class="msel-list" id="tickerMselList"></div>
+            </div>
+          </div>
+              </div>
+            </div>
+            <div class="screener-filter-group-divider"></div>
+            <div class="screener-filter-group">
+              <div class="screener-filter-group-label">Signals</div>
+              <div class="screener-filter-group-row">
+                <div class="msel" id="statusMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="statusMselBtn" style="position:relative;" aria-label="Filter by signal status" aria-haspopup="listbox" onclick="mselTogglePanel('status', event)" title="Signal Status: Filter by recommendation — Initial Buy, Continuation Buy, Hold, Cautious, Take Profit, Exit, No Trade.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+              <span id="statusMselLabel">Signals</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="statusMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('status')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('status')">Clear</button>
+              </div>
+              <div class="msel-list" id="statusMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="nemiMsel" style="display:none;">
+            <button type="button" class="msel-btn" style="position:relative;" id="nemiMselBtn" style="position:relative;" aria-label="Filter by NEMI signal status" aria-haspopup="listbox" onclick="mselTogglePanel('nemi', event)" title="NEMI Signal: Separate proprietary signal filter. Restricted to authorised users only.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span id="nemiMselLabel">NEMI</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="nemiMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('nemi')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('nemi')">Clear</button>
+              </div>
+              <div class="msel-list" id="nemiMselList" style="max-height:220px;overflow-y:auto;"></div>
+            </div>
+          </div>
+                <div class="msel" id="liquidMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="liquidMselBtn" style="position:relative;" aria-label="Filter by liquidity" aria-haspopup="listbox" onclick="mselTogglePanel('liquid', event)" title="Liquidity: Minimum average daily trading turnover threshold.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+              <span id="liquidMselLabel">Liquidity</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="liquidMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('liquid')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('liquid')">Clear</button>
+              </div>
+              <div class="msel-list" id="liquidMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="volPhaseMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="volPhaseMselBtn" style="position:relative;" aria-label="Filter by volume phase" aria-haspopup="listbox" onclick="mselTogglePanel('volPhase', event)" title="Volume Phase: Filter by volume behaviour — Accumulation, Breakout, Distribution, Contraction.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              <span id="volPhaseMselLabel">Volume Phase</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="volPhaseMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('volPhase')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('volPhase')">Clear</button>
+              </div>
+              <div class="msel-list" id="volPhaseMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="rotationMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="rotationMselBtn" style="position:relative;" aria-label="Filter by relative performance" aria-haspopup="listbox" onclick="mselTogglePanel('rotation', event)" title="Relative Performance: Filter by the stock's own WTD%/Roll 1M% performance vs KSE 100 — Absolute Leading, Defensive Outperforming, Improving, Weakening, Lagging.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a4 4 0 0 1 4-4h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a4 4 0 0 1-4 4H3"></path></svg>
+              <span id="rotationMselLabel">Relative Performance</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="rotationMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('rotation')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('rotation')">Clear</button>
+              </div>
+              <div class="msel-list" id="rotationMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="othersMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="othersMselBtn" style="position:relative;" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)" title="Other Filters: Circuit Breakers, Turnaround Candidates, NI > OI, Shariah-compliant stocks.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+              <span id="othersMselLabel">Other Filters</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="othersMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('others')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('others')">Clear</button>
+              </div>
+              <div class="msel-list" id="othersMselList"></div>
+            </div>
+          </div>
+              </div>
+            </div>
+            <div class="screener-filter-group-divider"></div>
+            <div class="screener-filter-group">
+              <div class="screener-filter-group-label">Display</div>
+              <div class="screener-filter-group-row" id="screenerToggleChips">
+                
           <button class="fin-toggle-btn" id="finToggleBtn" onclick="toggleFinancials()" title="Hide/show EPS, Revenue, Margins, CFO columns"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="finToggleLabel">Show Financials</span></button>
           <button class="fin-toggle-btn" style="position:relative;" active" id="techToggleBtn" onclick="toggleTechnical()" title="Technical Columns: Signal Date, Signal Return %, Signal Status pill."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 0 0 14.14"></path><path d="M7.76 7.76a6 6 0 0 0 0 8.48"></path><circle cx="12" cy="12" r="1"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.48"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><span id="techToggleLabel">Hide Technical</span></button>
           <button class="fin-toggle-btn active" style="position:relative;" id="dailyToggleBtn" onclick="toggleDaily()" title="Daily Movement: Price, Relative Volume (RVOL), Volume, Day Change %."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span id="dailyToggleLabel">Hide Daily Movement</span></button>
           <button class="fin-toggle-btn" style="position:relative;"" id="perfToggleBtn" onclick="togglePerformance()" title="Performance: WTD%, MTD%, QTD%, YTD%, Rolling 1M/3M/6M/1Y returns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span id="perfToggleLabel">Show Performance</span></button>
           <button class="fin-toggle-btn" style="position:relative;"" id="nemiToggleBtn" style="display:none;" onclick="toggleNemi()" title="NEMI Columns: NEMI Signal Date, Entry Price, Return % since entry, NEMI Status."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span id="nemiToggleLabel">Show NEMI</span></button>
+          
+              </div>
+            </div>
           </div>
 
         </div>

@@ -436,6 +436,26 @@
     color: var(--text);
   }
   .table-filters { display: flex; gap: 8px; }
+  /* Screener filter toolbar, grouped by purpose (Scope / Signals / Display)
+     with room between groups instead of one dense wrapped row of 11+
+     controls. Each group keeps its own comfortable gap between buttons;
+     the divider is a plain 1px hairline, not a heavier visual break, so
+     the whole card still reads as one connected toolbar rather than three
+     separate boxes. */
+  .screener-filter-groups { display: flex; flex-direction: column; gap: 12px; padding: 16px 2px 6px; }
+  .screener-filter-group { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+  .screener-filter-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); flex-shrink: 0; white-space: nowrap; min-width: 58px; }
+  .screener-filter-group-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 0; }
+  .screener-filter-group-divider { height: 1px; background: var(--border); }
+  /* Home tab: same idea as the Screener's filter groups above — give each
+     major section (Market Pulse / Top Sectors / Active Signals) real
+     separation instead of a flat 16px margin between all of them, so the
+     page reads as distinct sections rather than one long stack of cards. */
+  .home-section { margin-bottom: 28px; }
+  .home-section:last-child { margin-bottom: 0; }
+  .home-section-divider { height: 1px; background: var(--border); margin: 0 0 28px; }
+  .home-section-label { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .home-section-label .home-section-sub { font-size: 11px; font-weight: 400; color: var(--text3); margin-left: 6px; }
   .filters-toggle-btn { display: none; }
   .filter-select {
     background: none;
