@@ -5727,12 +5727,40 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// Smart default for the price-data date prompt below: if today is a
+// weekend, the most recent trading day was Friday, not today. This is only
+// a starting guess — the admin can (and for a stale/delayed data pull,
+// should) override it, since there's no way to reliably auto-detect the
+// true date of the embedded prices from the data itself.
+function computeDefaultPriceDate() {
+  const d = new Date();
+  const day = d.getUTCDay(); // 0=Sun ... 6=Sat
+  if (day === 0) d.setUTCDate(d.getUTCDate() - 2);      // Sunday → Friday
+  else if (day === 6) d.setUTCDate(d.getUTCDate() - 1); // Saturday → Friday
+  return d.toISOString().slice(0,10);
+}
+
 function saveDataJson() {
   // Primary, lightweight save: just the data, not the whole app shell.
   // Push the resulting data.json to replace the one your live site fetches —
   // the HTML itself never needs to change for a routine data update.
   closeDataMenu();
-  const payload = JSON.stringify({ source: SOURCE_DATA, sector: SECTOR_DATA, updatedAt: Date.now() });
+  // priceDate is what the Portfolio's Day P&L calc uses to decide whether a
+  // lot was bought "today" (same trading session as this price data) or
+  // earlier. It's deliberately asked for explicitly rather than derived
+  // from updatedAt (= merely when this file happened to be saved) — those
+  // two can easily diverge, e.g. saving on a weekend, saving a slightly
+  // delayed data pull, or re-saving without fresh prices — and getting it
+  // wrong there is exactly what caused Day P&L to silently fall back to the
+  // raw market Day Change% instead of a same-day-purchase-aware figure.
+  const guess = computeDefaultPriceDate();
+  const input = prompt(
+    'What trading day do these prices represent? (YYYY-MM-DD)\n\n' +
+    'This does not have to be today — e.g. if you\'re saving on a weekend/holiday, or the data pull is a day or two behind, enter the actual last trading day the prices reflect. Used for accurate Day P&L in Portfolio.',
+    guess
+  );
+  const priceDate = (input && /^\d{4}-\d{2}-\d{2}$/.test(input.trim())) ? input.trim() : guess;
+  const payload = JSON.stringify({ source: SOURCE_DATA, sector: SECTOR_DATA, updatedAt: Date.now(), priceDate });
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -5788,7 +5816,13 @@ function closeModal() {
       clearTimeout(timeout);
       SOURCE_DATA.length = 0;
       (data.source || []).forEach(d => SOURCE_DATA.push(d));
-      DATA_AS_OF_DATE = data.updatedAt ? new Date(data.updatedAt).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+      // priceDate (explicitly confirmed by the admin at save time — see
+      // saveDataJson()) is preferred over updatedAt, which only records when
+      // the file was saved, not which trading day's prices it contains —
+      // those can diverge (weekend saves, delayed data pulls, re-saves).
+      // Falls back to updatedAt, then the device clock, for older data.json
+      // files saved before priceDate existed.
+      DATA_AS_OF_DATE = data.priceDate || (data.updatedAt ? new Date(data.updatedAt).toISOString().slice(0,10) : new Date().toISOString().slice(0,10));
       computeSectorDataFromSource();
       init();
       updateDataBadges(data.updatedAt);
