@@ -453,9 +453,19 @@
     <div class="table-card" style="margin-bottom:16px;">
       <div class="table-header">
         <div class="table-title" style="position:relative;">Sector Performance Summary</div>
-        <div class="table-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button class="fin-toggle-btn" style="position:relative;" active" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, Net Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Hide Financials</span></button>
-          <div class="msel" id="sectorPeriodMsel">
+        <div class="table-filters" style="width:100%;">
+          <div class="screener-filter-groups" style="width:100%;">
+            <div class="screener-filter-group">
+              <div class="screener-filter-group-label">Display</div>
+              <div class="screener-filter-group-row">
+                <button class="fin-toggle-btn" style="position:relative;" id="sectorFinToggleBtn" onclick="toggleSectorFinancials()" title="Sector Financials: Hide/show Cos, EPS, Op Margin, Net Margin, ROE, D/E, CFO, Div Yield, P/E columns."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg><span id="sectorFinToggleLabel">Show Financials</span></button>
+              </div>
+            </div>
+            <div class="screener-filter-group-divider"></div>
+            <div class="screener-filter-group">
+              <div class="screener-filter-group-label">Filters</div>
+              <div class="screener-filter-group-row">
+                <div class="msel" id="sectorPeriodMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="sectorPeriodMselBtn" aria-label="Filter by latest period" aria-haspopup="listbox" onclick="mselTogglePanel('sectorPeriod', event)" title="Latest Period: Narrows sector averages to only companies whose latest reported quarter-end date matches the selection.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
               <span id="sectorPeriodMselLabel">Latest Period</span>
@@ -470,7 +480,7 @@
               <div class="msel-list" id="sectorPeriodMselList"></div>
             </div>
           </div>
-          <div class="msel" id="sectorIndexMsel">
+                <div class="msel" id="sectorIndexMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="sectorIndexMselBtn" style="position:relative;" aria-label="Filter by index" aria-haspopup="listbox" onclick="mselTogglePanel('sectorIndex', event)" title="Index Filter: Narrows sector averages to only companies in the selected index (e.g. KSE 100).">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
               <span id="sectorIndexMselLabel">All Indices</span>
@@ -485,7 +495,7 @@
               <div class="msel-list" id="sectorIndexMselList"></div>
             </div>
           </div>
-          <div class="msel" id="sectorFilterMsel">
+                <div class="msel" id="sectorFilterMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="sectorFilterMselBtn" style="position:relative;" aria-label="Filter by sector" aria-haspopup="listbox" onclick="mselTogglePanel('sectorFilter', event)" title="Sector Filter: Show only selected sectors. Click any sector row to drill through to the Screener.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M3 3h18M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
               <span id="sectorFilterMselLabel">All Sectors</span>
@@ -500,7 +510,7 @@
               <div class="msel-list" id="sectorFilterMselList"></div>
             </div>
           </div>
-          <div class="msel" id="sectorRotationMsel">
+                <div class="msel" id="sectorRotationMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="sectorRotationMselBtn" aria-label="Filter by relative performance" aria-haspopup="listbox" onclick="mselTogglePanel('sectorRotation', event)" title="Relative Performance: Show only sectors in the selected categories, based on each sector's WTD%/Roll 1M% vs KSE 100 — Absolute Leading, Defensive Outperforming, Improving, Weakening, Lagging.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M17 2.1l4 4-4 4"></path><path d="M3 12.7V12a4 4 0 0 1 4-4h14"></path><path d="M7 21.9l-4-4 4-4"></path><path d="M21 11.3V12a4 4 0 0 1-4 4H3"></path></svg>
               <span id="sectorRotationMselLabel">Relative Performance</span>
@@ -514,11 +524,14 @@
               <div class="msel-list" id="sectorRotationMselList"></div>
             </div>
           </div>
-          <button type="button" id="clearSectorFiltersBtn" onclick="clearSectorFilters()" title="Clear all active sector filters." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
+                <button type="button" id="clearSectorFiltersBtn" onclick="clearSectorFilters()" title="Clear all active sector filters." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="scroll-table">
-      <table class="data-table" id="sectorTable" aria-label="Sector performance summary">
+      <table class="data-table hide-sector-fin" id="sectorTable" aria-label="Sector performance summary">
           <thead>
             <tr id="sectorTableHead">
               <th data-sort-col="0" onclick="sortSectorTable(0)">Sector</th>
@@ -1560,34 +1573,9 @@
       <div class="table-header">
         <div class="table-filters" style="gap: 8px; flex-wrap: wrap; align-items: center;">
           <div class="screener-search-row" style="display:flex; align-items:center; gap:10px; width:100%;">
-            <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:0 1 280px; min-width:160px;">
-            <div class="search-row-info">
-              <span id="screenerCount" class="search-row-count" style="font-size:15px; font-weight:600; color: var(--text); white-space:nowrap;">497 companies</span>
-              <span class="search-row-legend" style="font-size:10px; color: var(--text2); display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
-                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-ni" style="margin-left:0;">N</span>Net Inc&gt;Op Inc</span>
-                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-turn" style="margin-left:0;">T</span>Turnaround</span>
-                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-liquid" style="margin-left:0;">💧</span>Liquid Stock</span>
-                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-vol" style="margin-left:0;">V</span>High Vol Phase</span>
-              </span>
-            </div>
             <div class="search-row-spacer" style="flex:1; min-width:8px;"></div>
             <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
-            <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active screener filters and reset the search box." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
-            <div class="msel" id="savedFiltersMsel">
-            <button type="button" class="msel-btn" style="position:relative;" id="savedFiltersMselBtn" aria-label="Saved filter sets" aria-haspopup="listbox" onclick="toggleSavedFiltersPanel(event)" title="Save your current combination of filters above under a name, or apply one you saved before, instead of re-picking each dropdown every time.">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-              <span id="savedFiltersMselLabel">Saved Filters</span>
-              <span class="msel-caret">▼</span>
-            </button>
-            <div class="msel-panel" id="savedFiltersMselPanel">
-              <div style="padding:10px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
-                <input type="text" id="savedFilterNameInput" placeholder="Name this filter set…" maxlength="40" style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentScreenerFilterSet();}">
-                <button type="button" class="msel-action-btn" onclick="saveCurrentScreenerFilterSet()">Save</button>
-              </div>
-              <div class="msel-list" id="savedFiltersList"></div>
-            </div>
-          </div>
+            
           </div>
           <div class="screener-filter-groups" id="screenerFilterChips" style="width:100%;">
             <div class="screener-filter-group">
@@ -1651,6 +1639,22 @@
                 <button type="button" class="msel-action-btn" onclick="mselClear('ticker')">Clear</button>
               </div>
               <div class="msel-list" id="tickerMselList"></div>
+            </div>
+          </div>
+              
+                <button type="button" id="clearAllFiltersBtn" onclick="clearAllFilters()" title="Clear all active screener filters and reset the search box." style="display:none; align-items:center; gap:5px; padding:6px 10px; border:1px solid var(--danger); border-radius:7px; background:transparent; color:var(--danger); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear All</button>
+                <div class="msel" id="savedFiltersMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="savedFiltersMselBtn" aria-label="Saved filter sets" aria-haspopup="listbox" onclick="toggleSavedFiltersPanel(event)" title="Save your current combination of filters above under a name, or apply one you saved before, instead of re-picking each dropdown every time.">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+              <span id="savedFiltersMselLabel">Saved Filters</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="savedFiltersMselPanel">
+              <div style="padding:10px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
+                <input type="text" id="savedFilterNameInput" placeholder="Name this filter set…" maxlength="40" style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCurrentScreenerFilterSet();}">
+                <button type="button" class="msel-action-btn" onclick="saveCurrentScreenerFilterSet()">Save</button>
+              </div>
+              <div class="msel-list" id="savedFiltersList"></div>
             </div>
           </div>
               </div>
@@ -1757,6 +1761,20 @@
           <button class="fin-toggle-btn" style="position:relative;"" id="nemiToggleBtn" style="display:none;" onclick="toggleNemi()" title="NEMI Columns: NEMI Signal Date, Entry Price, Return % since entry, NEMI Status."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span id="nemiToggleLabel">Show NEMI</span></button>
           
               </div>
+            </div>
+          </div>
+
+          <div class="screener-search-row" style="display:flex; align-items:center; gap:10px; width:100%; margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+            <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:0 1 280px; min-width:160px;">
+            <div class="search-row-info">
+              <span id="screenerCount" class="search-row-count" style="font-size:12px; font-weight:600; color: var(--text); white-space:nowrap;">497 companies</span>
+              <span class="search-row-legend" style="font-size:10px; color: var(--text2); display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-kmi" style="margin-left:0;"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72V7H9a3 3 0 0 0-3 3v1H4v9h16v-9h-2v-1a3 3 0 0 0-3-3h-2V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2zM7 11a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1H7v-1zM5 13h2v6H5v-6zm12 0h2v6h-2v-6zM9 14h6v5H9v-5z"></path></svg></span>KMI</span>
+                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-ni" style="margin-left:0;">N</span>Net Inc&gt;Op Inc</span>
+                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-turn" style="margin-left:0;">T</span>Turnaround</span>
+                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-liquid" style="margin-left:0;">💧</span>Liquid Stock</span>
+                <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-vol" style="margin-left:0;">V</span>High Vol Phase</span>
+              </span>
             </div>
           </div>
 
@@ -4737,7 +4755,7 @@
 
   <!-- ===== COMPARISON TAB ===== -->
   <div id="tab-compare" class="tab-content">
-    <div class="controls">
+    <div class="controls controls-single">
       <div class="ticker-selector" id="cmpTickerSelector">
         <div class="selector-label">Add Companies to Compare (up to 6)</div>
         <input type="text" class="ticker-search" id="cmpTickerSearch" placeholder="Search ticker or company name…" autocomplete="off" oninput="cmpOnSearchInput()" onkeydown="cmpOnSearchKey(event)" onfocus="cmpOpenAC()">

@@ -207,6 +207,12 @@
     margin-bottom: 20px;
     align-items: start;
   }
+  /* For pages like Compare that only have one child in .controls (no second
+     "info panel" column) — without this, the grid still reserves its full
+     1fr second column even with nothing in it, leaving a large empty area
+     next to the sidebar. Company View's .controls (which has 2 children)
+     is untouched. */
+  .controls-single { grid-template-columns: 260px; }
 
   .ticker-selector {
     background: var(--surface);
@@ -1416,6 +1422,7 @@
     .tab { font-size: 12px; padding: 9px 14px; white-space: nowrap; }
 
     .controls { grid-template-columns: 1fr; gap: 10px; }
+    .controls-single { grid-template-columns: 1fr; }
     .company-info { grid-template-columns: 1fr 1fr; gap: 10px; }
     .score-box { grid-column: span 2; }
 

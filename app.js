@@ -2741,7 +2741,15 @@ function filterScreener() {
 
 
   screenerPage = 1;
-  document.getElementById('screenerCount').textContent = `${filteredScreener.length} companies`;
+  {
+    const liquidCount = filteredScreener.filter(d => (parseFloat(d['Liquid Stock'])||0) > 0).length;
+    // "Signal date" uses 0 (not null/blank) as its "no active signal" placeholder
+    // in the source data — a plain null/empty/dash check missed that and counted
+    // every row as having an active signal. !!v correctly excludes 0 along with
+    // null/undefined/empty string in one go.
+    const signalCount = filteredScreener.filter(d => { const v = d['Signal date']; return !!v && v !== '—'; }).length;
+    document.getElementById('screenerCount').textContent = `${filteredScreener.length} companies · ${liquidCount} liquid · ${signalCount} active signals`;
+  }
   updateSortArrows('screenerTableHead', screenerSort.col, screenerSort.dir);
   renderScreenerPage();
   updateScreenerAvgRow();
