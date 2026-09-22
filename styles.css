@@ -213,6 +213,11 @@
      next to the sidebar. Company View's .controls (which has 2 children)
      is untouched. */
   .controls-single { grid-template-columns: 260px; }
+  /* Compare tab: two panels with actual content side by side (ticker search
+     + sector picker) instead of one narrow sidebar with empty space next to
+     it, or the Company View sidebar+1fr split which assumes the 2nd column
+     is a wide info panel rather than another compact panel. */
+  .controls-two { grid-template-columns: 1fr 1fr; }
 
   .ticker-selector {
     background: var(--surface);
@@ -1423,6 +1428,7 @@
 
     .controls { grid-template-columns: 1fr; gap: 10px; }
     .controls-single { grid-template-columns: 1fr; }
+    .controls-two { grid-template-columns: 1fr; }
     .company-info { grid-template-columns: 1fr 1fr; gap: 10px; }
     .score-box { grid-column: span 2; }
 

@@ -4755,18 +4755,19 @@
 
   <!-- ===== COMPARISON TAB ===== -->
   <div id="tab-compare" class="tab-content">
-    <div class="controls controls-single">
+    <div class="controls controls-two">
       <div class="ticker-selector" id="cmpTickerSelector">
         <div class="selector-label">Add Companies to Compare (up to 6)</div>
         <input type="text" class="ticker-search" id="cmpTickerSearch" placeholder="Search ticker or company name…" autocomplete="off" oninput="cmpOnSearchInput()" onkeydown="cmpOnSearchKey(event)" onfocus="cmpOpenAC()">
         <div class="ticker-autocomplete" id="cmpAcList"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;">
-          <span style="font-size:12px;color:var(--text2);white-space:nowrap;">or pick the top 6 from a sector:</span>
-          <select id="cmpSectorPicker" class="ticker-search" style="width:auto;flex:0 1 260px;cursor:pointer;" onchange="cmpPickSector(this.value)">
-            <option value="">Choose a sector…</option>
-          </select>
-        </div>
         <div id="cmpChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
+      </div>
+      <div class="ticker-selector" id="cmpSectorSelector">
+        <div class="selector-label">Or Pick Top 6 From A Sector</div>
+        <select id="cmpSectorPicker" class="ticker-search" style="width:100%;cursor:pointer;" onchange="cmpPickSector(this.value)">
+          <option value="">Choose a sector…</option>
+        </select>
+        <div style="font-size:12px;color:var(--text2);margin-top:10px;">Ranked by Financial Score — replaces your current selection with that sector's top 6.</div>
       </div>
     </div>
 
