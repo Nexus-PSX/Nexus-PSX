@@ -3843,11 +3843,15 @@ function buildPortfolioTab() {
     <div id="pfCashForm"></div>
     ${modeNote}
     ${summaryHtml}
-    <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Open Positions</div>
-    ${openTableHtml}
-    <div style="margin-top:20px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:700;">Portfolio Allocation</div>
+    <div class="home-section-divider"></div>
+    <div class="home-section">
+      <div class="home-section-label">Open Positions<span class="home-section-sub">— current holdings, market value, and unrealized P&amp;L</span></div>
+      ${openTableHtml}
+    </div>
+    <div class="home-section-divider"></div>
+    <div class="home-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div class="home-section-label" style="margin-bottom:0;">Portfolio Allocation<span class="home-section-sub">— weight by ticker</span></div>
         <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <button onclick="pfSetAllocationBasis('value')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='value'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='value'?'#fff':'var(--text2)'};">Latest Value</button>
           <button onclick="pfSetAllocationBasis('cost')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='cost'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='cost'?'#fff':'var(--text2)'};">Cost Basis</button>
@@ -3855,12 +3859,14 @@ function buildPortfolioTab() {
       </div>
       <div class="chart-wrap pf-alloc-chart"><canvas id="chartPortfolioSector"></canvas></div>
     </div>
-    <div style="margin-top:24px;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Closed Positions</div>
+    <div class="home-section-divider"></div>
+    <div class="home-section">
+      <div class="home-section-label">Closed Positions<span class="home-section-sub">— sold trades and realized P&amp;L</span></div>
       ${closedTableHtml}
     </div>
-    <div style="margin-top:24px;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Transaction History</div>
+    <div class="home-section-divider"></div>
+    <div class="home-section">
+      <div class="home-section-label">Transaction History<span class="home-section-sub">— every buy, sell, deposit, and withdrawal, FIFO cost basis</span></div>
       <div id="pfTxEditForm"></div>
       ${txHistoryHtml}
     </div>
