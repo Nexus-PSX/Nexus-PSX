@@ -2,36 +2,25 @@
 var dataMenuOpen = false;
 
 
-        // Toggle Scope / Signals / Display rows.
-        // Desktop: starts visible ("Hide Controls").
-        // Mobile: starts collapsed ("Show Controls").
-        window._screenerControlsVisible = window.innerWidth > 768;
-
-        function toggleScreenerControls() {
-          window._screenerControlsVisible = !window._screenerControlsVisible;
-          const show = window._screenerControlsVisible;
+        function toggleFiltersWrap() {
           const chips = document.getElementById('screenerFilterChips');
           const toggleChips = document.getElementById('screenerToggleChips');
-          if (chips) chips.style.display = show ? '' : 'none';
-          if (toggleChips) toggleChips.style.display = show ? '' : 'none';
-          const label = document.getElementById('controlsToggleLabel');
-          if (label) label.textContent = show ? 'Hide Controls' : 'Show Controls';
-          const icon = document.getElementById('controlsToggleIcon');
-          if (icon) icon.innerHTML = show
-            ? '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>'
-            : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+          const btn = document.getElementById('filtersToggleBtn');
+          const collapsed = chips.style.display === 'none';
+          chips.style.display = collapsed ? '' : 'none';
+          if (toggleChips) toggleChips.style.display = collapsed ? '' : 'none';
+          document.getElementById('filtersToggleLabel').textContent = collapsed ? 'Hide Filters' : 'Filters';
         }
-
-        // Apply initial state on mobile
+        // Default to collapsed on mobile so the screener has more vertical
+        // room right away; desktop is untouched (filters stay visible).
         if (window.innerWidth <= 768) {
           const chips = document.getElementById('screenerFilterChips');
           const toggleChips = document.getElementById('screenerToggleChips');
-          if (chips) chips.style.display = 'none';
-          if (toggleChips) toggleChips.style.display = 'none';
-          const label = document.getElementById('controlsToggleLabel');
-          if (label) label.textContent = 'Show Controls';
-          const icon = document.getElementById('controlsToggleIcon');
-          if (icon) icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+          if (chips) {
+            chips.style.display = 'none';
+            if (toggleChips) toggleChips.style.display = 'none';
+            document.getElementById('filtersToggleLabel').textContent = 'Filters';
+          }
         }
       
 
@@ -3656,7 +3645,8 @@ function buildPortfolioTab() {
 
   const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
   const fmtPct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-  const fmtPKR = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const fmtPKR   = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  const fmtPrice = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   const fmtQty = v => v == null ? '—' : v.toLocaleString('en-US');
   const clr = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
 
@@ -3762,8 +3752,8 @@ function buildPortfolioTab() {
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}</td>
               <td>${r.sector || '—'}</td>
               <td class="mono">${fmtQty(r.qty)}</td>
-              <td class="mono">${fmtPKR(r.avgPrice)}</td>
-              <td class="mono">${r.price != null ? fmtPKR(r.price) : '—'}</td>
+              <td class="mono">${fmtPrice(r.avgPrice)}</td>
+              <td class="mono">${r.price != null ? fmtPrice(r.price) : '—'}</td>
               <td class="mono">${r.marketValue != null ? fmtPKR(r.marketValue) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? fmtPKR(r.pnl) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${fmtPct(r.pnlPct)}</td>
@@ -3792,8 +3782,8 @@ function buildPortfolioTab() {
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}</td>
               <td class="mono">${fmtQty(c.qty)}</td>
-              <td class="mono">${fmtPKR(c.avgPrice)}</td>
-              <td class="mono">${fmtPKR(c.sellPrice)}</td>
+              <td class="mono">${fmtPrice(c.avgPrice)}</td>
+              <td class="mono">${fmtPrice(c.sellPrice)}</td>
               <td class="mono">${c.buyDate || '—'}</td>
               <td class="mono">${c.sellDate || '—'}</td>
               <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPKR(c.realizedPnl)}</td>
@@ -3826,7 +3816,7 @@ function buildPortfolioTab() {
               <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
               <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>` : '—'}</td>
               <td class="mono">${t.qty != null ? fmtQty(t.qty) : '—'}</td>
-              <td class="mono">${t.price != null ? fmtPKR(t.price) : '—'}</td>
+              <td class="mono">${t.price != null ? fmtPrice(t.price) : '—'}</td>
               <td class="mono">${fmtPKR(amount)}</td>
               <td class="mono">${t.date || '—'}</td>
               <td class="mono" style="color:${pnl!=null?clr(pnl):'var(--text2)'}">${pnl != null ? fmtPKR(pnl) : '—'}</td>
