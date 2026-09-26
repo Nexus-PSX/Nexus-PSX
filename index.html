@@ -1572,11 +1572,7 @@
     <div class="table-card">
       <div class="table-header">
         <div class="table-filters" style="gap: 8px; flex-wrap: wrap; align-items: center;">
-          <div class="screener-search-row" style="display:flex; align-items:center; gap:10px; width:100%;">
-            <div class="search-row-spacer" style="flex:1; min-width:8px;"></div>
-            <button type="button" id="filtersToggleBtn" class="filters-toggle-btn" onclick="toggleFiltersWrap()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span id="filtersToggleLabel">Filters</span></button>
-            
-          </div>
+
           <div class="screener-filter-groups" id="screenerFilterChips" style="width:100%;">
             <div class="screener-filter-group">
               <div class="screener-filter-group-label">Scope</div>
@@ -1766,6 +1762,7 @@
 
           <div class="screener-search-row" style="display:flex; align-items:center; gap:10px; width:100%; margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
             <input type="text" class="table-search" id="screenerSearch" placeholder="Search ticker / name..." oninput="filterScreener()" style="flex:0 1 280px; min-width:160px;">
+            <button type="button" id="controlsToggleBtn" class="controls-toggle-btn" onclick="toggleScreenerControls()"><svg id="controlsToggleIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg><span id="controlsToggleLabel">Hide Controls</span></button>
             <div class="search-row-info">
               <span id="screenerCount" class="search-row-count" style="font-size:12px; font-weight:600; color: var(--text); white-space:nowrap;">497 companies</span>
               <span class="search-row-legend" style="font-size:10px; color: var(--text2); display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;">
