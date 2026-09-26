@@ -213,11 +213,6 @@
      next to the sidebar. Company View's .controls (which has 2 children)
      is untouched. */
   .controls-single { grid-template-columns: 260px; }
-  /* Compare tab: two panels with actual content side by side (ticker search
-     + sector picker) instead of one narrow sidebar with empty space next to
-     it, or the Company View sidebar+1fr split which assumes the 2nd column
-     is a wide info panel rather than another compact panel. */
-  .controls-two { grid-template-columns: 1fr 1fr; }
 
   .ticker-selector {
     background: var(--surface);
@@ -467,7 +462,8 @@
   .home-section-divider { height: 1px; background: var(--border); margin: 0 0 28px; }
   .home-section-label { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
   .home-section-label .home-section-sub { font-size: 11px; font-weight: 400; color: var(--text3); margin-left: 6px; }
-  .filters-toggle-btn { display: none; }
+  .controls-toggle-btn { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 8px; padding: 6px 11px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+  .controls-toggle-btn:hover { background: var(--surface3, var(--border)); color: var(--text); }
   .filter-select {
     background: none;
     border: none;
@@ -1408,12 +1404,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   /* ===== MOBILE RESPONSIVE ===== */
   @media (max-width: 768px) {
-    .filters-toggle-btn {
-      display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
-      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-      border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
-      white-space: nowrap;
-    }
+    .controls-toggle-btn { order: 2; }
     .header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
     .header-title { font-size: 13px; }
     .header-subtitle { font-size: 11px; }
@@ -1428,7 +1419,6 @@
 
     .controls { grid-template-columns: 1fr; gap: 10px; }
     .controls-single { grid-template-columns: 1fr; }
-    .controls-two { grid-template-columns: 1fr; }
     .company-info { grid-template-columns: 1fr 1fr; gap: 10px; }
     .score-box { grid-column: span 2; }
 
@@ -1453,7 +1443,7 @@
     /* Line 1: search box + Filters/Clear All. Line 2: company count + legend
        icons, each forced onto its own new line via flex-basis:100%. */
     .screener-search-row .table-search { width: auto !important; flex: 1 1 0% !important; min-width: 100px; font-size: 16px; order: 1; }
-    .screener-search-row #filtersToggleBtn { order: 2; }
+    .screener-search-row #controlsToggleBtn { order: 2; }
     .screener-search-row #clearAllFiltersBtn { order: 3; }
     .screener-search-row .search-row-spacer { display: none; }
     .screener-search-row .search-row-info {
