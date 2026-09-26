@@ -1776,6 +1776,10 @@
                 <span style="display:inline-flex;align-items:center;gap:3px;"><span class="ticker-badge ticker-badge-vol" style="margin-left:0;">V</span>High Vol Phase</span>
               </span>
             </div>
+            <button type="button" id="controlsToggleBtn" onclick="toggleScreenerControls()" title="Show / hide Scope, Signals and Display controls" style="margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseenter="this.style.background='var(--surface3,var(--border))';this.style.color='var(--text)'" onmouseleave="this.style.background='var(--surface2)';this.style.color='var(--text2)'">
+              <svg id="controlsToggleIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+              <span id="controlsToggleLabel">Hide Controls</span>
+            </button>
           </div>
 
         </div>
