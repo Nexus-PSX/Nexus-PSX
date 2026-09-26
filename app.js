@@ -3645,7 +3645,8 @@ function buildPortfolioTab() {
 
   const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
   const fmtPct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-  const fmtPKR = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const fmtPKR = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  const fmtPrice = v => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   const fmtQty = v => v == null ? '—' : v.toLocaleString('en-US');
   const clr = v => v == null ? 'var(--text2)' : v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text2)';
 
@@ -3751,8 +3752,8 @@ function buildPortfolioTab() {
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}</td>
               <td>${r.sector || '—'}</td>
               <td class="mono">${fmtQty(r.qty)}</td>
-              <td class="mono">${fmtPKR(r.avgPrice)}</td>
-              <td class="mono">${r.price != null ? fmtPKR(r.price) : '—'}</td>
+              <td class="mono">${fmtPrice(r.avgPrice)}</td>
+              <td class="mono">${r.price != null ? fmtPrice(r.price) : '—'}</td>
               <td class="mono">${r.marketValue != null ? fmtPKR(r.marketValue) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? fmtPKR(r.pnl) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${fmtPct(r.pnlPct)}</td>
@@ -3781,8 +3782,8 @@ function buildPortfolioTab() {
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}</td>
               <td class="mono">${fmtQty(c.qty)}</td>
-              <td class="mono">${fmtPKR(c.avgPrice)}</td>
-              <td class="mono">${fmtPKR(c.sellPrice)}</td>
+              <td class="mono">${fmtPrice(c.avgPrice)}</td>
+              <td class="mono">${fmtPrice(c.sellPrice)}</td>
               <td class="mono">${c.buyDate || '—'}</td>
               <td class="mono">${c.sellDate || '—'}</td>
               <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPKR(c.realizedPnl)}</td>
@@ -3815,7 +3816,7 @@ function buildPortfolioTab() {
               <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
               <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>` : '—'}</td>
               <td class="mono">${t.qty != null ? fmtQty(t.qty) : '—'}</td>
-              <td class="mono">${t.price != null ? fmtPKR(t.price) : '—'}</td>
+              <td class="mono">${t.price != null ? fmtPrice(t.price) : '—'}</td>
               <td class="mono">${fmtPKR(amount)}</td>
               <td class="mono">${t.date || '—'}</td>
               <td class="mono" style="color:${pnl!=null?clr(pnl):'var(--text2)'}">${pnl != null ? fmtPKR(pnl) : '—'}</td>
