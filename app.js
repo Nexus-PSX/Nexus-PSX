@@ -2,9 +2,9 @@
 var dataMenuOpen = false;
 
 
-        // Toggle Scope / Signals / Display control groups.
-        // On mobile the controls start collapsed to maximise vertical space;
-        // on desktop they start visible.
+        // Toggle Scope / Signals / Display rows.
+        // Desktop: starts visible ("Hide Controls").
+        // Mobile: starts collapsed ("Show Controls").
         window._screenerControlsVisible = window.innerWidth > 768;
 
         function toggleScreenerControls() {
@@ -17,14 +17,12 @@ var dataMenuOpen = false;
           const label = document.getElementById('controlsToggleLabel');
           if (label) label.textContent = show ? 'Hide Controls' : 'Show Controls';
           const icon = document.getElementById('controlsToggleIcon');
-          if (icon) {
-            icon.innerHTML = show
-              ? '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>'
-              : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
-          }
+          if (icon) icon.innerHTML = show
+            ? '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>'
+            : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
         }
 
-        // Apply the initial collapsed state on mobile
+        // Apply initial state on mobile
         if (window.innerWidth <= 768) {
           const chips = document.getElementById('screenerFilterChips');
           const toggleChips = document.getElementById('screenerToggleChips');

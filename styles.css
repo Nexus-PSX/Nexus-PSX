@@ -1404,7 +1404,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   /* ===== MOBILE RESPONSIVE ===== */
   @media (max-width: 768px) {
-    .controls-toggle-btn { order: 2; }
+
     .header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
     .header-title { font-size: 13px; }
     .header-subtitle { font-size: 11px; }
