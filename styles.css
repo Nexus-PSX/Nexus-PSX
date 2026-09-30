@@ -191,12 +191,12 @@
   }
 
   /* LAYOUT */
-  .dashboard { padding: 20px 24px; max-width: 1900px; margin: 0 auto; }
+  .dashboard { padding: 12px 8px; max-width: none; margin: 0 auto; }
   /* On very wide/ultra-wide monitors, scale past the fixed cap so the extra
      space (e.g. the Stock Screener's wide table) keeps getting used instead
      of sitting as empty margin on either side. */
   @media (min-width: 2000px) {
-    .dashboard { max-width: 96vw; }
+    .dashboard { max-width: none; }
   }
 
   /* CONTROLS */
@@ -448,7 +448,13 @@
      the divider is a plain 1px hairline, not a heavier visual break, so
      the whole card still reads as one connected toolbar rather than three
      separate boxes. */
-  .screener-filter-groups { display: flex; flex-direction: column; gap: 12px; padding: 16px 2px 6px; }
+  .screener-filter-groups { display: flex; flex-direction: column; gap: 12px; padding: 0 2px 6px; }
+  #tab-screener .table-header { padding-top: 8px; }
+  /* When Scope/Signals/Display are hidden, the search row becomes the first thing
+     in the card, so drop its divider line and top spacing. */
+  #tab-screener .table-filters:has(#screenerFilterChips[style*="display: none"]) .screener-search-row {
+    margin-top: 0 !important; padding-top: 0 !important; border-top: none !important;
+  }
   .screener-filter-group { display: flex; flex-direction: row; align-items: center; gap: 12px; }
   .screener-filter-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); flex-shrink: 0; white-space: nowrap; min-width: 58px; }
   .screener-filter-group-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 0; }
@@ -1412,14 +1418,14 @@
     .badge { font-size: 11px; padding: 4px 8px; }
     .upload-btn { font-size: 12px; padding: 6px 12px; }
 
-    .dashboard { padding: 8px 0; }
+    .dashboard { padding: 6px 6px; }
 
     .tabs { overflow-x: auto; gap: 0; -webkit-overflow-scrolling: touch; }
     .tab { font-size: 12px; padding: 9px 14px; white-space: nowrap; }
 
     /* Screener card: full-width edge-to-edge on mobile, no side margins/radius */
-    #tab-screener .table-card { border-radius: 0; border-left: none; border-right: none; margin-bottom: 0; }
-    #tab-screener .table-header { padding: 10px 12px; }
+    #tab-screener .table-card { margin-bottom: 0; }
+    #tab-screener .table-header { padding: 6px 10px 8px; }
     #tab-screener .data-table th { padding: 8px 8px; }
     #tab-screener .data-table td { padding: 8px 8px; }
 
@@ -1429,8 +1435,8 @@
     .score-box { grid-column: span 2; }
 
     /* Tighten card side padding so data fills the screen width */
-    .table-card { margin-left: 0; margin-right: 0; border-radius: 0; border-left: none; border-right: none; }
-    .table-header { padding: 10px 12px; }
+    .table-card { margin-left: -6px; margin-right: -6px; border-radius: 0; border-left: none; border-right: none; }
+    .table-header { padding: 10px 10px; }
 
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
     .kpi-value { font-size: 20px; }
@@ -1451,8 +1457,7 @@
        onto the line(s) below instead of forcing them all onto one row. */
     .screener-search-row { flex-wrap: wrap; row-gap: 8px; }
     /* On mobile, the search row sits directly under the filter chips with no extra gap */
-    #tab-screener .screener-search-row,
-    #tab-screener [id="tab-screener"] .screener-search-row { margin-top: 8px !important; padding-top: 8px !important; }
+    #tab-screener .screener-search-row { margin-top: 8px !important; padding-top: 8px !important; }
     /* Line 1: search box + Filters/Clear All. Line 2: company count + legend
        icons, each forced onto its own new line via flex-basis:100%. */
     .screener-search-row .table-search { width: auto !important; flex: 1 1 0% !important; min-width: 100px; font-size: 16px; order: 1; }
