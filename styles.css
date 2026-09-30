@@ -1412,15 +1412,25 @@
     .badge { font-size: 11px; padding: 4px 8px; }
     .upload-btn { font-size: 12px; padding: 6px 12px; }
 
-    .dashboard { padding: 12px 12px; }
+    .dashboard { padding: 8px 0; }
 
     .tabs { overflow-x: auto; gap: 0; -webkit-overflow-scrolling: touch; }
     .tab { font-size: 12px; padding: 9px 14px; white-space: nowrap; }
+
+    /* Screener card: full-width edge-to-edge on mobile, no side margins/radius */
+    #tab-screener .table-card { border-radius: 0; border-left: none; border-right: none; margin-bottom: 0; }
+    #tab-screener .table-header { padding: 10px 12px; }
+    #tab-screener .data-table th { padding: 8px 8px; }
+    #tab-screener .data-table td { padding: 8px 8px; }
 
     .controls { grid-template-columns: 1fr; gap: 10px; }
     .controls-single { grid-template-columns: 1fr; }
     .company-info { grid-template-columns: 1fr 1fr; gap: 10px; }
     .score-box { grid-column: span 2; }
+
+    /* Tighten card side padding so data fills the screen width */
+    .table-card { margin-left: 0; margin-right: 0; border-radius: 0; border-left: none; border-right: none; }
+    .table-header { padding: 10px 12px; }
 
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
     .kpi-value { font-size: 20px; }
@@ -1440,6 +1450,9 @@
        line, then wrap the company count / legend icons / Filters / Clear All
        onto the line(s) below instead of forcing them all onto one row. */
     .screener-search-row { flex-wrap: wrap; row-gap: 8px; }
+    /* On mobile, the search row sits directly under the filter chips with no extra gap */
+    #tab-screener .screener-search-row,
+    #tab-screener [id="tab-screener"] .screener-search-row { margin-top: 8px !important; padding-top: 8px !important; }
     /* Line 1: search box + Filters/Clear All. Line 2: company count + legend
        icons, each forced onto its own new line via flex-basis:100%. */
     .screener-search-row .table-search { width: auto !important; flex: 1 1 0% !important; min-width: 100px; font-size: 16px; order: 1; }
