@@ -193,12 +193,12 @@ let allTickers = [];
 let screenerData = [];
 let screenerPage = 1;
 const PAGE_SIZE = 100;
-let screenerSort = {col: 14, dir: -1};
+let screenerSort = {col: 15, dir: -1};   // default: Signal Date, newest first (col 15 = 'Signal date')
 // Stack of previously-applied sorts, most recent first. Used as tiebreakers so that
 // sorting by a new column (e.g. Sector) doesn't discard the order from the column
 // sorted just before it (e.g. Financial Score) — rows that tie on the new column
 // keep falling back to the previous sort's order instead of reverting to source order.
-let screenerSortHistory = [];
+let screenerSortHistory = [{col: 14, dir: -1}];   // ties on Signal Date fall back to Financial Score (high → low)
 let sectorSort = {col: 12, dir: -1};
 // Restore sort state from previous session
 try {
