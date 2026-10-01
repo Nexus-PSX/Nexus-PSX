@@ -2780,3 +2780,152 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
   }
 }
+
+
+/* =====================================================================
+   iOS LOOK & FEEL  (appended last so it overrides earlier rules)
+   SF system font, iOS grouped palette, rounded cards, segmented tabs,
+   frosted-glass bottom bar, pill buttons, press feedback.
+   ===================================================================== */
+:root {
+  --ios-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --ios-blur: saturate(180%) blur(20px);
+  --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.05);
+  /* iOS dark palette */
+  --bg: #000000; --surface: #1c1c1e; --surface2: #2c2c2e; --surface3: #3a3a3c;
+  --border: rgba(84,84,88,.55); --border2: rgba(84,84,88,.75);
+  --text: #ffffff; --text2: rgba(235,235,245,.62); --text3: rgba(235,235,245,.34);
+  --header-bg: #000000;
+}
+[data-theme="light"] {
+  /* iOS light "grouped" palette */
+  --bg: #f2f2f7; --surface: #ffffff; --surface2: #f2f2f7; --surface3: #e5e5ea;
+  --border: rgba(60,60,67,.16); --border2: rgba(60,60,67,.29);
+  --text: #000000; --text2: rgba(60,60,67,.62); --text3: rgba(60,60,67,.32);
+  --header-bg: #ffffff;
+}
+html { -webkit-tap-highlight-color: transparent; }
+html body { font-family: var(--ios-font); -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
+button, input, select, textarea { font-family: inherit; }
+
+/* Cards: larger radius, hairline border, soft shadow */
+.table-card.table-card, .kpi-card.kpi-card { border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border-width: .5px; }
+
+/* Header badges + buttons become pills */
+.badge.badge { border-radius: 999px; }
+.upload-btn.upload-btn { border-radius: 12px; box-shadow: none; font-weight: 600; }
+.controls-toggle-btn.controls-toggle-btn { border-radius: 999px; }
+.table-search.table-search { border-radius: 12px; background: var(--surface2); border-color: transparent; }
+.table-search.table-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); outline: none; }
+
+/* Desktop tabs -> iOS segmented control */
+.tabs.tabs {
+  display: inline-flex; max-width: 100%; overflow-x: auto; gap: 2px; padding: 2px;
+  border-bottom: none; border-radius: 11px; background: rgba(118,118,128,.16);
+  margin-bottom: 14px; scrollbar-width: none;
+}
+.tabs.tabs::-webkit-scrollbar { display: none; }
+.tabs .tab { border-bottom: none; margin-bottom: 0; border-radius: 9px; padding: 7px 14px; font-weight: 500; white-space: nowrap; transition: background .2s, color .2s; }
+.tabs .tab.active { background: var(--surface); color: var(--accent); font-weight: 600; border-bottom: none; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 0 0 .5px rgba(0,0,0,.04); }
+[data-theme="dark"] .tabs .tab.active, :root:not([data-theme]) .tabs .tab.active { background: var(--surface3); }
+
+/* Frosted-glass dropdowns */
+.auth-dropdown, .alerts-panel {
+  border-radius: 14px; border-width: .5px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur);
+}
+
+/* Mobile bottom tab bar -> iOS tab bar */
+.mobile-nav {
+  background: color-mix(in srgb, var(--surface) 78%, transparent) !important;
+  -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur);
+  border-top: .5px solid var(--border2) !important; box-shadow: none !important;
+}
+.mnav-active-pill { display: none !important; }
+.mobile-nav-item.active .mobile-nav-icon-wrap,
+.mobile-nav-item.active .mnav-center-icon { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.mobile-nav-label { text-transform: none !important; font-size: 10px !important; font-weight: 500 !important; letter-spacing: 0 !important; }
+.mobile-nav-item.active .mobile-nav-label { font-weight: 600 !important; }
+
+/* Press feedback like native controls */
+.upload-btn:active, .controls-toggle-btn:active, .tabs .tab:active, .auth-avatar-btn:active { transform: scale(.96); transition: transform .12s; }
+.mobile-nav-item:active { opacity: .6; background: transparent; }
+
+
+/* =====================================================================
+   iOS LOOK & FEEL — PART 2: whole window, every tab
+   html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) = Dark / Light / Cream themes (Bloomberg & TradingView keep their
+   own colours but still get the iOS shapes further below).
+   ===================================================================== */
+[data-theme="cream"] {
+  --bg: #f2f2f7; --surface: #ffffff; --surface2: #f2f2f7; --surface3: #e5e5ea;
+  --border: rgba(60,60,67,.16); --border2: rgba(60,60,67,.29);
+  --text: #000000; --text2: rgba(60,60,67,.62); --text3: rgba(60,60,67,.32);
+  --header-bg: #ffffff; --shadow-sm: 0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.05);
+  --chart-grid: rgba(60,60,67,.08);
+}
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) body { background: var(--bg); color: var(--text); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header { background: color-mix(in srgb, var(--header-bg) 85%, transparent); -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur); border-bottom: .5px solid var(--border2); box-shadow: none; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .sector-name-cell, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono { color: var(--text) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-subtitle, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-name, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-label, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .score-label, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .table-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .screener-sector-cell { color: var(--text2) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .badge { background: var(--surface2); border-color: transparent; color: var(--text2); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .tabs .tab { color: var(--text2); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .tabs .tab:hover { color: var(--text); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .tabs .tab.active { color: var(--accent); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .table-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .score-box, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .ticker-selector { background: var(--surface); border-color: var(--border); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-card::before, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-card::before { display: none; }          /* drop the coloured top stripes */
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .table-header { background: var(--surface); border-bottom: .5px solid var(--border); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .ticker-search, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .ticker-autocomplete { background: var(--surface2); border-color: transparent; color: var(--text); border-radius: 12px; }
+
+/* Tables: iOS list look — hairlines, quiet header, no zebra stripes */
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table th { background: var(--surface2); color: var(--text2); border-bottom: .5px solid var(--border2); font-weight: 600; letter-spacing: .03em; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td { border-bottom: .5px solid var(--border); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table tbody tr:nth-child(even) td { background: transparent; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table tbody tr:hover td { background: var(--surface2) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #sectorTable th:first-child, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #screenerTable th:nth-child(1), html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGH th:nth-child(1), html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGuest th:nth-child(1) { background: var(--surface2) !important; box-shadow: 1px 0 0 var(--border); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #sectorTable td:first-child, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #screenerTable td:nth-child(1), html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGH td:nth-child(1), html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGuest td:nth-child(1),
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #sectorTable tbody tr:nth-child(even) td:first-child, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #screenerTable tbody tr:nth-child(even) td:nth-child(1),
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGH tbody tr:nth-child(even) td:nth-child(1), html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGuest tbody tr:nth-child(even) td:nth-child(1) { background: var(--surface) !important; box-shadow: 1px 0 0 var(--border); }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #sectorTable tr:hover td:first-child, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #screenerTable tr:hover td:nth-child(1),
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGH tr:hover td:nth-child(1), html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) #watchlistTableGuest tr:hover td:nth-child(1) { background: var(--surface2) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .ticker-link { color: var(--accent); }
+
+/* ---------- Shapes & controls (all themes) ---------- */
+.msel-btn, .fin-toggle-btn, .msel-action-btn, .page-btn, .modal-secondary-btn, .modal-close-btn { border-radius: 10px; font-weight: 500; }
+.msel-panel { border-radius: 14px; border-width: .5px; box-shadow: 0 12px 40px rgba(0,0,0,.22);
+  background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur); }
+.msel-search, .ticker-search { border-radius: 10px; }
+.msel-item { border-radius: 8px; }
+.pill, .cmp-chip { border-radius: 999px; }
+.prog-bar, .prog-fill { border-radius: 999px; }
+.ticker-banner { border-radius: 12px; border-width: .5px; }
+.chart-card.chart-card, .top-card, .top-table-card, .top-section, .score-box.score-box, .ticker-selector.ticker-selector { border-radius: var(--radius-md); border-width: .5px; }
+.wl-toast, .alert-toast { border-radius: 14px; }
+input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], select { border-radius: 10px; }
+.screener-filter-group-label, .home-section-label { letter-spacing: .04em; }
+
+/* Sheets (modals) like iOS action sheets */
+.modal-backdrop { background: rgba(0,0,0,.38); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.modal { border-radius: 20px; border-width: .5px; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+
+/* Sign-in card */
+.auth-card { border-radius: 22px; border-width: .5px; }
+.auth-card input { border-radius: 12px; border-color: transparent; background: var(--surface2); }
+.auth-card button.auth-btn { border-radius: 12px; padding: 13px 12px; font-weight: 600; }
+.auth-google-btn { border-radius: 12px; }
+.auth-dropdown-item { border-radius: 10px; }
+
+/* Thin, quiet overlay-style scrollbars */
+* { scrollbar-width: thin; scrollbar-color: rgba(128,128,128,.45) transparent; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: rgba(128,128,128,.45); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::selection { background: var(--accent-dim); }
+
+@media (max-width: 768px) {
+  /* Sections breathe like iOS grouped lists */
+  html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .score-box { border-radius: 16px; }
+  .table-card.table-card { margin-bottom: 10px; }
+}
