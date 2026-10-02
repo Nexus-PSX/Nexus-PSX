@@ -4095,7 +4095,7 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
   const palette = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#a855f7','#eab308','#ec4899','#14b8a6','#f97316'];
 
   const sliceRows = rows
-    .map(r => ({ ticker: r.ticker, value: valueOf(r) || 0 }))
+    .map(r => ({ ticker: r.ticker, value: valueOf(r) || 0, pnlPct: r.pnlPct }))
     .filter(s => s.value > 0)
     .sort((a,b) => b.value - a.value);
 
@@ -4110,6 +4110,9 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
   }
 
   const weightPct = data.map(v => (v/total)*100);
+  // P&L% per slice (same order as `data`); Cash has none.
+  const pnlPctArr = sliceRows.map(s => s.pnlPct);
+  if (cashSlice > 0) pnlPctArr.push(null);
 
   charts['portfolioSector'] = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
@@ -4149,15 +4152,63 @@ function buildPortfolioAllocationChart(rows, holdingsValue, cash, basis) {
         // above, which draws the ticker + weight% directly next to each
         // slice, connected back to it with a small leader line.
         legend: { display: false },
+        // Canvas tooltips can only use one colour per line, so this chart uses a
+        // small HTML tooltip instead — lets the "(P&L %)" bracket be green/red
+        // while the ticker and weight stay in the normal tooltip colour.
         tooltip: {
-          ...sharedTooltip(),
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString('en-US',{maximumFractionDigits:0})} (${weightPct[ctx.dataIndex].toFixed(1)}%)`
-          }
+          enabled: false,
+          external: ctx => pfRenderAllocTooltip(ctx, { value: data, weight: weightPct, pnl: pnlPctArr, colors: backgroundColor })
         }
       }
     }
   });
+}
+
+// HTML tooltip for the Portfolio allocation donut: "TICKER: value (weight%) (P&L +x.xx%)"
+function pfRenderAllocTooltip(context, info) {
+  const { chart, tooltip } = context;
+  const parent = chart.canvas.parentNode;
+  if (!parent) return;
+  if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+  let el = parent.querySelector('.pf-alloc-tip');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'pf-alloc-tip';
+    parent.appendChild(el);
+  }
+  const dp = tooltip.dataPoints && tooltip.dataPoints[0];
+  if (tooltip.opacity === 0 || !dp) { el.style.opacity = 0; return; }
+
+  const th = getChartTheme();
+  const css = getComputedStyle(document.documentElement);
+  const good = css.getPropertyValue('--success').trim() || '#22c55e';
+  const bad  = css.getPropertyValue('--danger').trim()  || '#ef4444';
+  const idx = dp.dataIndex;
+  const label = chart.data.labels[idx];
+  const swatch = (tooltip.labelColors && tooltip.labelColors[0] && tooltip.labelColors[0].backgroundColor) || info.colors[idx];
+  const pnl = info.pnl[idx];
+  let pnlHtml = '';
+  if (pnl != null && isFinite(pnl)) {
+    const col = pnl > 0 ? good : pnl < 0 ? bad : th.tooltip.body;
+    const txt = (pnl > 0 ? '+' : '') + pnl.toFixed(2) + '%';
+    pnlHtml = ` <span style="font-size:9.5px;font-weight:600;color:${col};">(P&amp;L ${txt})</span>`;
+  }
+
+  el.style.cssText = `position:absolute;pointer-events:none;z-index:5;white-space:nowrap;opacity:1;` +
+    `padding:8px 10px;border-radius:6px;border:1px solid ${th.tooltip.border};background:${th.tooltip.bg};` +
+    `color:${th.tooltip.body};font:11px ${CHART_FONT};box-shadow:0 4px 14px rgba(0,0,0,.18);transition:opacity .1s;`;
+  el.innerHTML =
+    `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${swatch};margin-right:6px;"></span>` +
+    `${label}: ${info.value[idx].toLocaleString('en-US',{maximumFractionDigits:0})} (${info.weight[idx].toFixed(1)}%)` + pnlHtml;
+
+  // Position above the touched slice, clamped inside the chart area.
+  const w = el.offsetWidth, h = el.offsetHeight, pw = parent.clientWidth;
+  let left = chart.canvas.offsetLeft + tooltip.caretX - w / 2;
+  left = Math.max(4, Math.min(left, pw - w - 4));
+  let top = chart.canvas.offsetTop + tooltip.caretY - h - 12;
+  if (top < 4) top = chart.canvas.offsetTop + tooltip.caretY + 14;
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
 }
 
 function showWatchlistPanel() {

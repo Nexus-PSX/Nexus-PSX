@@ -2868,7 +2868,8 @@ button, input, select, textarea { font-family: inherit; }
 }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) body { background: var(--bg); color: var(--text); }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header { background: color-mix(in srgb, var(--header-bg) 85%, transparent); -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur); border-bottom: .5px solid var(--border2); box-shadow: none; }
-html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .sector-name-cell, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono { color: var(--text) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .sector-name-cell { color: var(--text) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono { color: var(--text); }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-subtitle, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-name, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-label, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .score-label, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .table-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .screener-sector-cell { color: var(--text2) !important; }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .badge { background: var(--surface2); border-color: transparent; color: var(--text2); }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .tabs .tab { color: var(--text2); }
@@ -2929,3 +2930,8 @@ input[type="text"], input[type="search"], input[type="email"], input[type="passw
   html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-card, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .score-box { border-radius: 16px; }
   .table-card.table-card { margin-bottom: 10px; }
 }
+
+
+/* Positive = green, negative = red — must win over the iOS neutral text colour above */
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.positive, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono.positive, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .positive { color: var(--success) !important; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.negative, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono.negative, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .negative { color: var(--danger) !important; }
