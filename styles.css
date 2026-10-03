@@ -2935,3 +2935,15 @@ input[type="text"], input[type="search"], input[type="email"], input[type="passw
 /* Positive = green, negative = red — must win over the iOS neutral text colour above */
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.positive, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono.positive, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .positive { color: var(--success) !important; }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.negative, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono.negative, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .negative { color: var(--danger) !important; }
+
+
+/* Financial Score change chip (Stock Screener) */
+.score-delta { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0; white-space: nowrap; vertical-align: middle; }
+.score-delta.up   { color: var(--success); }
+.score-delta.down { color: var(--danger); }
+.score-delta.flat, .score-delta.new { color: var(--text3); font-weight: 600; }
+.score-delta.new { font-size: 9px; letter-spacing: .04em; }
+
+/* Company View: larger chip beside the big score number */
+#ciScoreChange .score-delta { font-size: 14px; margin-left: 10px; }
+#ciScoreChange .score-delta.new { font-size: 10px; }

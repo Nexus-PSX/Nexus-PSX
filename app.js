@@ -455,6 +455,33 @@ function dget(row, name) {
   return row[col(name)];
 }
 
+// ===== FINANCIAL SCORE CHANGE CHIP ====================================
+// Reads the 'Financial Score Change' column (points vs. the previous report):
+//   > 0 green ▲, < 0 red ▼, 0 muted ±0, blank → muted NEW.
+// If the column doesn't exist in the data at all (not added to the Excel yet),
+// nothing is shown, so every row doesn't get a misleading "NEW".
+let _scoreChangeColPresent = null;
+function scoreChangeColPresent() {
+  if (_scoreChangeColPresent === null || (!_scoreChangeColPresent && typeof SOURCE_DATA !== 'undefined' && SOURCE_DATA.length)) {
+    _scoreChangeColPresent = (typeof SOURCE_DATA !== 'undefined' && Array.isArray(SOURCE_DATA))
+      ? SOURCE_DATA.some(r => { const v = r[col('Financial Score Change')]; return v !== undefined && v !== null && v !== ''; })
+      : false;
+  }
+  return _scoreChangeColPresent;
+}
+function scoreDeltaChip(d) {
+  if (!scoreChangeColPresent()) return '';
+  const raw = d[col('Financial Score Change')];
+  const n = (raw === undefined || raw === null || raw === '') ? null : parseFloat(raw);
+  if (n == null || isNaN(n)) return '<span class="score-delta new" title="No previous score to compare with">NEW</span>';
+  const fmtN = x => Number.isInteger(x) ? String(x) : x.toFixed(1);
+  const score = parseFloat(d['total improvement']);
+  const prevTxt = isNaN(score) ? '' : `Previous score ${fmtN(Math.round((score - n) * 10) / 10)} → now ${fmtN(score)}`;
+  if (n > 0) return `<span class="score-delta up" title="${prevTxt}">▲${fmtN(n)}</span>`;
+  if (n < 0) return `<span class="score-delta down" title="${prevTxt}">▼${fmtN(Math.abs(n))}</span>`;
+  return `<span class="score-delta flat" title="${prevTxt || 'Score unchanged'}">±0</span>`;
+}
+
 // ===== COUNTER ANIMATION ===========================================
 // Smoothly counts from previous value to new value in ~600ms.
 // Works with any element that contains a formatted number string.
@@ -647,6 +674,19 @@ function loadTicker(ticker) {
   setEl('ciScore', score != null ? score : '—');
   setClass('ciScore', 'score-value ' + scoreColor(score));
   setEl('ciScoreHint', score >= 80 ? '🟢 Strong' : score >= 40 ? '🟡 Moderate' : '🔴 Weak');
+  // Score-change chip beside the score. Added as a separate element (not inside
+  // #ciScore) because share/screenshot code reads #ciScore's text as the score.
+  const ciScoreEl = document.getElementById('ciScore');
+  if (ciScoreEl) {
+    let chipEl = document.getElementById('ciScoreChange');
+    if (!chipEl) {
+      chipEl = document.createElement('span');
+      chipEl.id = 'ciScoreChange';
+      ciScoreEl.insertAdjacentElement('afterend', chipEl);
+      ciScoreEl.style.display = 'inline-block';   // let the chip sit on the same line
+    }
+    chipEl.innerHTML = scoreDeltaChip(d);
+  }
 
   // Signal info
   const sigDate = dget(d,'Signal date');
@@ -2849,10 +2889,10 @@ function syncScreenerTopScrollbar() {
   if (!bar || !scrollBox || !table) return;
   const inner = bar.firstElementChild;
   if (inner) inner.style.width = table.scrollWidth + 'px';
-  // Nothing to scroll → hide the strip rather than show a dead scrollbar.
-  const overflowing = table.scrollWidth > scrollBox.clientWidth + 1;
-  bar.style.display = overflowing ? '' : 'none';
-  if (overflowing) bar.scrollLeft = scrollBox.scrollLeft;
+  // Always visible — even when the table currently fits — so the strip doesn't
+  // pop in and out as column groups (Show Financials etc.) are toggled.
+  bar.style.display = '';
+  bar.scrollLeft = scrollBox.scrollLeft;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -4638,7 +4678,7 @@ function renderScreenerPage() {
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'CFO 2026-Q1'))}">${fmtBig(dget(d,'CFO 2026-Q1'))}</td>
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
-      <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
+      <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span>${scoreDeltaChip(d)}</td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}</td>
