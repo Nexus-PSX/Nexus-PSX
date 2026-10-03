@@ -1770,7 +1770,7 @@ function renderSectorTable(data) {
     const rotBadge = ROTATION_BADGE_META[SECTOR_ROTATION_MAP[s.sector]];
     const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}">${rotBadge.glyph}</span>` : '';
     tr.innerHTML = `
-      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')"><span class="sector-name-text">${s.sector}</span>${rotBadgeHtml}</td>
+      <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')"><div class="sector-name-inner"><span class="sector-name-text">${s.sector}</span>${rotBadgeHtml}</div></td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.epsQG)}">${s.epsQG!=null?fmtPct(s.epsQG,2):'—'}</td>
       <td class="sector-hide-mobile sector-fin-col mono ${valColor(s.revQG)}">${s.revQG!=null?fmtPct(s.revQG,2):'—'}</td>

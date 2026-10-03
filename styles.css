@@ -2947,3 +2947,11 @@ html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table t
 /* Company View: larger chip beside the big score number */
 #ciScoreChange .score-delta { font-size: 14px; margin-left: 10px; }
 #ciScoreChange .score-delta.new { font-size: 10px; }
+
+
+/* Sector table: the name cell must stay a real table-cell (display:flex on a <td>
+   stops it filling its column, leaving a gap before the next column). The flex
+   layout now lives on an inner wrapper instead. */
+.sector-name-cell.sector-name-cell { display: table-cell; vertical-align: middle; }
+.sector-name-inner { display: flex; align-items: center; gap: 4px; max-width: 260px; }
+@media (max-width: 768px) { .sector-name-inner { max-width: 140px; } }
