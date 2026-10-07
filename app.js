@@ -5438,7 +5438,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Register service worker first — must be active before beforeinstallprompt fires
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(() => {
+    navigator.serviceWorker.register('./firebase-messaging-sw.js').then(() => {
       // After SW registered, check if prompt already captured
       if (!deferredInstallPrompt && window._deferredInstallPrompt) {
         deferredInstallPrompt = window._deferredInstallPrompt;

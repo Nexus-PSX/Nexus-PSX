@@ -52,6 +52,19 @@
   // stores it in Firestore under users/{uid}/data/fcm_token so the admin
   // sender can look up all tokens to push to.
 
+  // Stable id for THIS browser/device, so each device keeps its own token
+  // instead of every device overwriting a single per-user token.
+  function getDeviceId() {
+    try {
+      let id = localStorage.getItem('nexus_device_id');
+      if (!id) {
+        id = ((crypto.randomUUID ? crypto.randomUUID() : Date.now() + Math.random().toString(36)) + '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+        localStorage.setItem('nexus_device_id', id);
+      }
+      return id;
+    } catch (e) { return 'dev' + ((navigator.userAgent || '').length); }
+  }
+
   async function registerForPush(uid) {
     if (!uid) return;
     if (!('Notification' in window)) return;
@@ -61,9 +74,14 @@
       await navigator.serviceWorker.ready;
       const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
       if (!token) return;
+      const ua = navigator.userAgent.slice(0, 200);
       await setDoc(
         doc(db, 'users', uid, 'data', 'fcm_token'),
-        { token, updatedAt: Date.now(), userAgent: navigator.userAgent.slice(0, 200) }
+        {
+          token, updatedAt: Date.now(), userAgent: ua,          // legacy single-token fields (kept for compatibility)
+          tokens: { [getDeviceId()]: { token, updatedAt: Date.now(), userAgent: ua } }   // one entry per device
+        },
+        { merge: true }
       );
       console.log('FCM token registered');
     } catch (e) {
@@ -120,7 +138,7 @@
 
   window.unregisterPushToken = async function (uid) {
     if (!uid) return;
-    try { await setDoc(doc(db, 'users', uid, 'data', 'fcm_token'), { token: null, removedAt: Date.now() }); }
+    try { await setDoc(doc(db, 'users', uid, 'data', 'fcm_token'), { token: null, removedAt: Date.now(), tokens: { [getDeviceId()]: { token: null, removedAt: Date.now() } } }, { merge: true }); }
     catch (e) { /* ignore */ }
   };
 
