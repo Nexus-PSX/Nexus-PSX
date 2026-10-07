@@ -2520,9 +2520,21 @@ document.addEventListener('click', e => {
 // categorical pills, not something a > / < comparison applies to.
 // Multiple column filters combine with AND, alongside every other active
 // screener filter (search, price, multi-selects, etc).
-let screenerColFilters = {}; // { [dataKey]: {op:'gt'|'lt', val:number} } — val is always in the
+let screenerColFilters = {}; // { [dataKey]: {op:'gt'|'gte'|'lt'|'lte', val:number} } — val is always in the
                               // underlying data's own scale (see PERCENT_COL_FILTER_KEYS below)
 let activeColFilterKey = null;
+// Column-filter operators. Clicking the operator button cycles  >  →  ≥  →  <  →  ≤
+const COL_FILTER_OPS = ['gt', 'gte', 'lt', 'lte'];
+const COL_FILTER_SYMBOL = { gt: '>', gte: '≥', lt: '<', lte: '≤' };
+const COL_FILTER_DIR_TITLE = 'Click to cycle: > greater than, ≥ greater than or equal, < less than, ≤ less than or equal';
+function setColFilterDirButton(op) {
+  const btn = document.getElementById('colFilterDir');
+  if (!btn) return;
+  if (!COL_FILTER_SYMBOL[op]) op = 'gt';
+  btn.dataset.dir = op;
+  btn.textContent = COL_FILTER_SYMBOL[op];
+  btn.title = COL_FILTER_DIR_TITLE;
+}
 // Columns whose underlying data is a raw fraction (e.g. 0.05) displayed as "5.00%".
 // For these, the filter box accepts a plain percent number (e.g. "5") and we convert
 // to/from the fraction under the hood, so typing "5" means 5% rather than 500%.
@@ -2547,8 +2559,7 @@ function openColFilter(event, key, label) {
   const existing = screenerColFilters[key];
   const dirBtn = document.getElementById('colFilterDir');
   const valInput = document.getElementById('colFilterVal');
-  dirBtn.dataset.dir = existing ? existing.op : 'gt';
-  dirBtn.textContent = dirBtn.dataset.dir === 'gt' ? '>' : '<';
+  setColFilterDirButton(existing ? existing.op : 'gt');
   valInput.value = existing != null ? (isPct ? existing.val * 100 : existing.val) : '';
   valInput.placeholder = isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
 
@@ -2575,9 +2586,8 @@ function closeColFilter() {
 function toggleColFilterDir() {
   const dirBtn = document.getElementById('colFilterDir');
   if (!dirBtn) return;
-  const isGt = dirBtn.dataset.dir !== 'lt';
-  dirBtn.dataset.dir = isGt ? 'lt' : 'gt';
-  dirBtn.textContent = isGt ? '<' : '>';
+  const i = COL_FILTER_OPS.indexOf(dirBtn.dataset.dir);
+  setColFilterDirButton(COL_FILTER_OPS[(i + 1) % COL_FILTER_OPS.length]);
   applyColFilterInput();
 }
 
@@ -2614,7 +2624,7 @@ function updateColFilterIcons() {
     if (f) {
       const isPct = PERCENT_COL_FILTER_KEYS.has(key);
       const shown = isPct ? (f.val * 100) : f.val;
-      icon.title = `Filtered: ${f.op === 'gt' ? '>' : '<'} ${shown}${isPct ? '%' : ''}`;
+      icon.title = `Filtered: ${COL_FILTER_SYMBOL[f.op] || '>'} ${shown}${isPct ? '%' : ''}`;
     } else {
       icon.title = icon.dataset.baseTitle || 'Filter this column';
     }
@@ -2720,8 +2730,10 @@ function filterScreener() {
       // (matches what the user types, same convention as Signal date's filter).
       const v = fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
-      if (f.op === 'gt' && v <= f.val) return false;
-      if (f.op === 'lt' && v >= f.val) return false;
+      if (f.op === 'gt'  && v <= f.val) return false;   // >
+      if (f.op === 'gte' && v <  f.val) return false;   // ≥
+      if (f.op === 'lt'  && v >= f.val) return false;   // <
+      if (f.op === 'lte' && v >  f.val) return false;   // ≤
     }
     return true;
   });
