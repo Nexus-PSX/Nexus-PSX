@@ -2523,14 +2523,16 @@ document.addEventListener('click', e => {
 let screenerColFilters = {}; // { [dataKey]: {op:'gt'|'gte'|'lt'|'lte', val:number} } — val is always in the
                               // underlying data's own scale (see PERCENT_COL_FILTER_KEYS below)
 let activeColFilterKey = null;
-// Column-filter operators. Clicking the operator button cycles  >  →  ≥  →  <  →  ≤
-const COL_FILTER_OPS = ['gt', 'gte', 'lt', 'lte'];
+// Column-filter operators. Only ≥ and ≤ are offered; clicking the button toggles between them.
+// ('gt'/'lt' are still understood so filters saved earlier keep working.)
+const COL_FILTER_OPS = ['gte', 'lte'];
 const COL_FILTER_SYMBOL = { gt: '>', gte: '≥', lt: '<', lte: '≤' };
-const COL_FILTER_DIR_TITLE = 'Click to cycle: > greater than, ≥ greater than or equal, < less than, ≤ less than or equal';
+const COL_FILTER_DIR_TITLE = 'Click to switch: ≥ greater than or equal, ≤ less than or equal';
 function setColFilterDirButton(op) {
   const btn = document.getElementById('colFilterDir');
   if (!btn) return;
-  if (!COL_FILTER_SYMBOL[op]) op = 'gt';
+  if (op === 'gt') op = 'gte'; else if (op === 'lt') op = 'lte';   // older saved filters
+  if (!COL_FILTER_OPS.includes(op)) op = 'gte';
   btn.dataset.dir = op;
   btn.textContent = COL_FILTER_SYMBOL[op];
   btn.title = COL_FILTER_DIR_TITLE;
@@ -2559,7 +2561,7 @@ function openColFilter(event, key, label) {
   const existing = screenerColFilters[key];
   const dirBtn = document.getElementById('colFilterDir');
   const valInput = document.getElementById('colFilterVal');
-  setColFilterDirButton(existing ? existing.op : 'gt');
+  setColFilterDirButton(existing ? existing.op : 'gte');
   valInput.value = existing != null ? (isPct ? existing.val * 100 : existing.val) : '';
   valInput.placeholder = isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
 
@@ -2600,7 +2602,7 @@ function applyColFilterInput() {
     delete screenerColFilters[activeColFilterKey];
   } else {
     const val = PERCENT_COL_FILTER_KEYS.has(activeColFilterKey) ? raw / 100 : raw;
-    screenerColFilters[activeColFilterKey] = { op: dirBtn.dataset.dir || 'gt', val };
+    screenerColFilters[activeColFilterKey] = { op: dirBtn.dataset.dir || 'gte', val };
   }
   updateColFilterIcons();
   filterScreener();
