@@ -2006,6 +2006,7 @@ const STATUS_OPTIONS = [
 ];
 const OTHERS_OPTIONS = [
   {value:'watchlist',  label:'⭐ My Watchlist'},
+  {value:'portfolio',  label:'💼 My Portfolio'},
   {value:'turnaround', label:'🔁 Turnaround Candidates'},
   {value:'net_gt_op',  label:'📊 Net Inc > Op. Inc'}
 ];
@@ -2699,6 +2700,7 @@ function filterScreener() {
   const matchesOthers = (d, v) => {
     switch (v) {
       case 'watchlist':  return (typeof wlList !== 'undefined' ? wlList : []).includes(String(d.Ticker));
+      case 'portfolio':  return (typeof pfOpen !== 'undefined' ? pfOpen : []).some(p => String(p.ticker) === String(d.Ticker));   // stocks currently held
       case 'turnaround': return (parseFloat(d['Loss narrow'])||0) > 0;
       case 'net_gt_op':  return (parseFloat(d['NI > OI'])||0) > 0;
       default: return false;
@@ -2712,7 +2714,8 @@ function filterScreener() {
     // OR if it's manually selected in Comparison. This lets the user extend
     // the watchlist view with extra stocks rather than restricting it further.
     // When watchlist is NOT active, both filters apply independently (AND).
-    const wlActive = selOthers.has('watchlist');
+    // 'My Portfolio' behaves like 'My Watchlist': extra tickers picked in Comparison are added on top (OR), not ANDed.
+    const wlActive = selOthers.has('watchlist') || selOthers.has('portfolio');
     if (selOthers.size > 0 || selTickers.size > 0) {
       const inComparison = selTickers.size > 0 && selTickers.has(String(d.Ticker));
       if (wlActive && inComparison) {
@@ -3316,7 +3319,14 @@ function pfTryReplay(transactions) {
 function pfRecomputeFromTransactions() {
   const result = pfTryReplay(pfTransactions);
   if (result.ok) { pfCash = result.state.cash; pfOpen = result.state.open; pfClosed = result.state.closed; pfLots = result.state.lots || {}; pfRealizedPnlByTxId = result.pnlMap; }
+  screenerRefreshIfPortfolioFilter();
   return result;
+}
+// Keep the Screener's "My Portfolio" filter in step with buys/sells and with the portfolio finishing loading.
+function screenerRefreshIfPortfolioFilter() {
+  try {
+    if (mselRegistry.others && mselRegistry.others.selected.has('portfolio')) filterScreener();
+  } catch (e) { /* screener not initialised yet */ }
 }
 
 // Reconstructs a synthetic transaction history for state that existed before
