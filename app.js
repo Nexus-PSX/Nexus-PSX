@@ -4711,9 +4711,9 @@ function renderScreenerPage() {
       <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span>${scoreDeltaChip(d)}</td>
+      <td class="mono">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
-      <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
       <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
@@ -4816,9 +4816,9 @@ function updateScreenerAvgRow() {
     <td class="mono screener-fin-col ${valColor(avg('Latest Div Y Q'))}">${fmtPct(avg('Latest Div Y Q'),2)}</td>
     <td class="mono screener-fin-col">${fmtMarketCap(avg('Market Cap'))}</td>
     <td class="mono">${scoreHtml}</td>
+    <td class="mono">${fmt(avg('Fair Value'),2)}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-tech-col">${fmt(avg('Signal Price'),2)}</td>
-    <td class="mono screener-tech-col">${fmt(avg('Fair Value'),2)}</td>
     <td class="mono screener-tech-col ${sigRet != null ? sigRet > 0 ? 'positive' : 'negative' : ''}">${sigRet != null ? (sigRet >= 0 ? '+' : '') + sigRet.toFixed(2) + '%' : '—'}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-daily-col">${avg('Price') != null ? avg('Price').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
