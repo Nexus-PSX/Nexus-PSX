@@ -2558,7 +2558,18 @@ function setColFilterDirButton(op) {
 // Columns whose underlying data is a raw fraction (e.g. 0.05) displayed as "5.00%".
 // For these, the filter box accepts a plain percent number (e.g. "5") and we convert
 // to/from the fraction under the hood, so typing "5" means 5% rather than 500%.
-const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q', 'REV Q G%']);
+const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q', 'REV Q G%',
+  'Fair Value'   // the Fair Value filter compares UPSIDE % to price, not the raw fair value (see fairValueUpsideFrac)
+]);
+// Percent shown in the filter box without float noise (0.07*100 → 7, not 7.000000000000001)
+const colFilterPctShown = frac => Math.round(frac * 100 * 1e6) / 1e6;
+// Upside (+) / downside (−) of Fair Value vs current Price, as a fraction: (FV − Price) / Price
+function fairValueUpsideFrac(d) {
+  const fv = toNum(dget(d, 'Fair Value'));
+  const price = toNum(dget(d, 'Price'));
+  if (fv == null || price == null || !(price > 0) || !(fv > 0)) return null;
+  return (fv - price) / price;
+}
 // Signal date / NEMI Signal date are stored as an 8-digit YYYYMMDD number — still
 // perfectly comparable with > / <, but the filter box gets a format hint for these.
 const DATE_COL_FILTER_KEYS = new Set(['Signal date', 'NEMI Signal date', 'Last Period End Date']);
@@ -2574,14 +2585,14 @@ function openColFilter(event, key, label) {
   }
   activeColFilterKey = key;
   const titleEl = document.getElementById('colFilterPopoverTitle');
-  if (titleEl) titleEl.textContent = 'Filter: ' + label;
+  if (titleEl) titleEl.textContent = key === 'Fair Value' ? 'Filter: Fair Value upside %' : 'Filter: ' + label;
   const isPct = PERCENT_COL_FILTER_KEYS.has(key);
   const existing = screenerColFilters[key];
   const dirBtn = document.getElementById('colFilterDir');
   const valInput = document.getElementById('colFilterVal');
   setColFilterDirButton(existing ? existing.op : 'gte');
-  valInput.value = existing != null ? (isPct ? existing.val * 100 : existing.val) : '';
-  valInput.placeholder = isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
+  valInput.value = existing != null ? (isPct ? colFilterPctShown(existing.val) : existing.val) : '';
+  valInput.placeholder = key === 'Fair Value' ? 'Upside % (e.g. 20)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
 
   popover.classList.remove('hidden');
   // Position just below the clicked icon, clamped so it never spills off-screen
@@ -2643,10 +2654,10 @@ function updateColFilterIcons() {
     icon.classList.toggle('active', !!f);
     if (f) {
       const isPct = PERCENT_COL_FILTER_KEYS.has(key);
-      const shown = isPct ? (f.val * 100) : f.val;
+      const shown = isPct ? colFilterPctShown(f.val) : f.val;
       icon.title = `Filtered: ${COL_FILTER_SYMBOL[f.op] || '>'} ${shown}${isPct ? '%' : ''}`;
     } else {
-      icon.title = icon.dataset.baseTitle || 'Filter this column';
+      icon.title = key === 'Fair Value' ? 'Filter by upside % to Fair Value' : (icon.dataset.baseTitle || 'Filter this column');
     }
   });
 }
@@ -2748,7 +2759,8 @@ function filterScreener() {
       // "Last Period End Date" is an ISO "YYYY-MM-DD" string — toNum() on that
       // only grabs the leading year, so convert to a YYYYMMDD number first
       // (matches what the user types, same convention as Signal date's filter).
-      const v = fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
+      const v = fkey === 'Fair Value' ? fairValueUpsideFrac(d)
+              : fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
       if (f.op === 'gt'  && v <= f.val) return false;   // >
       if (f.op === 'gte' && v <  f.val) return false;   // ≥
