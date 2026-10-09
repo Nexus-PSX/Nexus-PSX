@@ -1608,8 +1608,9 @@ function getRotationBenchmark() {
   const bench1D  = kse100 ? toN(kse100['Day Change %']) : null;
   const benchWTD = kse100 ? toN(kse100['Current Week Return %']) : null;
   const bench1M  = kse100 ? toN(kse100['Rolling 1M%']) : null;
-  if (bench1D == null && benchWTD == null && bench1M == null) return null;
-  return { bench1D, benchWTD, bench1M };
+  const bench3M  = kse100 ? toN(kse100['Rolling 3M%']) : null;
+  if (bench1D == null && benchWTD == null && bench1M == null && bench3M == null) return null;
+  return { bench1D, benchWTD, bench1M, bench3M };
 }
 
 function classifyRotation(roll1m, wtd, bench) {
@@ -1619,6 +1620,23 @@ function classifyRotation(roll1m, wtd, bench) {
   if (rel1M > 0 && relWTD > 0) return (roll1m > 0 && wtd > 0) ? 'absoluteLeading' : 'defensiveOutperforming';
   if (rel1M > 0)  return 'weakening';
   if (relWTD > 0) return 'improving';
+  return 'lagging';
+}
+
+// SECTOR relative performance — same rule as the Excel formula used per stock in the
+// Source Data sheet, comparing Rolling 1M% and Rolling 3M% with the KSE 100:
+//   Leading   (absoluteLeading)        : 1M > 0 and 1M > KSE 1M  and  3M > 0 and 3M > KSE 3M
+//   Defensive (defensiveOutperforming) : 1M > KSE 1M  and  3M > KSE 3M          (but not Leading)
+//   Weakening                          : 3M > KSE 3M  and  1M <= KSE 1M
+//   Improving                          : 1M > KSE 1M  or   1M > 0               (of what remains)
+//   Lagging                            : everything else
+function classifySectorRotation(roll1m, roll3m, bench) {
+  if (roll1m == null || roll3m == null || !bench || bench.bench1M == null || bench.bench3M == null) return null;
+  const k1 = bench.bench1M, k3 = bench.bench3M;
+  if (roll1m > 0 && roll1m > k1 && roll3m > 0 && roll3m > k3) return 'absoluteLeading';
+  if (roll1m > k1 && roll3m > k3) return 'defensiveOutperforming';
+  if (roll3m > k3 && roll1m <= k1) return 'weakening';
+  if (roll1m > k1 || roll1m > 0) return 'improving';
   return 'lagging';
 }
 
@@ -1636,8 +1654,9 @@ function computeSectorRotationData() {
     const rel1D  = (s.p1d     != null && bench.bench1D  != null) ? s.p1d     - bench.bench1D  : null;
     const relWTD = (s.p1w     != null && bench.benchWTD != null) ? s.p1w     - bench.benchWTD : null;
     const rel1M  = (s.pRoll1m != null && bench.bench1M  != null) ? s.pRoll1m - bench.bench1M  : null;
-    const category = classifyRotation(s.pRoll1m, s.p1w, bench);
-    return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, roll1m: s.pRoll1m, wtd: s.p1w, category };
+    const rel3M  = (s.pRoll3m != null && bench.bench3M  != null) ? s.pRoll3m - bench.bench3M  : null;
+    const category = classifySectorRotation(s.pRoll1m, s.pRoll3m, bench);   // 1M Roll + 3M Roll vs KSE 100
+    return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, rel3M, roll1m: s.pRoll1m, roll3m: s.pRoll3m, wtd: s.p1w, category };
   });
 }
 
@@ -1738,7 +1757,7 @@ function renderSectorRotationList() {
 // Default ordering for the Sector Performance Summary: group sectors by
 // their relative-performance category, strongest first, and rank by
 // total improvement score within each group. Sectors with no category
-// (e.g. missing WTD%/Roll 1M% data) sort to the end.
+// (e.g. missing Rolling 1M%/3M% data) sort to the end.
 const ROTATION_SORT_RANK = {
   absoluteLeading: 0,
   improving: 1,
@@ -5610,6 +5629,32 @@ async function confirmInstall() {
 
 
 
+// ===== Ticker column repair for Excel uploads =====
+const TICKER_HEADER_NAMES = new Set(['ticker', 'tickers', 'tickersymbol', 'symbol', 'symbols', 'code', 'scrip', 'scripcode', 'stockcode']);
+const tickerHeaderKey = k => String(k).replace(/[\u200B-\u200D\uFEFF\u00A0\s_.\-]/g, '').toLowerCase();
+
+// Returns rows whose ticker column is named exactly "Ticker" (renaming a near-miss header such as
+// "Symbol", "TICKER " or one with hidden characters), or null if no ticker column can be identified.
+function ensureTickerColumn(rows) {
+  if (!rows || !rows.length) return rows;
+  const keys = Object.keys(rows[0]);
+  if (keys.includes('Ticker')) return rows;
+  let key = keys.find(k => TICKER_HEADER_NAMES.has(tickerHeaderKey(k)));
+  if (!key) {
+    // Last resort: the first column, if its values look like PSX tickers (HUBC, FCCL, KSE100 …)
+    const first = keys[0];
+    const vals = rows.map(r => r[first]).filter(v => v != null && v !== '');
+    const looksLikeTicker = v => typeof v === 'string' && /^[A-Za-z0-9&.\-]{2,12}$/.test(v.trim());
+    if (vals.length && vals.filter(looksLikeTicker).length / vals.length >= 0.8) key = first;
+  }
+  if (!key) return null;
+  return rows.map(r => {
+    const o = {};
+    for (const [k, v] of Object.entries(r)) o[k === key ? 'Ticker' : k] = (k === key && typeof v === 'string') ? v.trim() : v;
+    return o;
+  });
+}
+
 function handleExcelUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -5622,7 +5667,12 @@ function handleExcelUpload(event) {
       showOverlay('Parsing SourceData sheet...');
       const wb = XLSX.read(e.target.result, {type: 'binary'});
 
-      const sheetName = wb.SheetNames.find(n => n.toLowerCase() === 'sourcedata');
+      // Match the sheet forgivingly: "SourceData", "Source Data", "source_data", "SourceData " …
+      const normName = n => String(n).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const sheetName =
+           wb.SheetNames.find(n => normName(n) === 'sourcedata')
+        || wb.SheetNames.find(n => normName(n).includes('source') && normName(n).includes('data'))
+        || (wb.SheetNames.length === 1 ? wb.SheetNames[0] : null);
       if (!sheetName) {
         hideOverlay();
         showModalError('Sheet Not Found', `Could not find a sheet named "SourceData" in this file.`,
@@ -5634,7 +5684,26 @@ function handleExcelUpload(event) {
       const ws = wb.Sheets[sheetName];
 
       // raw:true keeps numbers as numbers, dates as Date objects
-      const rows = XLSX.utils.sheet_to_json(ws, {raw: true, defval: null});
+      let rows = XLSX.utils.sheet_to_json(ws, {raw: true, defval: null});
+
+      // The app needs a column called exactly "Ticker". Repair near-misses ("Symbol", "TICKER ",
+      // hidden characters …); if the table doesn't start in row 1, find the real header row first.
+      let fixed = rows.length ? ensureTickerColumn(rows) : rows;
+      if (!rows.length || !fixed) {
+        const grid = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: null});
+        const headerIdx = grid.slice(0, 30).findIndex(r => (r || []).some(c => typeof c === 'string' && TICKER_HEADER_NAMES.has(tickerHeaderKey(c))));
+        if (headerIdx > 0) {
+          rows = XLSX.utils.sheet_to_json(ws, {raw: true, defval: null, range: headerIdx});
+          fixed = rows.length ? ensureTickerColumn(rows) : rows;
+        }
+      }
+      if (rows.length && !fixed) {
+        hideOverlay();
+        showModalError('Ticker Column Not Found', `The sheet "${sheetName}" has no column the app can use as "Ticker".`,
+          `First columns found: ${Object.keys(rows[0]).slice(0, 12).join(' | ')}`);
+        return;
+      }
+      rows = fixed || rows;
 
       if (!rows || rows.length === 0) {
         hideOverlay();

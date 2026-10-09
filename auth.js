@@ -103,7 +103,7 @@
       btn.style.opacity = '0.6';
     } else {
       btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔔 Enable Alerts</span>';
-      btn.title = 'Get push notifications for new buy signals, even when the tab is closed';
+      btn.title = 'Get push notifications for new Initial Buy signals (score above 70), even when the tab is closed';
       btn.style.opacity = '1';
     }
     btn.disabled = false;
@@ -213,25 +213,19 @@
       dropdownEmail, alertsBtn, alertsPanel, signOutItem, faqItem,
       emailEl, passEl, errEl, submitBtn, toggleBtn, titleEl, subEl;
 
+  // Alert rule (bell badge, bell list, toast, desktop + phone push): only stocks in an
+  // "Initial Buy" signal (status code 1.5) whose Financial Score is above 70.
+  const ALERT_MIN_SCORE = 70;
+  function isAlertWorthy(d) {
+    const code = typeof sigStatusCode === 'function' ? sigStatusCode(d['Signal Status']) : null;
+    const score = parseFloat(d['total improvement']);
+    return code === 1.5 && !isNaN(score) && score > ALERT_MIN_SCORE;
+  }
+
   function getAllCurrentBuySignals() {
     if (!window.SOURCE_DATA || !Array.isArray(window.SOURCE_DATA) || !window.SOURCE_DATA.length) return [];
 
-    const BUY_CODES = new Set([1.5, 2, 2.5]);
-    // Text fragments covering all buy-signal label variants in the SIGNAL_STATUS_MAP
-    const BUY_TEXTS = ['initial buy signal', 'fresh buy signal', 'continuation buy signal', 'extended buy signal'];
-
-    let signals = window.SOURCE_DATA.filter(d => {
-      const raw = d['Signal Status'];
-      if (raw == null || raw === '') return false;
-      // Numeric code (most common after the data migration)
-      if (typeof raw === 'number') return BUY_CODES.has(raw);
-      // String that contains a numeric code e.g. "1.5" or "2"
-      const num = parseFloat(raw);
-      if (!isNaN(num) && String(num) === String(raw).trim()) return BUY_CODES.has(num);
-      // Text label e.g. "Initial buy signal", "Continuation buy signal"
-      const lower = String(raw).toLowerCase();
-      return BUY_TEXTS.some(t => lower.includes(t));
-    });
+    let signals = window.SOURCE_DATA.filter(isAlertWorthy);
 
     const wlToggle = document.getElementById('alertsWatchlistOnlyToggle');
     if (wlToggle?.checked && typeof window.getWatchlistTickers === 'function') {
@@ -374,7 +368,7 @@
   // localStorage so a stock already sitting in a buy signal doesn't keep
   // re-alerting every time the page loads — only a genuine change does.
   const ALERTS_WL_ONLY_KEY = 'psx_alerts_watchlist_only';
-  const ALERT_STATUS_BASELINE_KEY = 'psx_alert_status_baseline_v1';
+  const ALERT_STATUS_BASELINE_KEY = 'psx_alert_status_baseline_v2';   // v2: stores whether each stock qualified (Initial Buy + score > 70)
   const BUY_SIGNAL_CODES = new Set([1.5, 2, 2.5]); // Initial / Fresh / Continuation / cautious variants
 
   function readStatusBaseline() {
@@ -383,6 +377,32 @@
   }
   function writeStatusBaseline(map) {
     try { localStorage.setItem(ALERT_STATUS_BASELINE_KEY, JSON.stringify(map)); } catch {}
+  }
+
+  // ===== Sell-side warnings (pushed by admin.html only to users who HOLD the stock) =====
+  // A warning is "new" when a stock's status changes INTO Take some profit (3), Be cautious (4)
+  // or Buy call closed (9), or moves from one of those to another. Remembered per browser,
+  // like the buy-signal baseline; the first check ever is silent. Collected in
+  // window._pendingExitWarnings until the admin sender consumes them.
+  const EXIT_BASELINE_KEY = 'psx_alert_exit_baseline_v1';
+  const EXIT_WARNING_CODES = new Set([3, 4, 9]);
+  function detectNewExitWarnings() {
+    let baseline = {};
+    try { baseline = JSON.parse(localStorage.getItem(EXIT_BASELINE_KEY) || '{}'); } catch {}
+    const isFirstRun = Object.keys(baseline).length === 0;
+    const newBaseline = {};
+    window.SOURCE_DATA.forEach(d => {
+      const ticker = String(d.Ticker || '');
+      if (!ticker) return;
+      const code = sigStatusCode(d['Signal Status']);
+      newBaseline[ticker] = code == null ? null : code;
+      if (code == null || !EXIT_WARNING_CODES.has(code)) return;
+      if (!isFirstRun && baseline[ticker] !== code) {
+        window._pendingExitWarnings = window._pendingExitWarnings || new Map();
+        window._pendingExitWarnings.set(ticker, { ticker, name: d.Name || '', code });
+      }
+    });
+    try { localStorage.setItem(EXIT_BASELINE_KEY, JSON.stringify(newBaseline)); } catch {}
   }
 
   function findFreshSignalsToday() {
@@ -401,11 +421,10 @@
     window.SOURCE_DATA.forEach(d => {
       const ticker = String(d.Ticker || '');
       if (!ticker) return;
-      const code = sigStatusCode(d['Signal Status']);
-      newBaseline[ticker] = code;
-      if (code == null || !BUY_SIGNAL_CODES.has(code)) return;
-      const prevCode = baseline[ticker];
-      const wasAlreadyBuySignal = prevCode != null && BUY_SIGNAL_CODES.has(prevCode);
+      const qualifies = isAlertWorthy(d);
+      newBaseline[ticker] = qualifies ? 1 : 0;
+      if (!qualifies) return;
+      const wasAlreadyBuySignal = baseline[ticker] === 1;
       // First time this browser has ever checked: establish the baseline
       // silently rather than alerting on every stock already sitting in a
       // buy signal — only genuine changes from here on should alert.
@@ -413,10 +432,18 @@
     });
 
     writeStatusBaseline(newBaseline);
+    detectNewExitWarnings();
 
     // Expose to admin.html's FCM sender (window._latestNewSignals is read by
     // sendFcmToAllUsers() after data upload + reinitDashboard() runs).
     window._latestNewSignals = signals;
+
+    // Also accumulate them (keyed by ticker). A later check that finds "no change" would
+    // otherwise overwrite _latestNewSignals with [] before the admin sender reads it.
+    if (signals.length) {
+      window._pendingPushSignals = window._pendingPushSignals || new Map();
+      signals.forEach(d => window._pendingPushSignals.set(String(d.Ticker), d));
+    }
 
     const watchlistOnly = document.getElementById('alertsWatchlistOnlyToggle')?.checked;
     if (watchlistOnly && typeof window.getWatchlistTickers === 'function') {
@@ -430,7 +457,7 @@
     const body = document.getElementById('alertsPanelBody');
     if (!body) { console.warn('renderAlertsPanel: alertsPanelBody not found in DOM'); return; }
     if (!signals.length) {
-      body.innerHTML = '<div class="alerts-panel-empty">No stocks currently in a buy signal. Check back after the next data update.</div>';
+      body.innerHTML = '<div class="alerts-panel-empty">No stocks currently in an Initial Buy signal with a score above 70. Check back after the next data update.</div>';
       return;
     }
     body.innerHTML = signals.map(d => `
@@ -473,8 +500,8 @@
     if (!('Notification' in window)) return;
     const fire = () => {
       const tickers = signals.slice(0, 4).map(d => d.Ticker).join(', ');
-      new Notification('New buy signal' + (signals.length > 1 ? 's' : ''), {
-        body: `${signals.length} stock${signals.length > 1 ? 's' : ''} just turned bullish: ${tickers}`,
+      new Notification('New Initial Buy signal' + (signals.length > 1 ? 's' : ''), {
+        body: `${signals.length} stock${signals.length > 1 ? 's' : ''} in Initial Buy with score above ${ALERT_MIN_SCORE}: ${tickers}`,
         icon: undefined
       });
     };
