@@ -4812,7 +4812,7 @@ function renderScreenerPage() {
       <td class="mono">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}${signalReturnChip(d)}</td>
-      <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
+      <td class="mono screener-tech-col sig-status-cell">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" title="${s}" style="font-size:10px;padding:2px 7px;text-transform:none;"><span class="sig-full">${s}</span><span class="sig-short">${sigStatusShortLabel(raw)}</span></span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}${dayChangeChip(d)}</td>
       <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Volume'));return n==null?'':n>0?'positive':n<0?'negative':'';})()}">${(()=>{const n=toNum(dget(d,'Volume'));return n!=null?Math.round(n).toLocaleString():'—';})()}${relVolChip(d)}</td>
       <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Day Change %'));return n==null||n===0?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Day Change %'));return n!=null&&n!==0?(n>0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
@@ -4826,7 +4826,7 @@ function renderScreenerPage() {
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Rolling 1Y%'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Rolling 1Y%'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-nemi-col">${fmtSignalDate(dget(d,'NEMI Signal date'))}</td>
       <td class="mono screener-nemi-col">${(()=>{const n=toNum(dget(d,'NEMI Signal Price'));return n!=null?n.toFixed(2):'—'})()}${signalReturnChip(d,'NEMI ')}</td>
-      <td class="mono screener-nemi-col">${(()=>{const raw=dget(d,'NEMI Signal Status');const s=sigStatusLabel(raw);if(s==null)return '\u2014';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
+      <td class="mono screener-nemi-col sig-status-cell">${(()=>{const raw=dget(d,'NEMI Signal Status');const s=sigStatusLabel(raw);if(s==null)return '\u2014';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" title="${s}" style="font-size:10px;padding:2px 7px;text-transform:none;"><span class="sig-full">${s}</span><span class="sig-short">${sigStatusShortLabel(raw)}</span></span>`;})()}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -5455,6 +5455,12 @@ function sigStatusLabel(code) {
   const v = sigStatusCode(code);
   if (v == null) return (code == null || code === '') ? null : String(code);
   return SIGNAL_STATUS_MAP.hasOwnProperty(v) ? SIGNAL_STATUS_MAP[v] : String(code);
+}
+// Short status text for narrow screens (the full label is still used on desktop and in the tooltip).
+const SIGNAL_STATUS_SHORT = { 9: 'Closed', 4: 'Cautious', 3: 'Take profit', 2.5: 'Extended Buy', 1.7: 'Continue Buy', 1.5: 'Initial Buy', 1: 'Hold Trade', 0: 'No trade' };
+function sigStatusShortLabel(raw) {
+  const v = sigStatusCode(raw);
+  return (v != null && SIGNAL_STATUS_SHORT.hasOwnProperty(v)) ? SIGNAL_STATUS_SHORT[v] : sigStatusLabel(raw);
 }
 function sigStatusPillClass(code) {
   const v = sigStatusCode(code);

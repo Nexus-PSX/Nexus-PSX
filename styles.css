@@ -2955,3 +2955,17 @@ html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table t
 .sector-name-cell.sector-name-cell { display: table-cell; vertical-align: middle; }
 .sector-name-inner { display: flex; align-items: center; gap: 4px; max-width: 260px; }
 @media (max-width: 768px) { .sector-name-inner { max-width: 140px; } }
+
+
+/* Signal Status / NEMI Status pills: full text on desktop, a short one-line label on mobile
+   so the column is about as narrow as Signal Price. */
+.sig-short { display: none; }
+@media (max-width: 768px) {
+  .sig-full { display: none; }
+  .sig-short { display: inline; }
+  #screenerTable td.sig-status-cell,
+  #screenerTable th[data-sort-col="18"],
+  #screenerTable th[data-sort-col="31"] { width: 86px; min-width: 86px; max-width: 86px; }
+  #screenerTable td.sig-status-cell { white-space: nowrap; padding-left: 6px; padding-right: 6px; }
+  #screenerTable td.sig-status-cell .pill { font-size: 9px !important; padding: 2px 5px !important; white-space: nowrap; }
+}
