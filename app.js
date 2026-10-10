@@ -466,24 +466,25 @@ function dget(row, name) {
 // so stocks with no signal get no chip. Uses the sheet's 'Signal Return %' (already in %),
 // falling back to (Price − Signal Price) / Signal Price if that cell is blank.
 // Return since the signal in PERCENT (e.g. 11.3), or null when the stock has no active signal.
-function signalReturnPct(d) {
-  const date = dget(d, 'Signal date');
-  const sigPrice = toNum(dget(d, 'Signal Price'));
+// `p` is '' for the main signal or 'NEMI ' for the NEMI signal (columns 'NEMI Signal date' etc.).
+function signalReturnPct(d, p = '') {
+  const date = dget(d, p + 'Signal date');
+  const sigPrice = toNum(dget(d, p + 'Signal Price'));
   const hasSignal = date != null && date !== '' && date !== '—' && Number(date) !== 0 && sigPrice != null && sigPrice > 0;
   if (!hasSignal) return null;
   const cur = toNum(dget(d, 'Price'));
-  let pct = toNum(dget(d, 'Signal Return %'));
+  let pct = toNum(dget(d, p + 'Signal Return %'));
   if (pct == null && cur != null && cur > 0) pct = (cur - sigPrice) / sigPrice * 100;
   return (pct == null || !isFinite(pct)) ? null : pct;
 }
-function signalReturnChip(d) {
-  const pct = signalReturnPct(d);
+function signalReturnChip(d, p = '') {
+  const pct = signalReturnPct(d, p);
   if (pct == null) return '';
-  const sigPrice = toNum(dget(d, 'Signal Price'));
+  const sigPrice = toNum(dget(d, p + 'Signal Price'));
   const cur = toNum(dget(d, 'Price'));
   const a = Math.abs(pct);
   const txt = (a < 10 ? a.toFixed(1) : String(Math.round(a))) + '%';
-  const tip = `Signal price ${sigPrice.toFixed(2)}` + (cur != null ? ` → now ${cur.toFixed(2)}` : '') +
+  const tip = `${p ? 'NEMI s' : 'S'}ignal price ${sigPrice.toFixed(2)}` + (cur != null ? ` → now ${cur.toFixed(2)}` : '') +
     ': ' + (a < 0.05 ? 'unchanged since signal' : `${txt} ${pct > 0 ? 'up' : 'down'} since signal`);
   if (a < 0.05) return `<span class="score-delta flat" title="${tip}">±0%</span>`;
   return pct > 0
@@ -2609,7 +2610,7 @@ function setColFilterDirButton(op) {
 // For these, the filter box accepts a plain percent number (e.g. "5") and we convert
 // to/from the fraction under the hood, so typing "5" means 5% rather than 500%.
 const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q', 'REV Q G%',
-  'Signal Price', // the Signal Price filter compares RETURN % since the signal, not the price itself (see signalReturnPct)
+  'Signal Price', 'NEMI Signal Price', // the Signal Price filters compares RETURN % since the signal, not the price itself (see signalReturnPct)
   'Fair Value'   // the Fair Value filter compares UPSIDE % to price, not the raw fair value (see fairValueUpsideFrac)
 ]);
 // Percent shown in the filter box without float noise (0.07*100 → 7, not 7.000000000000001)
@@ -2636,14 +2637,14 @@ function openColFilter(event, key, label) {
   }
   activeColFilterKey = key;
   const titleEl = document.getElementById('colFilterPopoverTitle');
-  if (titleEl) titleEl.textContent = key === 'Fair Value' ? 'Filter: Fair Value upside %' : key === 'Signal Price' ? 'Filter: return since signal %' : 'Filter: ' + label;
+  if (titleEl) titleEl.textContent = key === 'Fair Value' ? 'Filter: Fair Value upside %' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Filter: ' + (key.startsWith('NEMI') ? 'NEMI ' : '') + 'return since signal %' : 'Filter: ' + label;
   const isPct = PERCENT_COL_FILTER_KEYS.has(key);
   const existing = screenerColFilters[key];
   const dirBtn = document.getElementById('colFilterDir');
   const valInput = document.getElementById('colFilterVal');
   setColFilterDirButton(existing ? existing.op : 'gte');
   valInput.value = existing != null ? (isPct ? colFilterPctShown(existing.val) : existing.val) : '';
-  valInput.placeholder = key === 'Fair Value' ? 'Upside % (e.g. 20)' : key === 'Signal Price' ? 'Return % (e.g. 10)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
+  valInput.placeholder = key === 'Fair Value' ? 'Upside % (e.g. 20)' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Return % (e.g. 10)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
 
   popover.classList.remove('hidden');
   // Position just below the clicked icon, clamped so it never spills off-screen
@@ -2708,7 +2709,7 @@ function updateColFilterIcons() {
       const shown = isPct ? colFilterPctShown(f.val) : f.val;
       icon.title = `Filtered: ${COL_FILTER_SYMBOL[f.op] || '>'} ${shown}${isPct ? '%' : ''}`;
     } else {
-      icon.title = key === 'Fair Value' ? 'Filter by upside % to Fair Value' : key === 'Signal Price' ? 'Filter by return % since the signal' : (icon.dataset.baseTitle || 'Filter this column');
+      icon.title = key === 'Fair Value' ? 'Filter by upside % to Fair Value' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Filter by return % since the ' + (key.startsWith('NEMI') ? 'NEMI ' : '') + 'signal' : (icon.dataset.baseTitle || 'Filter this column');
     }
   });
 }
@@ -2812,7 +2813,7 @@ function filterScreener() {
       // "Last Period End Date" is an ISO "YYYY-MM-DD" string — toNum() on that
       // only grabs the leading year, so convert to a YYYYMMDD number first
       // (matches what the user types, same convention as Signal date's filter).
-      const v = fkey === 'Signal Price' ? (signalReturnPct(d) == null ? null : signalReturnPct(d) / 100)
+      const v = (fkey === 'Signal Price' || fkey === 'NEMI Signal Price') ? (() => { const r = signalReturnPct(d, fkey === 'NEMI Signal Price' ? 'NEMI ' : ''); return r == null ? null : r / 100; })()
               : fkey === 'Fair Value' ? fairValueUpsideFrac(d)
               : fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
@@ -4802,8 +4803,7 @@ function renderScreenerPage() {
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Rolling 6M%'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Rolling 6M%'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Rolling 1Y%'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Rolling 1Y%'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-nemi-col">${fmtSignalDate(dget(d,'NEMI Signal date'))}</td>
-      <td class="mono screener-nemi-col">${(()=>{const n=toNum(dget(d,'NEMI Signal Price'));return n!=null?n.toFixed(2):'—'})()}</td>
-      <td class="mono screener-nemi-col ${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'NEMI Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
+      <td class="mono screener-nemi-col">${(()=>{const n=toNum(dget(d,'NEMI Signal Price'));return n!=null?n.toFixed(2):'—'})()}${signalReturnChip(d,'NEMI ')}</td>
       <td class="mono screener-nemi-col">${(()=>{const raw=dget(d,'NEMI Signal Status');const s=sigStatusLabel(raw);if(s==null)return '\u2014';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
     `;
     tbody.appendChild(tr);
@@ -4864,7 +4864,6 @@ function updateScreenerAvgRow() {
     return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
   })();
 
-  const nemiRet = avg('NEMI Signal Return %');
   const dayChg  = avg('Day Change %');
 
   tfoot.innerHTML = `<tr id="screenerAvgRow">
@@ -4906,7 +4905,6 @@ function updateScreenerAvgRow() {
     ${pctRetCell('Rolling 1Y%',            'screener-perf-col')}
     <td class="mono screener-nemi-col">—</td>
     <td class="mono screener-nemi-col">${fmt(avg('NEMI Signal Price'),2)}</td>
-    <td class="mono screener-nemi-col ${nemiRet != null ? nemiRet > 0 ? 'positive' : 'negative' : ''}">${nemiRet != null ? (nemiRet >= 0 ? '+' : '') + nemiRet.toFixed(2) + '%' : '—'}</td>
     <td class="mono screener-nemi-col">—</td>
   </tr>`;
 }
