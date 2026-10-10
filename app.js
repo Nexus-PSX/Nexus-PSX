@@ -465,15 +465,22 @@ function dget(row, name) {
 // Shown only when there IS an active signal (a signal date and a signal price above zero),
 // so stocks with no signal get no chip. Uses the sheet's 'Signal Return %' (already in %),
 // falling back to (Price − Signal Price) / Signal Price if that cell is blank.
-function signalReturnChip(d) {
+// Return since the signal in PERCENT (e.g. 11.3), or null when the stock has no active signal.
+function signalReturnPct(d) {
   const date = dget(d, 'Signal date');
   const sigPrice = toNum(dget(d, 'Signal Price'));
   const hasSignal = date != null && date !== '' && date !== '—' && Number(date) !== 0 && sigPrice != null && sigPrice > 0;
-  if (!hasSignal) return '';
+  if (!hasSignal) return null;
   const cur = toNum(dget(d, 'Price'));
   let pct = toNum(dget(d, 'Signal Return %'));
   if (pct == null && cur != null && cur > 0) pct = (cur - sigPrice) / sigPrice * 100;
-  if (pct == null || !isFinite(pct)) return '';
+  return (pct == null || !isFinite(pct)) ? null : pct;
+}
+function signalReturnChip(d) {
+  const pct = signalReturnPct(d);
+  if (pct == null) return '';
+  const sigPrice = toNum(dget(d, 'Signal Price'));
+  const cur = toNum(dget(d, 'Price'));
   const a = Math.abs(pct);
   const txt = (a < 10 ? a.toFixed(1) : String(Math.round(a))) + '%';
   const tip = `Signal price ${sigPrice.toFixed(2)}` + (cur != null ? ` → now ${cur.toFixed(2)}` : '') +
@@ -2602,6 +2609,7 @@ function setColFilterDirButton(op) {
 // For these, the filter box accepts a plain percent number (e.g. "5") and we convert
 // to/from the fraction under the hood, so typing "5" means 5% rather than 500%.
 const PERCENT_COL_FILTER_KEYS = new Set(['EPS Q G%', 'Op Income-Q', 'Net Income -Q', 'ROE 2026-Q1', 'Latest Div Y Q', 'REV Q G%',
+  'Signal Price', // the Signal Price filter compares RETURN % since the signal, not the price itself (see signalReturnPct)
   'Fair Value'   // the Fair Value filter compares UPSIDE % to price, not the raw fair value (see fairValueUpsideFrac)
 ]);
 // Percent shown in the filter box without float noise (0.07*100 → 7, not 7.000000000000001)
@@ -2628,14 +2636,14 @@ function openColFilter(event, key, label) {
   }
   activeColFilterKey = key;
   const titleEl = document.getElementById('colFilterPopoverTitle');
-  if (titleEl) titleEl.textContent = key === 'Fair Value' ? 'Filter: Fair Value upside %' : 'Filter: ' + label;
+  if (titleEl) titleEl.textContent = key === 'Fair Value' ? 'Filter: Fair Value upside %' : key === 'Signal Price' ? 'Filter: return since signal %' : 'Filter: ' + label;
   const isPct = PERCENT_COL_FILTER_KEYS.has(key);
   const existing = screenerColFilters[key];
   const dirBtn = document.getElementById('colFilterDir');
   const valInput = document.getElementById('colFilterVal');
   setColFilterDirButton(existing ? existing.op : 'gte');
   valInput.value = existing != null ? (isPct ? colFilterPctShown(existing.val) : existing.val) : '';
-  valInput.placeholder = key === 'Fair Value' ? 'Upside % (e.g. 20)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
+  valInput.placeholder = key === 'Fair Value' ? 'Upside % (e.g. 20)' : key === 'Signal Price' ? 'Return % (e.g. 10)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
 
   popover.classList.remove('hidden');
   // Position just below the clicked icon, clamped so it never spills off-screen
@@ -2700,7 +2708,7 @@ function updateColFilterIcons() {
       const shown = isPct ? colFilterPctShown(f.val) : f.val;
       icon.title = `Filtered: ${COL_FILTER_SYMBOL[f.op] || '>'} ${shown}${isPct ? '%' : ''}`;
     } else {
-      icon.title = key === 'Fair Value' ? 'Filter by upside % to Fair Value' : (icon.dataset.baseTitle || 'Filter this column');
+      icon.title = key === 'Fair Value' ? 'Filter by upside % to Fair Value' : key === 'Signal Price' ? 'Filter by return % since the signal' : (icon.dataset.baseTitle || 'Filter this column');
     }
   });
 }
@@ -2804,7 +2812,8 @@ function filterScreener() {
       // "Last Period End Date" is an ISO "YYYY-MM-DD" string — toNum() on that
       // only grabs the leading year, so convert to a YYYYMMDD number first
       // (matches what the user types, same convention as Signal date's filter).
-      const v = fkey === 'Fair Value' ? fairValueUpsideFrac(d)
+      const v = fkey === 'Signal Price' ? (signalReturnPct(d) == null ? null : signalReturnPct(d) / 100)
+              : fkey === 'Fair Value' ? fairValueUpsideFrac(d)
               : fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
       if (f.op === 'gt'  && v <= f.val) return false;   // >
