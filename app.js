@@ -4778,7 +4778,6 @@ function renderScreenerPage() {
       <td class="mono">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}${signalReturnChip(d)}</td>
-      <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Day Change'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
@@ -4856,7 +4855,6 @@ function updateScreenerAvgRow() {
     return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
   })();
 
-  const sigRet  = avg('Signal Return %');
   const nemiRet = avg('NEMI Signal Return %');
   const dayChg  = avg('Day Change %');
 
@@ -4883,7 +4881,6 @@ function updateScreenerAvgRow() {
     <td class="mono">${fmt(avg('Fair Value'),2)}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-tech-col">${fmt(avg('Signal Price'),2)}</td>
-    <td class="mono screener-tech-col ${sigRet != null ? sigRet > 0 ? 'positive' : 'negative' : ''}">${sigRet != null ? (sigRet >= 0 ? '+' : '') + sigRet.toFixed(2) + '%' : '—'}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-daily-col">${avg('Price') != null ? avg('Price').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
     <td class="mono screener-daily-col">${avg('Day Change') != null ? avg('Day Change').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
@@ -6684,7 +6681,7 @@ const FAQ_DATA = [
       },
       {
         q: 'What is Signal Return %?',
-        a: 'The percentage gain or loss from the Signal Date price to the current price. For example, if a stock had an Initial Buy signal at price 50 and is now at 65, Signal Return % = +30%. This shows how much profit has been made since the signal was issued.'
+        a: 'The percentage gain or loss from the Signal Date price to the current price. For example, if a stock had an Initial Buy signal at price 50 and is now at 65, Signal Return % = +30%. This shows how much profit has been made since the signal was issued. In the Stock Screener it appears as a green ▲ or red ▼ chip beside the Signal Price (no chip when a stock has no signal).'
       },
     ]
   },
