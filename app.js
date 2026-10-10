@@ -460,6 +460,29 @@ function dget(row, name) {
 //   > 0 green ▲, < 0 red ▼, 0 muted ±0, blank → muted NEW.
 // If the column doesn't exist in the data at all (not added to the Excel yet),
 // nothing is shown, so every row doesn't get a misleading "NEW".
+// ===== SIGNAL RETURN CHIP (beside Signal Price) ========================
+// Return since the signal: ▲ green when the stock is above its signal price, ▼ red when below.
+// Shown only when there IS an active signal (a signal date and a signal price above zero),
+// so stocks with no signal get no chip. Uses the sheet's 'Signal Return %' (already in %),
+// falling back to (Price − Signal Price) / Signal Price if that cell is blank.
+function signalReturnChip(d) {
+  const date = dget(d, 'Signal date');
+  const sigPrice = toNum(dget(d, 'Signal Price'));
+  const hasSignal = date != null && date !== '' && date !== '—' && Number(date) !== 0 && sigPrice != null && sigPrice > 0;
+  if (!hasSignal) return '';
+  const cur = toNum(dget(d, 'Price'));
+  let pct = toNum(dget(d, 'Signal Return %'));
+  if (pct == null && cur != null && cur > 0) pct = (cur - sigPrice) / sigPrice * 100;
+  if (pct == null || !isFinite(pct)) return '';
+  const a = Math.abs(pct);
+  const txt = (a < 10 ? a.toFixed(1) : String(Math.round(a))) + '%';
+  const tip = `Signal price ${sigPrice.toFixed(2)}` + (cur != null ? ` → now ${cur.toFixed(2)}` : '') +
+    ': ' + (a < 0.05 ? 'unchanged since signal' : `${txt} ${pct > 0 ? 'up' : 'down'} since signal`);
+  if (a < 0.05) return `<span class="score-delta flat" title="${tip}">±0%</span>`;
+  return pct > 0
+    ? `<span class="score-delta up" title="${tip}">▲${txt}</span>`
+    : `<span class="score-delta down" title="${tip}">▼${txt}</span>`;
+}
 // ===== FAIR VALUE vs PRICE CHIP ========================================
 // Upside/downside to Fair Value relative to the current price:
 //   (Fair Value − Price) / Price.  ▲ green = trading below fair value (upside),
@@ -4754,7 +4777,7 @@ function renderScreenerPage() {
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span>${scoreDeltaChip(d)}</td>
       <td class="mono">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
-      <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
+      <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}${signalReturnChip(d)}</td>
       <td class="mono screener-tech-col ${valColor(dget(d,'Signal Return %'))}">${(()=>{const n=toNum(dget(d,'Signal Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—'})()}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
       <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
