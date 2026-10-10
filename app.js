@@ -491,6 +491,29 @@ function signalReturnChip(d, p = '') {
     ? `<span class="score-delta up" title="${tip}">▲${txt}</span>`
     : `<span class="score-delta down" title="${tip}">▼${txt}</span>`;
 }
+// ===== DAY CHANGE CHIP (beside Price) ====================================
+// Today's price change in rupees: ▲ green up, ▼ red down, ±0.00 muted when flat.
+function dayChangeChip(d) {
+  const n = toNum(dget(d, 'Day Change'));
+  if (n == null) return '';
+  const fmt2 = x => x.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const pct = toNum(dget(d, 'Day Change %'));
+  const tip = `Day change ${n > 0 ? '+' : n < 0 ? '-' : ''}${fmt2(Math.abs(n))}` + (pct != null && pct !== 0 ? ` (${pct > 0 ? '+' : ''}${pct.toFixed(2)}%)` : '');
+  if (n === 0) return `<span class="score-delta flat" title="${tip}">±0.00</span>`;
+  return n > 0
+    ? `<span class="score-delta up" title="${tip}">▲${fmt2(n)}</span>`
+    : `<span class="score-delta down" title="${tip}">▼${fmt2(Math.abs(n))}</span>`;
+}
+
+// ===== RELATIVE VOLUME CHIP (beside Volume) ==============================
+// Today's volume as a multiple of the average: green above 1.5x, red below 0.5x, muted in between.
+function relVolValue(d) { return toNum(dget(d, 'Relative Vol') ?? dget(d, 'Rel Vol')); }
+function relVolChip(d) {
+  const n = relVolValue(d);
+  if (n == null) return '';
+  const cls = n > 1.5 ? 'up' : n < 0.5 ? 'down' : 'flat';
+  return `<span class="score-delta ${cls}" title="Relative volume ${n.toFixed(2)}x the average (green above 1.5x, red below 0.5x)">${n.toFixed(2)}x</span>`;
+}
 // ===== FAIR VALUE vs PRICE CHIP ========================================
 // Upside/downside to Fair Value relative to the current price:
 //   (Fair Value − Price) / Price.  ▲ green = trading below fair value (upside),
@@ -2637,14 +2660,14 @@ function openColFilter(event, key, label) {
   }
   activeColFilterKey = key;
   const titleEl = document.getElementById('colFilterPopoverTitle');
-  if (titleEl) titleEl.textContent = key === 'Fair Value' ? 'Filter: Fair Value upside %' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Filter: ' + (key.startsWith('NEMI') ? 'NEMI ' : '') + 'return since signal %' : 'Filter: ' + label;
+  if (titleEl) titleEl.textContent = key === 'Volume' ? 'Filter: relative volume (x)' : key === 'Fair Value' ? 'Filter: Fair Value upside %' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Filter: ' + (key.startsWith('NEMI') ? 'NEMI ' : '') + 'return since signal %' : 'Filter: ' + label;
   const isPct = PERCENT_COL_FILTER_KEYS.has(key);
   const existing = screenerColFilters[key];
   const dirBtn = document.getElementById('colFilterDir');
   const valInput = document.getElementById('colFilterVal');
   setColFilterDirButton(existing ? existing.op : 'gte');
   valInput.value = existing != null ? (isPct ? colFilterPctShown(existing.val) : existing.val) : '';
-  valInput.placeholder = key === 'Fair Value' ? 'Upside % (e.g. 20)' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Return % (e.g. 10)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
+  valInput.placeholder = key === 'Volume' ? 'Rel. volume (e.g. 2)' : key === 'Fair Value' ? 'Upside % (e.g. 20)' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Return % (e.g. 10)' : isPct ? 'Value (%)' : (DATE_COL_FILTER_KEYS.has(key) ? 'YYYYMMDD' : 'Value');
 
   popover.classList.remove('hidden');
   // Position just below the clicked icon, clamped so it never spills off-screen
@@ -2709,7 +2732,7 @@ function updateColFilterIcons() {
       const shown = isPct ? colFilterPctShown(f.val) : f.val;
       icon.title = `Filtered: ${COL_FILTER_SYMBOL[f.op] || '>'} ${shown}${isPct ? '%' : ''}`;
     } else {
-      icon.title = key === 'Fair Value' ? 'Filter by upside % to Fair Value' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Filter by return % since the ' + (key.startsWith('NEMI') ? 'NEMI ' : '') + 'signal' : (icon.dataset.baseTitle || 'Filter this column');
+      icon.title = key === 'Volume' ? 'Filter by relative volume (x the average)' : key === 'Fair Value' ? 'Filter by upside % to Fair Value' : (key === 'Signal Price' || key === 'NEMI Signal Price') ? 'Filter by return % since the ' + (key.startsWith('NEMI') ? 'NEMI ' : '') + 'signal' : (icon.dataset.baseTitle || 'Filter this column');
     }
   });
 }
@@ -2815,6 +2838,7 @@ function filterScreener() {
       // (matches what the user types, same convention as Signal date's filter).
       const v = (fkey === 'Signal Price' || fkey === 'NEMI Signal Price') ? (() => { const r = signalReturnPct(d, fkey === 'NEMI Signal Price' ? 'NEMI ' : ''); return r == null ? null : r / 100; })()
               : fkey === 'Fair Value' ? fairValueUpsideFrac(d)
+              : fkey === 'Volume' ? relVolValue(d)
               : fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
       if (f.op === 'gt'  && v <= f.val) return false;   // >
@@ -4789,10 +4813,8 @@ function renderScreenerPage() {
       <td class="mono screener-tech-col">${fmtSignalDate(dget(d,'Signal date'))}</td>   
       <td class="mono screener-tech-col">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}${signalReturnChip(d)}</td>
       <td class="mono screener-tech-col">${(()=>{const raw=dget(d,'Signal Status');const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" style="font-size:10px;padding:2px 7px;text-transform:none;">${s}</span>`;})()}</td>
-      <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
-      <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Day Change'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}</td>
-      <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Relative Vol')??dget(d,'Rel Vol'));return n==null?'':n>1.5?'positive':n<0.5?'negative':'';})()}">${(()=>{const n=toNum(dget(d,'Relative Vol')??dget(d,'Rel Vol'));return n!=null?n.toFixed(2):'—';})()}</td>
-      <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Volume'));return n==null?'':n>0?'positive':n<0?'negative':'';})()}">${(()=>{const n=toNum(dget(d,'Volume'));return n!=null?Math.round(n).toLocaleString():'—';})()}</td>
+      <td class="mono screener-daily-col">${(()=>{const n=toNum(dget(d,'Price'));return n!=null?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';})()}${dayChangeChip(d)}</td>
+      <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Volume'));return n==null?'':n>0?'positive':n<0?'negative':'';})()}">${(()=>{const n=toNum(dget(d,'Volume'));return n!=null?Math.round(n).toLocaleString():'—';})()}${relVolChip(d)}</td>
       <td class="mono screener-daily-col ${(()=>{const n=toNum(dget(d,'Day Change %'));return n==null||n===0?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Day Change %'));return n!=null&&n!==0?(n>0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Current Week Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Current Week Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
       <td class="mono screener-perf-col ${(()=>{const n=toNum(dget(d,'Current Month Return %'));return n==null?'':n>0?'positive':'negative';})()}">${(()=>{const n=toNum(dget(d,'Current Month Return %'));return n!=null?(n>=0?'+':'')+n.toFixed(2)+'%':'—';})()}</td>
@@ -4891,8 +4913,6 @@ function updateScreenerAvgRow() {
     <td class="mono screener-tech-col">${fmt(avg('Signal Price'),2)}</td>
     <td class="mono screener-tech-col">—</td>
     <td class="mono screener-daily-col">${avg('Price') != null ? avg('Price').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
-    <td class="mono screener-daily-col">${avg('Day Change') != null ? avg('Day Change').toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
-    <td class="mono screener-daily-col ${rvolCls}">${rvol != null ? rvol.toFixed(2) : '—'}</td>
     <td class="mono screener-daily-col">${volAvg != null ? Math.round(volAvg).toLocaleString() : '—'}</td>
     <td class="mono screener-daily-col ${dayChg != null && dayChg !== 0 ? dayChg > 0 ? 'positive' : 'negative' : ''}">${dayChg != null && dayChg !== 0 ? (dayChg > 0 ? '+' : '') + dayChg.toFixed(2) + '%' : '—'}</td>
     ${pctRetCell('Current Week Return %',  'screener-perf-col')}
