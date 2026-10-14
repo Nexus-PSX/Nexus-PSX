@@ -2867,7 +2867,13 @@ button, input, select, textarea { font-family: inherit; }
   --chart-grid: rgba(60,60,67,.08);
 }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) body { background: var(--bg); color: var(--text); }
-html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header { background: color-mix(in srgb, var(--header-bg) 85%, transparent); -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur); border-bottom: .5px solid var(--border2); box-shadow: none; }
+/* NOTE: the frosted blur lives on ::before, NOT on .header itself. Any
+   backdrop-filter/filter/transform on an ancestor turns it into the containing
+   block for position:fixed descendants — which broke the account dropdown
+   (fixed, inside the header) on mobile: its bottom/top offsets were measured
+   from the header box instead of the screen, so it rendered off-screen. */
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header { background: transparent; border-bottom: .5px solid var(--border2); box-shadow: none; }
+html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: color-mix(in srgb, var(--header-bg) 85%, transparent); -webkit-backdrop-filter: var(--ios-blur); backdrop-filter: var(--ios-blur); transition: background 0.25s; }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-value, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .sector-name-cell { color: var(--text) !important; }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table td.mono { color: var(--text); }
 html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .header-subtitle, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .kpi-name, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .info-label, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .chart-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .score-label, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .table-title, html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .screener-sector-cell { color: var(--text2) !important; }
