@@ -3266,8 +3266,11 @@ let pfCash = 0;
 let pfOpen = [];              // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate}]
 let pfClosed = [];            // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
 let pfLots = {};              // COMPUTED by replay — {ticker: [{qty, price, date}, ...]} oldest-first FIFO lots still open. Used for Day P&L so shares bought today are measured from their own buy price, not from yesterday's close.
+let pfDividends = {};         // COMPUTED by replay — {ticker: {net, gross, tax, count}} dividend income received (net of tax, already credited to cash)
+let pfDivFormState = null;    // dividend form state — null (closed) or {ticker}
+let pfRightFormState = null;  // right-shares form state — null (closed) or {ticker}
 let pfLegacyClosed = [];      // Frozen pre-log-model closed positions — read-only, not part of the replay
-let pfTransactions = [];      // SOURCE OF TRUTH — [{id, type:'buy'|'sell'|'deposit'|'withdraw', ticker?, qty?, price?, amount?, date, ts}]
+let pfTransactions = [];      // SOURCE OF TRUTH — [{id, type:'buy'|'sell'|'deposit'|'withdraw'|'dividend'|'right', ticker?, qty?, price?, amount?, date, ts} — 'dividend' uses qty (shares eligible), dps (dividend per share) and taxPct; 'right' is a subscribed right-share purchase (qty, price = subscription price)]
 let pfMode = 'local';         // 'local' | 'firestore'
 let pfUID = null;
 let pfReadyPromise = Promise.resolve();
@@ -3314,17 +3317,33 @@ function pfWriteLocal(state) { wlLocalSet(PF_LOCAL_KEY, JSON.stringify(state)); 
 // buy/sell — so every other part of the app (open positions table, buy/sell
 // forms, allocation chart) keeps working exactly as before; only the
 // realized P&L on a sell is actually computed FIFO-style underneath.
+// Dividend helpers — cash credited is the NET amount after tax withholding.
+function pfDividendGross(t) { return (t.qty || 0) * (t.dps || 0); }
+function pfDividendNet(t)   { return pfDividendGross(t) * (1 - (t.taxPct || 0) / 100); }
+
 function pfApplyTxToState(state, t, pnlMap) {
   if (t.type === 'deposit') {
     state.cash += t.amount;
   } else if (t.type === 'withdraw') {
     state.cash -= t.amount;
-  } else if (t.type === 'buy') {
+  } else if (t.type === 'buy' || t.type === 'right') {
+    // A subscribed right issue is economically a buy at the subscription price:
+    // cash goes out, a new FIFO lot comes in, and the position's blended
+    // avg price re-derives automatically (the dilution effect on cost basis).
     state.cash -= t.qty * t.price;
     if (!state.lots) state.lots = {};
     if (!state.lots[t.ticker]) state.lots[t.ticker] = [];
     state.lots[t.ticker].push({ qty: t.qty, price: t.price, date: t.date });
     pfSyncOpenFromLots(state, t.ticker);
+  } else if (t.type === 'dividend') {
+    // Income, not a change in position: credits net cash and is tracked per
+    // ticker for the Dividends card. Does not touch lots, cost basis or P&L.
+    const gross = pfDividendGross(t);
+    const net = pfDividendNet(t);
+    state.cash += net;
+    if (!state.dividends) state.dividends = {};
+    const d = state.dividends[t.ticker] || (state.dividends[t.ticker] = { net: 0, gross: 0, tax: 0, count: 0 });
+    d.net += net; d.gross += gross; d.tax += (gross - net); d.count++;
   } else if (t.type === 'sell') {
     const lots = (state.lots && state.lots[t.ticker]) || [];
     const idxBefore = state.open.findIndex(h => h.ticker === t.ticker);
@@ -3377,7 +3396,7 @@ function pfSyncOpenFromLots(state, ticker) {
 // pointing at shares that (after the edit) were never bought.
 function pfTryReplay(transactions) {
   const sorted = [...transactions].sort((a, b) => a.ts - b.ts);
-  const state = { cash: 0, open: [], closed: [], lots: {} };
+  const state = { cash: 0, open: [], closed: [], lots: {}, dividends: {} };
   const pnlMap = new Map();
   for (const t of sorted) {
     if (t.type === 'sell') {
@@ -3392,9 +3411,17 @@ function pfTryReplay(transactions) {
   return { ok: true, state, pnlMap };
 }
 
+// Copies a successful replay result into the live globals (single place, so
+// recompute / edit / delete can't drift apart).
+function pfCommitReplay(r) {
+  pfCash = r.state.cash; pfOpen = r.state.open; pfClosed = r.state.closed;
+  pfLots = r.state.lots || {}; pfDividends = r.state.dividends || {};
+  pfRealizedPnlByTxId = r.pnlMap;
+}
+
 function pfRecomputeFromTransactions() {
   const result = pfTryReplay(pfTransactions);
-  if (result.ok) { pfCash = result.state.cash; pfOpen = result.state.open; pfClosed = result.state.closed; pfLots = result.state.lots || {}; pfRealizedPnlByTxId = result.pnlMap; }
+  if (result.ok) pfCommitReplay(result);
   screenerRefreshIfPortfolioFilter();
   return result;
 }
@@ -3435,7 +3462,7 @@ function pfApplyState(s) {
     if (!result.ok) {
       // Shouldn't normally happen — fall back to the last-known-good stored
       // snapshot rather than showing broken/empty data.
-      pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; pfLots = {};
+      pfCash = s.cash; pfOpen = s.open; pfClosed = s.closed; pfLots = {}; pfDividends = {};
     }
   } else if ((s.open && s.open.length) || s.cash) {
     // Pre-existing data from before the transaction log existed. Seed
@@ -3447,7 +3474,7 @@ function pfApplyState(s) {
     pfRecomputeFromTransactions();
     pfSave(); // persist the seeded log so this migration only ever runs once
   } else {
-    pfCash = 0; pfOpen = []; pfClosed = []; pfLots = {};
+    pfCash = 0; pfOpen = []; pfClosed = []; pfLots = {}; pfDividends = {};
   }
 }
 
@@ -3744,10 +3771,16 @@ function renderPfTxEditForm() {
   if (!t) { pfEditingTxId = null; wrap.innerHTML = ''; return; }
 
   const isCash = t.type === 'deposit' || t.type === 'withdraw';
+  const isDiv = t.type === 'dividend';
+  const _in = 'padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);';
   wrap.innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:12px;margin:8px 0 16px;">
       <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Editing ${t.type.toUpperCase()}</div><div style="font-weight:700;font-size:14px;">${t.ticker || 'Cash'}</div></div>
-      ${isCash ? `
+      ${isDiv ? `
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Shares</label><input type="number" id="pfTxQty" value="${t.qty}" min="1" step="1" style="width:100px;${_in}"></div>
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Dividend / Share</label><input type="number" id="pfTxDps" value="${t.dps}" min="0" step="0.01" style="width:120px;${_in}"></div>
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Tax %</label><input type="number" id="pfTxTax" value="${t.taxPct || 0}" min="0" max="100" step="0.01" style="width:80px;${_in}"></div>
+      ` : isCash ? `
         <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Amount</label><input type="number" id="pfTxAmount" value="${t.amount}" min="0" step="0.01" style="width:140px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
       ` : `
         <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Quantity</label><input type="number" id="pfTxQty" value="${t.qty}" min="1" step="1" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
@@ -3768,7 +3801,13 @@ async function pfConfirmTxEdit() {
   const date = dateEl && dateEl.value ? dateEl.value : t.date;
 
   let updated;
-  if (isCash) {
+  if (t.type === 'dividend') {
+    const qty = parseFloat(document.getElementById('pfTxQty')?.value);
+    const dps = parseFloat(document.getElementById('pfTxDps')?.value);
+    const taxPct = parseFloat(document.getElementById('pfTxTax')?.value) || 0;
+    if (!qty || qty <= 0 || !dps || dps <= 0 || taxPct < 0 || taxPct > 100) { alert('Enter valid shares, dividend per share, and a tax % between 0 and 100.'); return; }
+    updated = { ...t, qty, dps, taxPct, date };
+  } else if (isCash) {
     const amt = parseFloat(document.getElementById('pfTxAmount')?.value);
     if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
     updated = { ...t, amount: amt, date };
@@ -3792,7 +3831,7 @@ async function pfConfirmTxEdit() {
   }
 
   pfTransactions = candidate;
-  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfLots = check.state.lots || {}; pfRealizedPnlByTxId = check.pnlMap;
+  pfCommitReplay(check);
   pfEditingTxId = null;
   await pfSave();
   buildPortfolioTab();
@@ -3811,8 +3850,182 @@ async function pfDeleteTransaction(id) {
   }
 
   pfTransactions = candidate;
-  pfCash = check.state.cash; pfOpen = check.state.open; pfClosed = check.state.closed; pfLots = check.state.lots || {}; pfRealizedPnlByTxId = check.pnlMap;
+  pfCommitReplay(check);
   if (pfEditingTxId === id) pfEditingTxId = null;
+  await pfSave();
+  buildPortfolioTab();
+}
+
+
+// ----- Dividend received -----
+// Records a cash dividend: shares eligible × dividend per share, less tax
+// withheld. The NET amount is credited to cash; it is income, so it does not
+// affect positions, cost basis or realized/unrealized P&L (shown on its own
+// "Dividends Received" card instead).
+const PF_INPUT_STYLE = 'padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);';
+const PF_LABEL_STYLE = 'font-size:11px;color:var(--text2);display:block;margin-bottom:4px;';
+const PF_DEFAULT_DIV_TAX = 15; // % withheld — editable per entry in the form
+
+function pfTickerDatalist(id) {
+  const heldSet = new Set(pfOpen.map(h => h.ticker));
+  const opts = [...pfOpen.map(h => h.ticker), ...allTickers.map(t => t.ticker).filter(t => !heldSet.has(t))];
+  return `<datalist id="${id}">${opts.map(t => `<option value="${t}"></option>`).join('')}</datalist>`;
+}
+function pfIsKnownTicker(tk) { return allTickers.some(t => t.ticker === tk); }
+function pfFmt2(v) { return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+function pfOpenDividendForm(ticker) {
+  pfDivFormState = { ticker: ticker || '' };
+  renderPfDividendForm();
+  document.getElementById('pfDivForm')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function pfCancelDividend() { pfDivFormState = null; renderPfDividendForm(); }
+
+function renderPfDividendForm() {
+  const wrap = document.getElementById('pfDivForm');
+  if (!wrap) return;
+  if (!pfDivFormState) { wrap.innerHTML = ''; return; }
+  const tk = pfDivFormState.ticker;
+  const held = pfOpen.find(h => h.ticker === tk);
+  wrap.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--success);border-radius:10px;padding:12px;margin:8px 0 6px;">
+      <div><label style="${PF_LABEL_STYLE}">Ticker</label><input type="text" id="pfDivTicker" list="pfDivTickers" value="${tk}" placeholder="e.g. OGDC" autocomplete="off" oninput="pfDivOnTicker()" style="width:110px;text-transform:uppercase;${PF_INPUT_STYLE}">${pfTickerDatalist('pfDivTickers')}</div>
+      <div><label style="${PF_LABEL_STYLE}">Shares</label><input type="number" id="pfDivQty" value="${held ? held.qty : ''}" min="1" step="1" oninput="pfDivPreview()" style="width:100px;${PF_INPUT_STYLE}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Dividend / Share</label><input type="number" id="pfDivDps" value="" min="0" step="0.01" placeholder="0.00" oninput="pfDivPreview()" style="width:120px;${PF_INPUT_STYLE}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Tax Withheld %</label><input type="number" id="pfDivTax" value="${PF_DEFAULT_DIV_TAX}" min="0" max="100" step="0.01" oninput="pfDivPreview()" style="width:90px;${PF_INPUT_STYLE}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Date Received</label><input type="date" id="pfDivDate" value="${new Date().toISOString().slice(0,10)}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfConfirmDividend()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--success);color:#fff;font-weight:600;cursor:pointer;">Add Dividend</button>
+      <button onclick="pfCancelDividend()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
+    </div>
+    <div id="pfDivPreview" style="font-size:11px;color:var(--text2);margin:0 0 4px;"></div>
+    <div style="font-size:11px;color:var(--text2);margin:0 0 16px;">Tip: PSX dividends are quoted as a % of face value — e.g. 25% on a Rs 10 share = Rs 2.50 per share. The net amount (after tax) is added to your cash.</div>`;
+  pfDivPreview();
+}
+
+function pfDivOnTicker() {
+  const tk = (document.getElementById('pfDivTicker')?.value || '').trim().toUpperCase();
+  const held = pfOpen.find(h => h.ticker === tk);
+  const q = document.getElementById('pfDivQty');
+  if (held && q) q.value = held.qty;
+  pfDivPreview();
+}
+
+function pfDivPreview() {
+  const el = document.getElementById('pfDivPreview');
+  if (!el) return;
+  const qty = parseFloat(document.getElementById('pfDivQty')?.value);
+  const dps = parseFloat(document.getElementById('pfDivDps')?.value);
+  const tax = parseFloat(document.getElementById('pfDivTax')?.value) || 0;
+  if (!qty || !dps) { el.textContent = ''; return; }
+  const gross = qty * dps, net = gross * (1 - tax / 100);
+  el.innerHTML = `Gross <b>${pfFmt2(gross)}</b> − tax <b>${pfFmt2(gross - net)}</b> = <b style="color:var(--success);">${pfFmt2(net)}</b> credited to cash`;
+}
+
+async function pfConfirmDividend() {
+  const ticker = (document.getElementById('pfDivTicker')?.value || '').trim().toUpperCase();
+  const qty = parseFloat(document.getElementById('pfDivQty')?.value);
+  const dps = parseFloat(document.getElementById('pfDivDps')?.value);
+  const taxPct = parseFloat(document.getElementById('pfDivTax')?.value) || 0;
+  const date = document.getElementById('pfDivDate')?.value || new Date().toISOString().slice(0,10);
+  if (!ticker || !pfIsKnownTicker(ticker)) { alert('Pick a valid ticker.'); return; }
+  if (!qty || qty <= 0 || !dps || dps <= 0) { alert('Enter the number of shares and a dividend per share.'); return; }
+  if (taxPct < 0 || taxPct > 100) { alert('Tax % must be between 0 and 100.'); return; }
+
+  pfTransactions.push({ id: pfNewTxId(), type: 'dividend', ticker, qty, dps, taxPct, date, ts: Date.now() });
+  pfRecomputeFromTransactions();
+  pfDivFormState = null;
+  await pfSave();
+  buildPortfolioTab();
+}
+
+// ----- Right shares -----
+// A subscribed right issue: you pay (qty × subscription price) in cash and
+// receive new shares at that price. Logged as its own transaction type so it
+// is labelled correctly in history, but it creates a FIFO lot exactly like a
+// buy — so the position's weighted-average cost updates automatically.
+function pfOpenRightForm(ticker) {
+  pfRightFormState = { ticker: ticker || '' };
+  renderPfRightForm();
+  document.getElementById('pfRightForm')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function pfCancelRight() { pfRightFormState = null; renderPfRightForm(); }
+
+function renderPfRightForm() {
+  const wrap = document.getElementById('pfRightForm');
+  if (!wrap) return;
+  if (!pfRightFormState) { wrap.innerHTML = ''; return; }
+  const tk = pfRightFormState.ticker;
+  wrap.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:12px;margin:8px 0 6px;">
+      <div><label style="${PF_LABEL_STYLE}">Ticker</label><input type="text" id="pfRightTicker" list="pfRightTickers" value="${tk}" placeholder="e.g. OGDC" autocomplete="off" oninput="pfRightOnTicker()" style="width:110px;text-transform:uppercase;${PF_INPUT_STYLE}">${pfTickerDatalist('pfRightTickers')}</div>
+      <div><label style="${PF_LABEL_STYLE}">Right % <span style="opacity:.7;">(optional)</span></label><input type="number" id="pfRightPct" value="" min="0" step="0.01" placeholder="e.g. 25" oninput="pfRightOnPct()" style="width:100px;${PF_INPUT_STYLE}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Right Shares</label><input type="number" id="pfRightQty" value="" min="1" step="1" oninput="pfRightPreview()" style="width:100px;${PF_INPUT_STYLE}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Subscription Price</label><input type="number" id="pfRightPrice" value="" min="0" step="0.01" placeholder="0.00" oninput="pfRightPreview()" style="width:120px;${PF_INPUT_STYLE}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Date</label><input type="date" id="pfRightDate" value="${new Date().toISOString().slice(0,10)}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);"></div>
+      <button onclick="pfConfirmRight()" style="padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Add Right Shares</button>
+      <button onclick="pfCancelRight()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
+    </div>
+    <div id="pfRightPreview" style="font-size:11px;color:var(--text2);margin:0 0 4px;"></div>
+    <div style="font-size:11px;color:var(--text2);margin:0 0 16px;">Enter the Right % (25 = 25 new shares per 100 held) to auto-fill the share count, or type the count directly. Cost is deducted from cash and the new shares merge into your position at a new weighted-average cost.</div>`;
+  pfRightOnTicker();
+}
+
+function pfRightOnTicker() {
+  pfRightOnPct();
+}
+
+function pfRightOnPct() {
+  const tk = (document.getElementById('pfRightTicker')?.value || '').trim().toUpperCase();
+  const held = pfOpen.find(h => h.ticker === tk);
+  const pct = parseFloat(document.getElementById('pfRightPct')?.value);
+  const q = document.getElementById('pfRightQty');
+  if (held && pct > 0 && q) q.value = Math.floor(held.qty * pct / 100);
+  pfRightPreview(held);
+}
+
+function pfRightPreview(heldArg) {
+  const el = document.getElementById('pfRightPreview');
+  if (!el) return;
+  const tk = (document.getElementById('pfRightTicker')?.value || '').trim().toUpperCase();
+  const held = heldArg || pfOpen.find(h => h.ticker === tk);
+  const qty = parseFloat(document.getElementById('pfRightQty')?.value);
+  const price = parseFloat(document.getElementById('pfRightPrice')?.value);
+  const parts = [];
+  if (held) parts.push(`You hold <b>${held.qty.toLocaleString('en-US')}</b> @ ${pfFmt2(held.avgPrice)}`);
+  if (qty && price) {
+    const cost = qty * price;
+    parts.push(`Cost <b>${pfFmt2(cost)}</b>`);
+    if (held) {
+      const newQty = held.qty + qty;
+      const newAvg = (held.qty * held.avgPrice + cost) / newQty;
+      parts.push(`new position <b>${newQty.toLocaleString('en-US')}</b> @ <b>${pfFmt2(newAvg)}</b>`);
+    }
+    if (cost > pfCash) parts.push(`<span style="color:var(--danger);">cash short by ${pfFmt2(cost - pfCash)}</span>`);
+  }
+  el.innerHTML = parts.join(' · ');
+}
+
+async function pfConfirmRight() {
+  const ticker = (document.getElementById('pfRightTicker')?.value || '').trim().toUpperCase();
+  const qty = parseFloat(document.getElementById('pfRightQty')?.value);
+  const price = parseFloat(document.getElementById('pfRightPrice')?.value);
+  const date = document.getElementById('pfRightDate')?.value || new Date().toISOString().slice(0,10);
+  if (!ticker || !pfIsKnownTicker(ticker)) { alert('Pick a valid ticker.'); return; }
+  if (!qty || qty <= 0 || !price || price <= 0) { alert('Enter the number of right shares and the subscription price.'); return; }
+  if (!pfOpen.some(h => h.ticker === ticker) && !confirm(`You don't currently hold ${ticker}. Right shares normally come from an existing holding — add them anyway?`)) return;
+
+  const cost = qty * price;
+  if (cost > pfCash) {
+    alert(`Not enough cash to subscribe.\n\nCost: ${pfFmt2(cost)}\nAvailable: ${pfFmt2(pfCash)}\nShort by: ${pfFmt2(cost - pfCash)}\n\nDeposit cash first, then try again.`);
+    pfCashFormOpen = true;
+    renderPfCashForm();
+    document.getElementById('pfCashAmount')?.focus();
+    return;
+  }
+
+  pfTransactions.push({ id: pfNewTxId(), type: 'right', ticker, qty, price, date, ts: Date.now() });
+  pfRecomputeFromTransactions();
+  pfRightFormState = null;
   await pfSave();
   buildPortfolioTab();
 }
@@ -3883,6 +4096,10 @@ function buildPortfolioTab() {
   const totalDayPnl    = rows.reduce((s,r) => s + (r.dayPnlPKR||0), 0);
   const netWorth        = pfCash + holdingsValue;
   const realizedPnl     = pfClosed.reduce((s,c) => s + (c.realizedPnl||0), 0);
+  const divEntries      = Object.values(pfDividends);
+  const divTotal        = divEntries.reduce((s,d) => s + d.net, 0);
+  const divTax          = divEntries.reduce((s,d) => s + d.tax, 0);
+  const divCount        = divEntries.reduce((s,d) => s + d.count, 0);
   // Today's % uses the implied start-of-day value (today's move backed out),
   // same convention as a per-stock Day Change % relative to its previous close.
   const startOfDayValue = holdingsValue - totalDayPnl;
@@ -3908,6 +4125,11 @@ function buildPortfolioTab() {
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(realizedPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Realized P&amp;L</div>
         <div style="font-size:18px;font-weight:700;color:${clr(realizedPnl)};">${fmtPKR(realizedPnl)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${divTotal>0?'var(--success)':'var(--border)'};">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Dividends Received</div>
+        <div style="font-size:18px;font-weight:700;color:${divTotal>0?'var(--success)':'var(--text)'};">${fmtPKR(divTotal)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${divCount ? `${divCount} payment${divCount===1?'':'s'} · after ${fmtPKR(divTax)} tax` : 'none recorded yet'}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(unrealizedPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Unrealized P&amp;L</div>
@@ -3940,9 +4162,11 @@ function buildPortfolioTab() {
               <td class="mono" style="color:${clr(r.dayPnlPKR)}">${r.dayPnlPKR != null ? fmtPKR(r.dayPnlPKR) : '—'}</td>
               <td class="mono" style="color:${clr(r.dayPnlPct)}">${fmtPct(r.dayPnlPct)}</td>
               <td class="mono">${netWorth ? ((r.marketValue/netWorth)*100).toFixed(1)+'%' : '—'}</td>
-              <td class="mono">${r.score != null ? r.score.toFixed(0) : '—'}</td>
-              <td>${r.signalStatus || '—'}</td>
+              <td class="mono"><span class="pill ${r.score>=80?'pill-good':r.score>=50?'pill-neutral':'pill-bad'}">${r.score != null ? r.score.toFixed(0) : '—'}</span>${r.row ? scoreDeltaChip(r.row) : ''}</td>
+              <td class="mono sig-status-cell" style="white-space:nowrap;">${(()=>{const raw=r.signalStatus;const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" title="${s}" style="font-size:10px;padding:2px 7px;text-transform:none;"><span class="sig-full">${s}</span><span class="sig-short">${sigStatusShortLabel(raw)}</span></span>`;})()}</td>
               <td style="white-space:nowrap;">
+                <button onclick="pfOpenDividendForm('${r.ticker}')" title="Record a dividend received" style="background:none;border:none;cursor:pointer;color:var(--success);padding:4px;font-size:11px;font-weight:700;">DIV</button>
+                <button onclick="pfOpenRightForm('${r.ticker}')" title="Subscribe to right shares" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:4px;font-size:11px;font-weight:700;">RIGHT</button>
                 <button onclick="pfSellHolding('${r.ticker}')" title="Sell" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:4px;font-size:11px;font-weight:700;">SELL</button>
               </td>
             </tr>`).join('')}
@@ -3979,8 +4203,10 @@ function buildPortfolioTab() {
     sell:     { label: 'SELL',     color: 'var(--danger)' },
     deposit:  { label: 'DEPOSIT',  color: 'var(--success)' },
     withdraw: { label: 'WITHDRAW', color: 'var(--text2)' },
+    dividend: { label: 'DIVIDEND', color: '#0d9488' },
+    right:    { label: 'RIGHT',    color: '#7c5cff' },
   };
-  const txHistoryHtml = txSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No transactions logged yet — buys, sells, deposits and withdrawals will show up here as you make them.</div>` : `
+  const txHistoryHtml = txSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No transactions logged yet — buys, sells, dividends, right shares, deposits and withdrawals will show up here as you make them.</div>` : `
     <div class="scroll-table">
       <table class="data-table" id="pfTxTable">
         <thead><tr>
@@ -3989,15 +4215,18 @@ function buildPortfolioTab() {
         <tbody>
           ${txSorted.map(t => {
             const badge = TX_BADGE[t.type] || { label: t.type, color: 'var(--text2)' };
-            const amount = t.type === 'deposit' || t.type === 'withdraw' ? t.amount : (t.qty * t.price);
+            const isDivTx = t.type === 'dividend';
+            const amount = t.type === 'deposit' || t.type === 'withdraw' ? t.amount : isDivTx ? pfDividendNet(t) : (t.qty * t.price);
+            const unitPx = isDivTx ? t.dps : t.price;
+            const amtTitle = isDivTx ? `Gross ${pfFmt2(pfDividendGross(t))} − ${t.taxPct || 0}% tax` : '';
             const pnl = t.type === 'sell' ? pfRealizedPnlByTxId.get(t.id) : null;
             return `
             <tr>
               <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
               <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>` : '—'}</td>
               <td class="mono">${t.qty != null ? fmtQty(t.qty) : '—'}</td>
-              <td class="mono">${t.price != null ? fmtPrice(t.price) : '—'}</td>
-              <td class="mono">${fmtPKR(amount)}</td>
+              <td class="mono">${unitPx != null ? fmtPrice(unitPx) : '—'}</td>
+              <td class="mono" title="${amtTitle}">${fmtPKR(amount)}</td>
               <td class="mono">${t.date || '—'}</td>
               <td class="mono" style="color:${pnl!=null?clr(pnl):'var(--text2)'}">${pnl != null ? fmtPKR(pnl) : '—'}</td>
               <td style="white-space:nowrap;">
@@ -4019,7 +4248,13 @@ function buildPortfolioTab() {
       <input type="text" class="ticker-search" id="pfTickerSearch" placeholder="Search ticker or company name to buy…" autocomplete="off" oninput="pfOnSearchInput()" onkeydown="pfOnSearchKey(event)" onfocus="pfOpenAC()">
       <div class="ticker-autocomplete" id="pfAcList"></div>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px;">
+      <button onclick="pfOpenDividendForm()" style="padding:7px 14px;border:1px solid var(--success);border-radius:8px;background:var(--surface);color:var(--success);font-size:12px;font-weight:600;cursor:pointer;">+ Dividend Received</button>
+      <button onclick="pfOpenRightForm()" style="padding:7px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">+ Right Shares</button>
+    </div>
     <div id="pfPendingForm"></div>
+    <div id="pfDivForm"></div>
+    <div id="pfRightForm"></div>
     <div id="pfSellForm"></div>
     <div id="pfCashForm"></div>
     ${modeNote}
@@ -4047,7 +4282,7 @@ function buildPortfolioTab() {
     </div>
     <div class="home-section-divider"></div>
     <div class="home-section">
-      <div class="home-section-label">Transaction History<span class="home-section-sub">— every buy, sell, deposit, and withdrawal, FIFO cost basis</span></div>
+      <div class="home-section-label">Transaction History<span class="home-section-sub">— every buy, sell, dividend, right issue, deposit, and withdrawal, FIFO cost basis</span></div>
       <div id="pfTxEditForm"></div>
       ${txHistoryHtml}
     </div>
@@ -4056,6 +4291,8 @@ function buildPortfolioTab() {
   renderPfPendingForm();
   if (pfPendingSellTicker) { const h = pfOpen.find(x=>x.ticker===pfPendingSellTicker); if (h) renderPfSellForm(h); else pfPendingSellTicker = null; }
   renderPfCashForm();
+  renderPfDividendForm();
+  renderPfRightForm();
   renderPfTxEditForm();
   _pfLastRows = rows;
   _pfLastHoldingsValue = holdingsValue;
