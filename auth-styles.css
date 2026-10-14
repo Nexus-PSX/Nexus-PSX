@@ -134,16 +134,43 @@
 
 
 @media (max-width: 768px) {
-  /* The header wraps on mobile, so the avatar button doesn't always land
-     at the screen's right edge like it does on desktop. Anchor the
-     dropdown to the viewport itself instead of the button's position, so
-     it can never spill off either edge regardless of where it wraps to. */
+  /* On mobile the Account button lives in the bottom nav (right-most item),
+     so the dropdown must pop up from the bottom, just above that bar —
+     not from the top of the screen where the user can't see it.
+     Bottom nav = 64px bar + the device's safe-area inset. position:fixed
+     anchors to the viewport, so it works wherever the header wraps to.
+     max-height + scroll keeps the whole menu reachable on short screens. */
   .auth-dropdown {
     position: fixed !important;
-    top: 60px !important;
+    top: auto !important;
+    left: auto !important;
     right: 10px !important;
-    left: 10px !important;
-    width: auto !important;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 10px) !important;
+    width: min(300px, calc(100vw - 20px)) !important;
+    max-height: calc(100vh - 64px - env(safe-area-inset-bottom, 0px) - 30px);
+    max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px) - 30px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform-origin: bottom right;
+    animation: authDropUp 0.14s ease-out;
+    box-shadow: 0 -6px 28px rgba(15,23,42,0.22);
   }
   .auth-dropdown-item.mobile-only { display: flex; }
+
+  /* The Alerts panel is opened from that same menu, so it also sits above
+     the bottom nav instead of at the top of the screen. */
+  .alerts-panel {
+    top: auto;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 10px);
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 64px - env(safe-area-inset-bottom, 0px) - 30px);
+    max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px) - 30px);
+  }
+}
+@keyframes authDropUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
