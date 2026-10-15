@@ -1781,8 +1781,8 @@ function computeSectorRotationData() {
 
 const SECTOR_ROTATION_CATEGORIES = [
   { key: 'absoluteLeading',        label: 'Absolute Leading',        color: 'var(--success)' },
-  { key: 'improving',              label: 'Improving',               color: 'var(--warn)' },
   { key: 'defensiveOutperforming', label: 'Defensive Outperforming', color: 'var(--accent)' },
+  { key: 'improving',              label: 'Improving',               color: 'var(--warn)' },
   { key: 'weakening',              label: 'Weakening',               color: 'var(--warn)' },
   { key: 'lagging',                label: 'Lagging',                 color: 'var(--danger)' },
 ];
@@ -1879,8 +1879,8 @@ function renderSectorRotationList() {
 // (e.g. missing Rolling 1M%/3M% data) sort to the end.
 const ROTATION_SORT_RANK = {
   absoluteLeading: 0,
-  improving: 1,
-  defensiveOutperforming: 2,
+  defensiveOutperforming: 1,
+  improving: 2,
   weakening: 3,
   lagging: 4,
 };
@@ -2169,8 +2169,8 @@ const VOLPHASE_OPTIONS = [
 // stock's rotation category is derived from its sector, not stored per-row.
 const ROTATION_OPTIONS = [
   {value:'absoluteLeading',        label:'↑ Absolute Leading'},
-  {value:'improving',              label:'↗ Improving'},
   {value:'defensiveOutperforming', label:'⬢ Defensive Outperforming'},
+  {value:'improving',              label:'↗ Improving'},
   {value:'weakening',              label:'↘ Weakening'},
   {value:'lagging',                label:'↓ Lagging'}
 ];
