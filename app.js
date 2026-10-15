@@ -114,23 +114,88 @@ function computeSectorRowsFromCompanies(companies) {
 // Sector name → rotation category (used by the Sectors tab's Sector
 // Rotation list, where the unit being classified genuinely is the sector).
 const SECTOR_ROTATION_MAP = {};
-// Ticker → rotation category, computed straight from that stock's own WTD%
-// and Rolling 1M% (already present in the source data) vs the KSE 100
-// benchmark — NOT inherited from its sector's aggregate. Used by the
-// Screener's per-ticker badges and the Sector Rotation screener filter,
-// since a stock's own return can differ meaningfully from its sector's
-// average return.
+// Tooltip text with the numbers behind a sector's arrow (the row's own
+// 1M/3M Roll% and the KSE 100 values they were compared with).
+function sectorRotationDetailText(r) {
+  if (!r) return '';
+  const f = v => v == null ? 'n/a' : v.toFixed(2) + '%';
+  return ` — 1M Roll ${f(r.roll1m)} vs KSE ${f(r.bench1M)} · 3M Roll ${f(r.roll3m)} vs KSE ${f(r.bench3M)}`;
+}
+// Ticker → rotation category (Leading / Improving / Defensive / Weakening /
+// Lagging) for the Screener's per-ticker badges and the Relative Performance
+// filter.
+//
+// SOURCE OF TRUTH: the status you define per stock in the SourceData sheet
+// (column BZ). The app does NOT calculate it — it only reads and maps your
+// label to the 5 internal categories. The column is located automatically by
+// its CONTENT (the one column whose values are these status labels), so it
+// keeps working if the header text is renamed or the column moves. To pin it
+// explicitly instead, set ROTATION_COLUMN_NAME to the exact header text.
+//
+// Only if no such column exists in the data at all does it fall back to the
+// same formula calculated from Rolling 1M% / 3M% vs KSE 100 (console warning).
 const STOCK_ROTATION_MAP = {};
+const ROTATION_COLUMN_NAME = '';   // e.g. 'Relative Performance' — leave '' for auto-detect
+let ROTATION_COLUMN_KEY = null;    // resolved header key (for debugging: see console)
+
+// Maps a sheet label to an internal category key. Strict on purpose (exact
+// labels only, ignoring case/arrows/emoji) so no other column is mistaken for it.
+const ROTATION_LABELS = {
+  'leading': 'absoluteLeading',
+  'absolute leading': 'absoluteLeading',
+  'improving': 'improving',
+  'defensive': 'defensiveOutperforming',
+  'defensive outperforming': 'defensiveOutperforming',
+  'weakening': 'weakening',
+  'lagging': 'lagging',
+};
+function rotationKeyFromText(v) {
+  if (v == null) return null;
+  const t = String(v).toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+  return ROTATION_LABELS[t] || null;
+}
+
+function findRotationColumnKey(rows) {
+  if (ROTATION_COLUMN_NAME) {
+    const k = col(ROTATION_COLUMN_NAME);
+    if (rows.some(r => k in r)) return k;
+  }
+  const sample = rows.slice(0, 400);
+  const keys = new Set();
+  sample.slice(0, 30).forEach(r => Object.keys(r).forEach(k => keys.add(k)));
+  let bestKey = null, bestHits = 0;
+  keys.forEach(k => {
+    let seen = 0, hits = 0;
+    for (const r of sample) {
+      const v = r[k];
+      if (v == null || v === '') continue;
+      seen++;
+      if (rotationKeyFromText(v)) hits++;
+    }
+    if (seen >= 3 && hits / seen >= 0.9 && hits > bestHits) { bestKey = k; bestHits = hits; }
+  });
+  return bestKey;
+}
 
 function computeStockRotationMap() {
   Object.keys(STOCK_ROTATION_MAP).forEach(k => delete STOCK_ROTATION_MAP[k]);
+  const rows = SOURCE_DATA.filter(d => d.Ticker && d.Ticker !== '0' && d.Ticker !== 0);
+  if (!rows.length) return;
+
+  ROTATION_COLUMN_KEY = findRotationColumnKey(rows);
+  if (ROTATION_COLUMN_KEY) {
+    // Use the sheet's own value as-is. A blank cell means "no status" — never guess.
+    rows.forEach(d => { STOCK_ROTATION_MAP[d.Ticker] = rotationKeyFromText(d[ROTATION_COLUMN_KEY]); });
+    return;
+  }
+
+  console.warn('[Nexus] No relative-performance status column found in SourceData — falling back to the same formula calculated from Rolling 1M% / 3M%.');
   const bench = getRotationBenchmark();
   if (!bench) return;
-  SOURCE_DATA.forEach(d => {
-    if (!d.Ticker || d.Ticker === '0' || d.Ticker === 0) return;
+  rows.forEach(d => {
     const roll1m = parseFloat(dget(d, 'Rolling 1M%'));
-    const wtd    = parseFloat(dget(d, 'Current Week Return %'));
-    STOCK_ROTATION_MAP[d.Ticker] = classifyRotation(isNaN(roll1m) ? null : roll1m, isNaN(wtd) ? null : wtd, bench);
+    const roll3m = parseFloat(dget(d, 'Rolling 3M%'));
+    STOCK_ROTATION_MAP[d.Ticker] = classifySectorRotation(isNaN(roll1m) ? null : roll1m, isNaN(roll3m) ? null : roll3m, bench);
   });
 }
 
@@ -1658,7 +1723,11 @@ function updateSortArrows(headRowId, activeCol, dir) {
 // classification rule live in exactly one place each.
 function getRotationBenchmark() {
   const toN = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
-  const kse100   = SOURCE_DATA.find(d => String(d.Ticker || '').toUpperCase() === 'KSE100') || null;
+  // Same row the Excel formula uses — XLOOKUP("KSE 100 Index", Name column) —
+  // found by Ticker first, then by that exact Name as a fallback.
+  const kse100   = SOURCE_DATA.find(d => String(d.Ticker || '').toUpperCase().replace(/\s+/g, '') === 'KSE100')
+                || SOURCE_DATA.find(d => String(d.Name || '').trim().toLowerCase() === 'kse 100 index')
+                || null;
   const bench1D  = kse100 ? toN(kse100['Day Change %']) : null;
   const benchWTD = kse100 ? toN(kse100['Current Week Return %']) : null;
   const bench1M  = kse100 ? toN(kse100['Rolling 1M%']) : null;
@@ -1667,31 +1736,27 @@ function getRotationBenchmark() {
   return { bench1D, benchWTD, bench1M, bench3M };
 }
 
-function classifyRotation(roll1m, wtd, bench) {
-  if (roll1m == null || wtd == null || !bench || bench.bench1M == null || bench.benchWTD == null) return null;
-  const rel1M  = roll1m - bench.bench1M;
-  const relWTD = wtd    - bench.benchWTD;
-  if (rel1M > 0 && relWTD > 0) return (roll1m > 0 && wtd > 0) ? 'absoluteLeading' : 'defensiveOutperforming';
-  if (rel1M > 0)  return 'weakening';
-  if (relWTD > 0) return 'improving';
-  return 'lagging';
-}
-
-// SECTOR relative performance — same rule as the Excel formula used per stock in the
-// Source Data sheet, comparing Rolling 1M% and Rolling 3M% with the KSE 100:
-//   Leading   (absoluteLeading)        : 1M > 0 and 1M > KSE 1M  and  3M > 0 and 3M > KSE 3M
-//   Defensive (defensiveOutperforming) : 1M > KSE 1M  and  3M > KSE 3M          (but not Leading)
-//   Weakening                          : 3M > KSE 3M  and  1M <= KSE 1M
-//   Improving                          : 1M > KSE 1M  or   1M > 0               (of what remains)
-//   Lagging                            : everything else
+// RELATIVE PERFORMANCE — the same formula used in the SourceData sheet
+// (1M Roll% = BG, 3M Roll% = BH, benchmark = "KSE 100 Index" row):
+//   =IF(BG>KSE_BG,
+//        IF(BH>KSE_BH, IF(AND(BG>0,BH>0),"Leading","Defensive"), "Improving"),
+//        IF(BH>KSE_BH, "Weakening", "Lagging"))
+// i.e.  1M beats KSE?  3M beats KSE?   → result
+//         yes            yes (and both > 0) → Leading
+//         yes            yes (otherwise)    → Defensive
+//         yes            no                 → Improving
+//         no             yes                → Weakening
+//         no             no                 → Lagging
+// Used for every sector row (their own Roll 1M% / 3M% columns) and as the
+// fallback for individual stocks if the sheet has no status column.
 function classifySectorRotation(roll1m, roll3m, bench) {
   if (roll1m == null || roll3m == null || !bench || bench.bench1M == null || bench.bench3M == null) return null;
   const k1 = bench.bench1M, k3 = bench.bench3M;
-  if (roll1m > 0 && roll1m > k1 && roll3m > 0 && roll3m > k3) return 'absoluteLeading';
-  if (roll1m > k1 && roll3m > k3) return 'defensiveOutperforming';
-  if (roll3m > k3 && roll1m <= k1) return 'weakening';
-  if (roll1m > k1 || roll1m > 0) return 'improving';
-  return 'lagging';
+  if (roll1m > k1) {
+    if (roll3m > k3) return (roll1m > 0 && roll3m > 0) ? 'absoluteLeading' : 'defensiveOutperforming';
+    return 'improving';
+  }
+  return (roll3m > k3) ? 'weakening' : 'lagging';
 }
 
 // Pure data step: classifies every sector into one of the 5 rotation
@@ -1710,7 +1775,7 @@ function computeSectorRotationData() {
     const rel1M  = (s.pRoll1m != null && bench.bench1M  != null) ? s.pRoll1m - bench.bench1M  : null;
     const rel3M  = (s.pRoll3m != null && bench.bench3M  != null) ? s.pRoll3m - bench.bench3M  : null;
     const category = classifySectorRotation(s.pRoll1m, s.pRoll3m, bench);   // 1M Roll + 3M Roll vs KSE 100
-    return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, rel3M, roll1m: s.pRoll1m, roll3m: s.pRoll3m, wtd: s.p1w, category };
+    return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, rel3M, roll1m: s.pRoll1m, roll3m: s.pRoll3m, wtd: s.p1w, bench1M: bench.bench1M, bench3M: bench.bench3M, category };
   });
 }
 
@@ -1819,9 +1884,16 @@ const ROTATION_SORT_RANK = {
   weakening: 3,
   lagging: 4,
 };
+// Category of a Sector-table row, decided from that row's OWN Roll 1M% and
+// Roll 3M% (the same numbers shown in its columns) vs the KSE 100's — so the
+// arrow, the arrow-sort and the Relative Performance filter always agree with
+// the figures on screen, whatever filters are applied to the table.
+function sectorRotCat(s) {
+  return classifySectorRotation(s.pRoll1m, s.pRoll3m, getRotationBenchmark());
+}
 function compareSectorsByRotation(a, b) {
-  const ra = ROTATION_SORT_RANK[SECTOR_ROTATION_MAP[a.sector]];
-  const rb = ROTATION_SORT_RANK[SECTOR_ROTATION_MAP[b.sector]];
+  const ra = ROTATION_SORT_RANK[sectorRotCat(a)];
+  const rb = ROTATION_SORT_RANK[sectorRotCat(b)];
   const na = ra == null ? 99 : ra;
   const nb = rb == null ? 99 : rb;
   if (na !== nb) return na - nb;
@@ -1858,8 +1930,9 @@ function renderSectorTable(data) {
     if (isPinned) {
       tr.style.cssText = 'border-top:2px solid var(--border);font-weight:600;background:var(--surface2);position:sticky;bottom:0;z-index:1;';
     }
-    const rotBadge = ROTATION_BADGE_META[SECTOR_ROTATION_MAP[s.sector]];
-    const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}">${rotBadge.glyph}</span>` : '';
+    const rotBench = isPinned ? null : getRotationBenchmark();
+    const rotBadge = rotBench ? ROTATION_BADGE_META[classifySectorRotation(s.pRoll1m, s.pRoll3m, rotBench)] : null;
+    const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}${sectorRotationDetailText({ roll1m: s.pRoll1m, roll3m: s.pRoll3m, bench1M: rotBench.bench1M, bench3M: rotBench.bench3M })}">${rotBadge.glyph}</span>` : '';
     tr.innerHTML = `
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')"><div class="sector-name-inner"><span class="sector-name-text">${s.sector}</span>${rotBadgeHtml}</div></td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
@@ -1967,7 +2040,7 @@ function filterSectorTable() {
   // Applied after aggregation because it filters *sectors* by their own
   // relative-performance category, not individual companies.
   if (selRotation.size > 0) {
-    regular = regular.filter(s => selRotation.has(SECTOR_ROTATION_MAP[s.sector]));
+    regular = regular.filter(s => selRotation.has(sectorRotCat(s)));
   }
 
   // Market Average recomputed from the same filtered companies
@@ -2003,7 +2076,7 @@ function sortSectorTable(col) {
   const selRotation = mselRegistry.sectorRotation ? mselRegistry.sectorRotation.selected : new Set();
   let sectorRows = computeSectorRowsFromCompanies(companies);
   if (selRotation.size > 0) {
-    sectorRows = sectorRows.filter(s => selRotation.has(SECTOR_ROTATION_MAP[s.sector]));
+    sectorRows = sectorRows.filter(s => selRotation.has(sectorRotCat(s)));
   }
   const sorted = sectorRows.sort((a,b) => {
     const av = a[key], bv = b[key];
