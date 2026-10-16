@@ -3340,6 +3340,8 @@ let pfOpen = [];              // COMPUTED by replay — [{ticker, qty, avgPrice,
 let pfClosed = [];            // COMPUTED by replay — [{ticker, qty, avgPrice, buyDate, sellPrice, sellDate, realizedPnl, realizedPnlPct}]
 let pfLots = {};              // COMPUTED by replay — {ticker: [{qty, price, date}, ...]} oldest-first FIFO lots still open. Used for Day P&L so shares bought today are measured from their own buy price, not from yesterday's close.
 let pfDividends = {};         // COMPUTED by replay — {ticker: {net, gross, tax, count}} dividend income received (net of tax, already credited to cash)
+let pfSubTab = 'positions';   // active Portfolio sub-tab: 'positions' | 'closed' | 'tx' | 'div'
+let _pfPanels = {};           // rendered HTML of each sub-tab panel (swapped in without rebuilding the forms above)
 let pfDivFormState = null;    // dividend form state — null (closed) or {ticker}
 let pfRightFormState = null;  // right-shares form state — null (closed) or {ticker}
 let pfLegacyClosed = [];      // Frozen pre-log-model closed positions — read-only, not part of the replay
@@ -3730,7 +3732,7 @@ function renderPfPendingForm() {
       <button onclick="pfCancelPending()" style="padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);cursor:pointer;">Cancel</button>
     </div>
     ${held ? `<div style="font-size:11px;color:var(--accent);margin:-10px 0 16px;">You already hold ${held.qty} @ ${held.avgPrice.toFixed(2)} — this buy will merge into one position at a new weighted-average cost.</div>` : ''}
-    <div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Made a mistake later? You can edit or delete this buy from Transaction History below.</div>`;
+    <div style="font-size:11px;color:var(--text2);margin:-10px 0 16px;">Made a mistake later? You can edit or delete this buy from the Transactions tab.</div>`;
 }
 
 // Adding a ticker that's already held merges into a single row showing a
@@ -3828,6 +3830,7 @@ async function pfConfirmSell() {
 function pfEditTransaction(id) {
   pfEditingTxId = id;
   renderPfTxEditForm();
+  document.getElementById('pfTxEditForm')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 function pfCancelTxEdit() {
@@ -4105,6 +4108,27 @@ async function pfConfirmRight() {
 
 
 // ----- Main render -----
+// ----- Portfolio sub-tabs (Positions / Closed Positions / Transactions / Dividends) -----
+function pfSubTabBtnCss(active) {
+  return `padding:10px 14px;border:none;background:none;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:600;margin-bottom:-1px;border-bottom:2px solid ${active ? 'var(--accent)' : 'transparent'};color:${active ? 'var(--accent)' : 'var(--text2)'};`;
+}
+function pfSubTabBarHtml(counts) {
+  const tabs = [['positions','Positions'], ['closed','Closed Positions'], ['tx','Transactions'], ['div','Dividends']];
+  return `<div id="pfSubTabs" style="display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--border);margin:18px 0 16px;">${
+    tabs.map(([k, label]) => `<button data-pftab="${k}" onclick="pfSetSubTab('${k}')" style="${pfSubTabBtnCss(pfSubTab === k)}">${label}<span style="opacity:.65;font-weight:500;margin-left:5px;font-size:11px;">${counts[k]}</span></button>`).join('')
+  }</div>`;
+}
+// Swaps only the panel below the tab bar — the entry forms above are left
+// untouched, so half-typed dividend/right/sell forms survive switching tabs.
+function pfSetSubTab(tab) {
+  pfSubTab = tab;
+  const body = document.getElementById('pfPanelBody');
+  if (body && _pfPanels[tab] != null) body.innerHTML = _pfPanels[tab];
+  document.querySelectorAll('#pfSubTabs [data-pftab]').forEach(b => { b.style.cssText = pfSubTabBtnCss(b.dataset.pftab === tab); });
+  if (tab === 'positions') buildPortfolioAllocationChart(_pfLastRows, _pfLastHoldingsValue, pfCash, pfAllocationBasis);
+  else if (charts['portfolioSector']) { charts['portfolioSector'].destroy(); delete charts['portfolioSector']; }
+}
+
 function buildPortfolioTab() {
   const wrap = document.getElementById('portfolioContent');
   if (!wrap) return;
@@ -4316,6 +4340,109 @@ function buildPortfolioTab() {
     ? `<div style="font-size:11px;color:var(--text2);margin-bottom:12px;">✓ Signed in — synced to your account</div>`
     : `<div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Stored locally on this device. Sign in to sync across devices.</div>`;
 
+  // ----- Dividend history (sub-tab) -----
+  const divTxs = pfTransactions.filter(t => t.type === 'dividend')
+    .sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.ts - a.ts));
+  const divGross = divEntries.reduce((sum, d) => sum + d.gross, 0);
+  const divByTicker = Object.entries(pfDividends).sort((a,b) => b[1].net - a[1].net);
+  const statCard = (label, value, color) => `<div style="flex:1;min-width:130px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${label}</div><div style="font-size:16px;font-weight:700;color:${color || 'var(--text)'};">${value}</div></div>`;
+  const dividendBody = divTxs.length === 0
+    ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No dividends recorded yet — use <b>+ Dividend Received</b> to log one, and it will be listed here and credited to your cash.</div>`
+    : `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        ${statCard('Net Received', pfFmt2(divTotal), 'var(--success)')}
+        ${statCard('Gross Dividends', pfFmt2(divGross))}
+        ${statCard('Tax Withheld', pfFmt2(divTax))}
+        ${statCard('Payments', divCount)}
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin:0 0 6px;">By ticker</div>
+      <div class="scroll-table" style="margin-bottom:18px;">
+        <table class="data-table">
+          <thead><tr><th>Ticker</th><th>Payments</th><th>Gross</th><th>Tax</th><th>Net Received</th></tr></thead>
+          <tbody>
+            ${divByTicker.map(([tk, d]) => `
+              <tr>
+                <td class="ticker-link" onclick="switchTab('company');pickTicker('${tk}')">${tk}</td>
+                <td class="mono">${d.count}</td>
+                <td class="mono">${pfFmt2(d.gross)}</td>
+                <td class="mono">${pfFmt2(d.tax)}</td>
+                <td class="mono" style="color:var(--success);">${pfFmt2(d.net)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin:0 0 6px;">Every payment</div>
+      <div class="scroll-table">
+        <table class="data-table" id="pfDivTable">
+          <thead><tr><th>Date</th><th>Ticker</th><th>Shares</th><th>Dividend / Share</th><th>Gross</th><th>Tax</th><th>Net Received</th><th></th></tr></thead>
+          <tbody>
+            ${divTxs.map(t => {
+              const gross = pfDividendGross(t), net = pfDividendNet(t);
+              return `
+              <tr>
+                <td class="mono">${t.date || '—'}</td>
+                <td class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</td>
+                <td class="mono">${fmtQty(t.qty)}</td>
+                <td class="mono">${fmtPrice(t.dps)}</td>
+                <td class="mono">${pfFmt2(gross)}</td>
+                <td class="mono">${pfFmt2(gross - net)} <span style="color:var(--text2);font-size:11px;">(${t.taxPct || 0}%)</span></td>
+                <td class="mono" style="color:var(--success);">${pfFmt2(net)}</td>
+                <td style="white-space:nowrap;">
+                  <button onclick="pfEditTransaction('${t.id}')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✎</button>
+                  <button onclick="pfDeleteTransaction('${t.id}')" title="Delete" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  const dividendPanelHtml = `
+    <div class="home-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div class="home-section-label" style="margin-bottom:0;">Dividend History<span class="home-section-sub">— cash dividends received, net of tax</span></div>
+        <button onclick="pfOpenDividendForm()" style="padding:7px 14px;border:1px solid var(--success);border-radius:8px;background:var(--surface);color:var(--success);font-size:12px;font-weight:600;cursor:pointer;">+ Dividend Received</button>
+      </div>
+      ${dividendBody}
+    </div>`;
+
+  const closedRealized = closedSorted.reduce((sum, c) => sum + (c.realizedPnl || 0), 0);
+  const closedTotalsHtml = closedSorted.length === 0 ? '' : `<div style="font-size:12px;color:var(--text2);margin:0 0 10px;">${closedSorted.length} closed trade${closedSorted.length === 1 ? '' : 's'} · Total realized P&amp;L <b style="color:${clr(closedRealized)};">${fmtPKR(closedRealized)}</b></div>`;
+
+  _pfPanels = {
+    positions: `
+    <div class="home-section">
+      <div class="home-section-label">Open Positions<span class="home-section-sub">— current holdings, market value, and unrealized P&amp;L</span></div>
+      ${openTableHtml}
+    </div>
+    <div class="home-section-divider"></div>
+    <div class="home-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div class="home-section-label" style="margin-bottom:0;">Portfolio Allocation<span class="home-section-sub">— weight by ticker</span></div>
+        <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <button onclick="pfSetAllocationBasis('value')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='value'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='value'?'#fff':'var(--text2)'};">Latest Value</button>
+          <button onclick="pfSetAllocationBasis('cost')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='cost'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='cost'?'#fff':'var(--text2)'};">Cost Basis</button>
+        </div>
+      </div>
+      <div class="chart-wrap pf-alloc-chart"><canvas id="chartPortfolioSector"></canvas></div>
+    </div>
+    `,
+    closed: `
+    <div class="home-section">
+      <div class="home-section-label">Closed Positions<span class="home-section-sub">— sold trades and realized P&amp;L</span></div>
+      ${closedTotalsHtml}
+      ${closedTableHtml}
+    </div>
+    `,
+    tx: `
+    <div class="home-section">
+      <div class="home-section-label">Transaction History<span class="home-section-sub">— every buy, sell, dividend, right issue, deposit, and withdrawal, FIFO cost basis</span></div>
+      ${txHistoryHtml}
+    </div>
+    `,
+    div: dividendPanelHtml,
+  };
+  const pfSubCounts = { positions: pfOpen.length, closed: closedSorted.length, tx: pfTransactions.length, div: divTxs.length };
+
   wrap.innerHTML = `
     <div id="pfTickerSelector" style="position:relative;max-width:420px;margin-bottom:4px;">
       <input type="text" class="ticker-search" id="pfTickerSearch" placeholder="Search ticker or company name to buy…" autocomplete="off" oninput="pfOnSearchInput()" onkeydown="pfOnSearchKey(event)" onfocus="pfOpenAC()">
@@ -4332,33 +4459,9 @@ function buildPortfolioTab() {
     <div id="pfCashForm"></div>
     ${modeNote}
     ${summaryHtml}
-    <div class="home-section-divider"></div>
-    <div class="home-section">
-      <div class="home-section-label">Open Positions<span class="home-section-sub">— current holdings, market value, and unrealized P&amp;L</span></div>
-      ${openTableHtml}
-    </div>
-    <div class="home-section-divider"></div>
-    <div class="home-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-        <div class="home-section-label" style="margin-bottom:0;">Portfolio Allocation<span class="home-section-sub">— weight by ticker</span></div>
-        <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <button onclick="pfSetAllocationBasis('value')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='value'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='value'?'#fff':'var(--text2)'};">Latest Value</button>
-          <button onclick="pfSetAllocationBasis('cost')" style="padding:6px 12px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:${pfAllocationBasis==='cost'?'var(--accent)':'var(--surface)'};color:${pfAllocationBasis==='cost'?'#fff':'var(--text2)'};">Cost Basis</button>
-        </div>
-      </div>
-      <div class="chart-wrap pf-alloc-chart"><canvas id="chartPortfolioSector"></canvas></div>
-    </div>
-    <div class="home-section-divider"></div>
-    <div class="home-section">
-      <div class="home-section-label">Closed Positions<span class="home-section-sub">— sold trades and realized P&amp;L</span></div>
-      ${closedTableHtml}
-    </div>
-    <div class="home-section-divider"></div>
-    <div class="home-section">
-      <div class="home-section-label">Transaction History<span class="home-section-sub">— every buy, sell, dividend, right issue, deposit, and withdrawal, FIFO cost basis</span></div>
-      <div id="pfTxEditForm"></div>
-      ${txHistoryHtml}
-    </div>
+    ${pfSubTabBarHtml(pfSubCounts)}
+    <div id="pfTxEditForm"></div>
+    <div id="pfPanelBody">${_pfPanels[pfSubTab] || _pfPanels.positions}</div>
   `;
 
   renderPfPendingForm();
