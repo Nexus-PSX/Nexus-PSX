@@ -5104,13 +5104,15 @@ function renderWatchlist(mode) {
         case 2: va = da?.Sector||''; vb = db?.Sector||''; break;
         case 3: va = da ? (da['total improvement'] ?? -Infinity) : -Infinity;
                 vb = db ? (db['total improvement'] ?? -Infinity) : -Infinity; break;
-        case 4: va = da ? (dget(da,'Signal date')||'') : '';
+        case 4: va = da ? (toNum(dget(da,'Fair Value')) ?? -Infinity) : -Infinity;
+                vb = db ? (toNum(dget(db,'Fair Value')) ?? -Infinity) : -Infinity; break;
+        case 5: va = da ? (dget(da,'Signal date')||'') : '';
                 vb = db ? (dget(db,'Signal date')||'') : ''; break;
-        case 5: va = da ? (toNum(dget(da,'Signal Price')) ?? -Infinity) : -Infinity;
+        case 6: va = da ? (toNum(dget(da,'Signal Price')) ?? -Infinity) : -Infinity;
                 vb = db ? (toNum(dget(db,'Signal Price')) ?? -Infinity) : -Infinity; break;
-        case 6: va = da ? (sigStatusCode(dget(da,'Signal Status')) ?? -Infinity) : -Infinity;
+        case 7: va = da ? (sigStatusCode(dget(da,'Signal Status')) ?? -Infinity) : -Infinity;
                 vb = db ? (sigStatusCode(dget(db,'Signal Status')) ?? -Infinity) : -Infinity; break;
-        case 7: va = da ? (toNum(dget(da,'Signal Return %')) ?? -Infinity) : -Infinity;
+        case 8: va = da ? (toNum(dget(da,'Signal Return %')) ?? -Infinity) : -Infinity;
                 vb = db ? (toNum(dget(db,'Signal Return %')) ?? -Infinity) : -Infinity; break;
         default: return 0;
       }
@@ -5124,7 +5126,7 @@ function renderWatchlist(mode) {
   rows.forEach(({ ticker, d }) => {
     const tr = document.createElement('tr');
     if (!d) {
-      tr.innerHTML = `<td class="ticker-link" onclick="switchTab('company');pickTicker('${ticker}')">${ticker}</td><td colspan="8" style="color:var(--text2);font-size:12px;">Data not available</td><td><button onclick="removeFromWatchlist('${ticker}')" style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);border-radius:4px;color:#ff6b6b;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;padding:0;">✕</button></td>`;
+      tr.innerHTML = `<td class="ticker-link" onclick="switchTab('company');pickTicker('${ticker}')">${ticker}</td><td colspan="9" style="color:var(--text2);font-size:12px;">Data not available</td><td><button onclick="removeFromWatchlist('${ticker}')" style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);border-radius:4px;color:#ff6b6b;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;padding:0;">✕</button></td>`;
     } else {
       const score  = d['total improvement'];
       const ret    = toNum(dget(d, 'Signal Return %'));
@@ -5139,7 +5141,8 @@ function renderWatchlist(mode) {
         <td class="ticker-link" onclick="switchTab('company');pickTicker('${ticker}')">${ticker}${tickerBadges(d)}</td>
         <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${d.Name||'—'}</td>
         <td class="screener-hide-mobile" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;color:var(--text2)">${d.Sector||'—'}</td>
-        <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span></td>
+        <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span>${scoreDeltaChip(d)}</td>
+        <td class="mono">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
         <td class="mono">${fmtSignalDate(dget(d,'Signal date'))}</td>
         <td class="mono">${(()=>{const n=toNum(dget(d,'Signal Price'));return n!=null?n.toFixed(2):'—';})()}</td>
         <td class="mono">${sigHtml}</td>
