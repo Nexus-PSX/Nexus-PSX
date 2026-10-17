@@ -4243,7 +4243,7 @@ function buildPortfolioTab() {
       <table class="data-table" id="pfOpenTable">
         <thead><tr>
           <th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg Price</th><th>Current Price</th>
-          <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Day P&amp;L</th><th>Day P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Signal</th><th></th>
+          <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Day P&amp;L</th><th>Day P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Fair Value</th><th>Signal</th><th></th>
         </tr></thead>
         <tbody>
           ${rows.map(r => `
@@ -4260,6 +4260,7 @@ function buildPortfolioTab() {
               <td class="mono" style="color:${clr(r.dayPnlPct)}">${fmtPct(r.dayPnlPct)}</td>
               <td class="mono">${netWorth ? ((r.marketValue/netWorth)*100).toFixed(1)+'%' : '—'}</td>
               <td class="mono"><span class="pill ${r.score>=80?'pill-good':r.score>=50?'pill-neutral':'pill-bad'}">${r.score != null ? r.score.toFixed(0) : '—'}</span>${r.row ? scoreDeltaChip(r.row) : ''}</td>
+              <td class="mono">${(()=>{const n=r.row?toNum(dget(r.row,'Fair Value')):null;return n!=null?n.toFixed(2):'—';})()}${r.row ? fairValueChip(r.row) : ''}</td>
               <td class="mono sig-status-cell" style="white-space:nowrap;">${(()=>{const raw=r.signalStatus;const s=sigStatusLabel(raw);if(s==null)return '—';const pc=sigStatusPillClass(raw);return `<span class="pill ${pc}" title="${s}" style="font-size:10px;padding:2px 7px;text-transform:none;"><span class="sig-full">${s}</span><span class="sig-short">${sigStatusShortLabel(raw)}</span></span>`;})()}</td>
               <td style="white-space:nowrap;">
                 <button onclick="pfOpenDividendForm('${r.ticker}')" title="Record a dividend received" style="background:none;border:none;cursor:pointer;color:var(--success);padding:4px;font-size:11px;font-weight:700;">DIV</button>
@@ -6973,6 +6974,7 @@ function buildHomeTab() {
     if (sortCol === 'status')  { av = STATUS_ORDER[sigStatusCode(a['Signal Status'])] ?? 99;
                                   bv = STATUS_ORDER[sigStatusCode(b['Signal Status'])] ?? 99; }
     else if (sortCol === 'score') { av = toN(a['total improvement']) ?? -Infinity; bv = toN(b['total improvement']) ?? -Infinity; }
+    else if (sortCol === 'fv')    { av = toNum(dget(a, 'Fair Value')) ?? -Infinity;   bv = toNum(dget(b, 'Fair Value')) ?? -Infinity; }
     else if (sortCol === 'date')  { av = toN(a['Signal date'])       ?? -Infinity; bv = toN(b['Signal date'])       ?? -Infinity; }
     else if (sortCol === 'price') { av = toN(a['Signal Price'])      ?? -Infinity; bv = toN(b['Signal Price'])      ?? -Infinity; }
     else if (sortCol === 'ret')   { av = toN(a['Signal Return %'])   ?? -Infinity; bv = toN(b['Signal Return %'])   ?? -Infinity; }
@@ -6999,25 +7001,20 @@ function buildHomeTab() {
     if (!p) return sigStatusLabel(raw)||'';
     return `<span style="background:${p[1]};color:${p[2]};border:1px solid ${p[3]};border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">${p[0]}</span>`;
   };
-  const scoreCircle = v => {
-    const n = toN(v);
-    if (n == null) return '—';
-    const cls = n >= 70 ? 'score-high' : n >= 50 ? 'score-mid' : 'score-low';
-    return `<span class="score-circle ${cls}">${Math.round(n)}</span>`;
-  };
 
   const signalsSection = `
     <div class="home-section">
       <div class="home-section-label">Active Buy Signals<span class="home-section-sub">— ${sortedSignals.length} stocks · Initial Buy, Continuation Buy, Extended (Cautious) · click row to open Company View</span></div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
         <div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
-          <table id="homeSignalsTable" style="width:100%;border-collapse:separate;border-spacing:0;min-width:700px;">
+          <table id="homeSignalsTable" style="width:100%;border-collapse:separate;border-spacing:0;min-width:800px;">
             <thead style="background:var(--surface2);position:sticky;top:0;z-index:2;">
               <tr>
                 <th ${thL('ticker')}>TICKER${arrow('ticker')}</th>
                 <th ${thL('name')}>NAME${arrow('name')}</th>
                 <th ${thL('sector')}>SECTOR${arrow('sector')}</th>
                 <th ${thR('score')}>FINANCIAL SCORE${arrow('score')}</th>
+                <th ${thR('fv')}>FAIR VALUE${arrow('fv')}</th>
                 <th ${thR('date')}>SIGNAL DATE${arrow('date')}</th>
                 <th ${thR('price')}>SIGNAL PRICE${arrow('price')}</th>
                 <th ${thR('ret')}>SIGNAL RETURN%${arrow('ret')}</th>
@@ -7034,7 +7031,8 @@ function buildHomeTab() {
                   <td style="padding:8px 12px;font-size:13px;font-weight:700;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;">${d.Ticker||'—'}${tickerBadges(d)}</td>
                   <td style="padding:8px 12px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(d.Name||'').substring(0,28)}</td>
                   <td style="padding:8px 12px;font-size:13px;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;font-weight:600;">${(d.Sector||'—').substring(0,18)}</td>
-                  <td style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);">${scoreCircle(d['total improvement'])}</td>
+                  <td style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;${mono}"><span class="pill ${d['total improvement']>=80?'pill-good':d['total improvement']>=50?'pill-neutral':'pill-bad'}">${d['total improvement']!=null?d['total improvement']:'—'}</span>${scoreDeltaChip(d)}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);white-space:nowrap;${mono}">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
                   <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);white-space:nowrap;${mono}">${fmtSignalDate(d['Signal date'])}</td>
                   <td style="padding:8px 12px;text-align:right;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);${mono}">${toN(d['Signal Price'])!=null?toN(d['Signal Price']).toFixed(2):'—'}</td>
                   <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);${mono}color:${clr(ret)};">${ret!=null?(ret>=0?'+':'')+ret.toFixed(1)+'%':'—'}</td>
