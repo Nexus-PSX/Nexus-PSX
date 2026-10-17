@@ -4108,6 +4108,13 @@ async function pfConfirmRight() {
 
 
 // ----- Main render -----
+// Same ticker badges the Screener shows (KMI member, N, T, 💧 liquid, V, and the
+// relative-performance arrow) — looked up from the ticker's SourceData row.
+function pfTickerBadges(ticker) {
+  const row = findCompanyRow(ticker);
+  return row ? tickerBadges(row) : '';
+}
+
 // ----- Portfolio sub-tabs (Positions / Closed Positions / Transactions / Dividends) -----
 function pfSubTabBtnCss(active) {
   return `padding:10px 14px;border:none;background:none;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:600;margin-bottom:-1px;border-bottom:2px solid ${active ? 'var(--accent)' : 'transparent'};color:${active ? 'var(--accent)' : 'var(--text2)'};`;
@@ -4248,7 +4255,7 @@ function buildPortfolioTab() {
         <tbody>
           ${rows.map(r => `
             <tr>
-              <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}</td>
+              <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}${r.row ? tickerBadges(r.row) : ''}</td>
               <td>${r.sector || '—'}</td>
               <td class="mono">${fmtQty(r.qty)}</td>
               <td class="mono">${fmtPrice(r.avgPrice)}</td>
@@ -4282,7 +4289,7 @@ function buildPortfolioTab() {
         <tbody>
           ${closedSorted.map((c) => `
             <tr>
-              <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}</td>
+              <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}${pfTickerBadges(c.ticker)}</td>
               <td class="mono">${fmtQty(c.qty)}</td>
               <td class="mono">${fmtPrice(c.avgPrice)}</td>
               <td class="mono">${fmtPrice(c.sellPrice)}</td>
@@ -4321,7 +4328,7 @@ function buildPortfolioTab() {
             return `
             <tr>
               <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
-              <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>` : '—'}</td>
+              <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>${pfTickerBadges(t.ticker)}` : '—'}</td>
               <td class="mono">${t.qty != null ? fmtQty(t.qty) : '—'}</td>
               <td class="mono">${unitPx != null ? fmtPrice(unitPx) : '—'}</td>
               <td class="mono" title="${amtTitle}">${fmtPKR(amount)}</td>
@@ -4363,7 +4370,7 @@ function buildPortfolioTab() {
           <tbody>
             ${divByTicker.map(([tk, d]) => `
               <tr>
-                <td class="ticker-link" onclick="switchTab('company');pickTicker('${tk}')">${tk}</td>
+                <td class="ticker-link" onclick="switchTab('company');pickTicker('${tk}')">${tk}${pfTickerBadges(tk)}</td>
                 <td class="mono">${d.count}</td>
                 <td class="mono">${pfFmt2(d.gross)}</td>
                 <td class="mono">${pfFmt2(d.tax)}</td>
@@ -4382,7 +4389,7 @@ function buildPortfolioTab() {
               return `
               <tr>
                 <td class="mono">${t.date || '—'}</td>
-                <td class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</td>
+                <td class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}${pfTickerBadges(t.ticker)}</td>
                 <td class="mono">${fmtQty(t.qty)}</td>
                 <td class="mono">${fmtPrice(t.dps)}</td>
                 <td class="mono">${pfFmt2(gross)}</td>
