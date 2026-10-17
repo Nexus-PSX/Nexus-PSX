@@ -4108,6 +4108,51 @@ async function pfConfirmRight() {
 
 
 // ----- Main render -----
+// ----- Portfolio table sorting -----
+// Click a column header to sort (click again to reverse). One independent sort
+// state per table; with no column chosen each table keeps its natural order.
+const pfSorts = {
+  open:   { key: null, dir: 'desc' },
+  closed: { key: null, dir: 'desc' },
+  tx:     { key: null, dir: 'desc' },
+  divt:   { key: null, dir: 'desc' },   // dividends: by-ticker table
+  divh:   { key: null, dir: 'desc' },   // dividends: every-payment table
+};
+const PF_TEXT_COLS = new Set(['ticker', 'sector', 'signal', 'type', 'date', 'buyDate', 'sellDate']); // first click = A→Z / oldest first
+
+function pfSortBy(tbl, key) {
+  const st = pfSorts[tbl];
+  if (!st) return;
+  if (st.key === key) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+  else { st.key = key; st.dir = PF_TEXT_COLS.has(key) ? 'asc' : 'desc'; }
+  buildPortfolioTab();
+}
+function pfTh(tbl, key, label) {
+  const st = pfSorts[tbl];
+  const cls = st.key === key ? (st.dir === 'asc' ? ' class="sort-asc"' : ' class="sort-desc"') : '';
+  return `<th${cls} onclick="pfSortBy('${tbl}','${key}')" style="cursor:pointer;user-select:none;">${label}</th>`;
+}
+// Empty values always sink to the bottom, whichever direction is chosen.
+function pfCompare(a, b, dir) {
+  const an = a == null || (typeof a === 'number' && isNaN(a));
+  const bn = b == null || (typeof b === 'number' && isNaN(b));
+  if (an && bn) return 0;
+  if (an) return 1;
+  if (bn) return -1;
+  const c = (typeof a === 'string' || typeof b === 'string')
+    ? String(a).localeCompare(String(b), undefined, { sensitivity: 'base' })
+    : a - b;
+  return dir === 'asc' ? c : -c;
+}
+function pfSortRows(list, tbl, getters) {
+  const st = pfSorts[tbl];
+  const g = st && st.key && getters[st.key];
+  return g ? list.slice().sort((x, y) => pfCompare(g(x), g(y), st.dir)) : list;
+}
+function pfTxAmount(t) {
+  return (t.type === 'deposit' || t.type === 'withdraw') ? t.amount : t.type === 'dividend' ? pfDividendNet(t) : (t.qty * t.price);
+}
+
 // Same ticker badges the Screener shows (KMI member, N, T, 💧 liquid, V, and the
 // relative-performance arrow) — looked up from the ticker's SourceData row.
 function pfTickerBadges(ticker) {
@@ -4245,15 +4290,23 @@ function buildPortfolioTab() {
       </div>
     </div>`;
 
+  const openRowsSorted = pfSortRows(rows, 'open', {
+    ticker: r => r.ticker, sector: r => (r.sector && r.sector !== '—') ? r.sector : null,
+    qty: r => r.qty, avgPrice: r => r.avgPrice, price: r => r.price,
+    marketValue: r => r.marketValue, pnl: r => r.pnl, pnlPct: r => r.pnlPct,
+    dayPnl: r => r.dayPnlPKR, dayPnlPct: r => r.dayPnlPct, weight: r => r.marketValue,
+    score: r => r.score, fv: r => r.row ? toNum(dget(r.row, 'Fair Value')) : null,
+    signal: r => { const l = sigStatusLabel(r.signalStatus); return l == null ? null : String(l); },
+  });
   const openTableHtml = rows.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--text2);font-size:13px;">No open positions — search a ticker above to buy your first position.</div>` : `
     <div class="scroll-table">
       <table class="data-table" id="pfOpenTable">
         <thead><tr>
-          <th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg Price</th><th>Current Price</th>
-          <th>Market Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Day P&amp;L</th><th>Day P&amp;L %</th><th>Weight</th><th>Fin. Score</th><th>Fair Value</th><th>Signal</th><th></th>
+          ${pfTh('open','ticker','Ticker')}${pfTh('open','sector','Sector')}${pfTh('open','qty','Qty')}${pfTh('open','avgPrice','Avg Price')}${pfTh('open','price','Current Price')}
+          ${pfTh('open','marketValue','Market Value')}${pfTh('open','pnl','P&amp;L')}${pfTh('open','pnlPct','P&amp;L %')}${pfTh('open','dayPnl','Day P&amp;L')}${pfTh('open','dayPnlPct','Day P&amp;L %')}${pfTh('open','weight','Weight')}${pfTh('open','score','Fin. Score')}${pfTh('open','fv','Fair Value')}${pfTh('open','signal','Signal')}<th></th>
         </tr></thead>
         <tbody>
-          ${rows.map(r => `
+          ${openRowsSorted.map(r => `
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}${r.row ? tickerBadges(r.row) : ''}</td>
               <td>${r.sector || '—'}</td>
@@ -4280,14 +4333,19 @@ function buildPortfolioTab() {
     </div>`;
 
   const closedSorted = [...pfClosed, ...pfLegacyClosed].sort((a,b) => new Date(b.sellDate||0) - new Date(a.sellDate||0));
+  const closedRowsSorted = pfSortRows(closedSorted, 'closed', {
+    ticker: c => c.ticker, qty: c => c.qty, buy: c => c.avgPrice, sell: c => c.sellPrice,
+    buyDate: c => c.buyDate || null, sellDate: c => c.sellDate || null,
+    pnl: c => c.realizedPnl, pnlPct: c => c.realizedPnlPct,
+  });
   const closedTableHtml = closedSorted.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No closed positions yet — sold trades will show up here with their realized P&amp;L.</div>` : `
     <div class="scroll-table">
       <table class="data-table" id="pfClosedTable">
         <thead><tr>
-          <th>Ticker</th><th>Qty</th><th>Buy Price</th><th>Sell Price</th><th>Buy Date</th><th>Sell Date</th><th>Realized P&amp;L</th><th>Realized P&amp;L %</th>
+          ${pfTh('closed','ticker','Ticker')}${pfTh('closed','qty','Qty')}${pfTh('closed','buy','Buy Price')}${pfTh('closed','sell','Sell Price')}${pfTh('closed','buyDate','Buy Date')}${pfTh('closed','sellDate','Sell Date')}${pfTh('closed','pnl','Realized P&amp;L')}${pfTh('closed','pnlPct','Realized P&amp;L %')}
         </tr></thead>
         <tbody>
-          ${closedSorted.map((c) => `
+          ${closedRowsSorted.map((c) => `
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}${pfTickerBadges(c.ticker)}</td>
               <td class="mono">${fmtQty(c.qty)}</td>
@@ -4302,7 +4360,12 @@ function buildPortfolioTab() {
       </table>
     </div>`;
 
-  const txSorted = [...pfTransactions].sort((a,b) => b.ts - a.ts);
+  const txSortedBase = [...pfTransactions].sort((a,b) => b.ts - a.ts);
+  const txSorted = pfSortRows(txSortedBase, 'tx', {
+    type: t => t.type, ticker: t => t.ticker || null, qty: t => t.qty,
+    price: t => t.type === 'dividend' ? t.dps : t.price, amount: t => pfTxAmount(t),
+    date: t => t.date || null, pnl: t => t.type === 'sell' ? pfRealizedPnlByTxId.get(t.id) : null,
+  });
   const TX_BADGE = {
     buy:      { label: 'BUY',      color: 'var(--accent)' },
     sell:     { label: 'SELL',     color: 'var(--danger)' },
@@ -4315,7 +4378,7 @@ function buildPortfolioTab() {
     <div class="scroll-table">
       <table class="data-table" id="pfTxTable">
         <thead><tr>
-          <th>Type</th><th>Ticker</th><th>Qty</th><th>Price</th><th>Amount</th><th>Date</th><th>Realized P&amp;L</th><th></th>
+          ${pfTh('tx','type','Type')}${pfTh('tx','ticker','Ticker')}${pfTh('tx','qty','Qty')}${pfTh('tx','price','Price')}${pfTh('tx','amount','Amount')}${pfTh('tx','date','Date')}${pfTh('tx','pnl','Realized P&amp;L')}<th></th>
         </tr></thead>
         <tbody>
           ${txSorted.map(t => {
@@ -4353,6 +4416,13 @@ function buildPortfolioTab() {
     .sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.ts - a.ts));
   const divGross = divEntries.reduce((sum, d) => sum + d.gross, 0);
   const divByTicker = Object.entries(pfDividends).sort((a,b) => b[1].net - a[1].net);
+  const divByTickerSorted = pfSortRows(divByTicker, 'divt', {
+    ticker: e => e[0], count: e => e[1].count, gross: e => e[1].gross, tax: e => e[1].tax, net: e => e[1].net,
+  });
+  const divTxsSorted = pfSortRows(divTxs, 'divh', {
+    date: t => t.date || null, ticker: t => t.ticker, qty: t => t.qty, dps: t => t.dps,
+    gross: t => pfDividendGross(t), tax: t => pfDividendGross(t) - pfDividendNet(t), net: t => pfDividendNet(t),
+  });
   const statCard = (label, value, color) => `<div style="flex:1;min-width:130px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"><div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${label}</div><div style="font-size:16px;font-weight:700;color:${color || 'var(--text)'};">${value}</div></div>`;
   const dividendBody = divTxs.length === 0
     ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No dividends recorded yet — use <b>+ Dividend Received</b> to log one, and it will be listed here and credited to your cash.</div>`
@@ -4366,9 +4436,9 @@ function buildPortfolioTab() {
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin:0 0 6px;">By ticker</div>
       <div class="scroll-table" style="margin-bottom:18px;">
         <table class="data-table">
-          <thead><tr><th>Ticker</th><th>Payments</th><th>Gross</th><th>Tax</th><th>Net Received</th></tr></thead>
+          <thead><tr>${pfTh('divt','ticker','Ticker')}${pfTh('divt','count','Payments')}${pfTh('divt','gross','Gross')}${pfTh('divt','tax','Tax')}${pfTh('divt','net','Net Received')}</tr></thead>
           <tbody>
-            ${divByTicker.map(([tk, d]) => `
+            ${divByTickerSorted.map(([tk, d]) => `
               <tr>
                 <td class="ticker-link" onclick="switchTab('company');pickTicker('${tk}')">${tk}${pfTickerBadges(tk)}</td>
                 <td class="mono">${d.count}</td>
@@ -4382,9 +4452,9 @@ function buildPortfolioTab() {
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin:0 0 6px;">Every payment</div>
       <div class="scroll-table">
         <table class="data-table" id="pfDivTable">
-          <thead><tr><th>Date</th><th>Ticker</th><th>Shares</th><th>Dividend / Share</th><th>Gross</th><th>Tax</th><th>Net Received</th><th></th></tr></thead>
+          <thead><tr>${pfTh('divh','date','Date')}${pfTh('divh','ticker','Ticker')}${pfTh('divh','qty','Shares')}${pfTh('divh','dps','Dividend / Share')}${pfTh('divh','gross','Gross')}${pfTh('divh','tax','Tax')}${pfTh('divh','net','Net Received')}<th></th></tr></thead>
           <tbody>
-            ${divTxs.map(t => {
+            ${divTxsSorted.map(t => {
               const gross = pfDividendGross(t), net = pfDividendNet(t);
               return `
               <tr>
