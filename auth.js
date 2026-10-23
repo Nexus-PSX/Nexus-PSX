@@ -98,12 +98,12 @@
       btn.title = 'Push notifications are enabled';
       btn.style.opacity = '0.6';
     } else if (Notification.permission === 'denied') {
-      btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔕 Blocked</span>';
+      btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔕 Blocked – tap to fix</span>';
       btn.title = 'Notifications blocked — enable in browser site settings';
       btn.style.opacity = '0.6';
     } else {
       btn.innerHTML = '<span style="display:flex;align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>🔔 Enable Alerts</span>';
-      btn.title = 'Get push notifications for new Initial Buy signals (score above 70), even when the tab is closed';
+      btn.title = 'Get push notifications for new Initial Buy signals (score 70 or above), even when the tab is closed';
       btn.style.opacity = '1';
     }
     btn.disabled = false;
@@ -119,7 +119,32 @@
 
   // Exposed on window so the button in index.html can call it from outside
   // this module scope.
+  // Once a browser marks a site "blocked", a page can never ask again — the
+  // only way back is the user changing it in browser / phone settings. So when
+  // the bell is tapped in that state, show the steps for THEIR device.
+  function pushBlockedHelpText() {
+    const ua = navigator.userAgent || '';
+    const inApp   = /FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|TikTok|MicroMessenger|; wv\)/i.test(ua);
+    const ios     = /iPhone|iPad|iPod/i.test(ua);
+    const android = /Android/i.test(ua);
+    let steps;
+    if (inApp) {
+      steps = 'You opened Nexus PSX inside another app (WhatsApp, Facebook, etc.), and those cannot show notifications.\n\nOpen the link in Chrome (or Safari) instead, then tap the bell again.';
+    } else if (ios) {
+      steps = '1. Open iPhone Settings → Notifications → Nexus PSX\n2. Turn on Allow Notifications\n\n(On iPhone this only works from the app added to your Home Screen.)';
+    } else if (android) {
+      steps = '1. Tap the lock / ⓘ icon next to the address bar (or ⋮ → Settings → Site settings)\n2. Permissions → Notifications → Allow\n3. Reload this page and tap the bell again\n\nStill blocked? Phone Settings → Apps → Chrome → Notifications → turn on.';
+    } else {
+      steps = 'Click the lock icon next to the address bar → Site settings → Notifications → Allow, then reload this page.';
+    }
+    return 'Notifications are blocked for this site in your browser, so alerts can’t be switched on from inside the app.\n\n' + steps;
+  }
+
   window.requestPushPermission = async function () {
+    if ('Notification' in window && Notification.permission === 'denied') {
+      alert(pushBlockedHelpText());
+      return;
+    }
     const uid = window._currentFcmUid || null;
     const btn = document.getElementById('pushPermBtn');
     // Only update the label text, not innerHTML — preserves the SVG/span structure
@@ -214,12 +239,12 @@
       emailEl, passEl, errEl, submitBtn, toggleBtn, titleEl, subEl;
 
   // Alert rule (bell badge, bell list, toast, desktop + phone push): only stocks in an
-  // "Initial Buy" signal (status code 1.5) whose Financial Score is above 70.
+  // "Initial Buy" signal (status code 1.5) whose Financial Score is 70 or above.
   const ALERT_MIN_SCORE = 70;
   function isAlertWorthy(d) {
     const code = typeof sigStatusCode === 'function' ? sigStatusCode(d['Signal Status']) : null;
     const score = parseFloat(d['total improvement']);
-    return code === 1.5 && !isNaN(score) && score > ALERT_MIN_SCORE;
+    return code === 1.5 && !isNaN(score) && score >= ALERT_MIN_SCORE;
   }
 
   function getAllCurrentBuySignals() {
@@ -368,7 +393,7 @@
   // localStorage so a stock already sitting in a buy signal doesn't keep
   // re-alerting every time the page loads — only a genuine change does.
   const ALERTS_WL_ONLY_KEY = 'psx_alerts_watchlist_only';
-  const ALERT_STATUS_BASELINE_KEY = 'psx_alert_status_baseline_v2';   // v2: stores whether each stock qualified (Initial Buy + score > 70)
+  const ALERT_STATUS_BASELINE_KEY = 'psx_alert_status_baseline_v2';   // v2: stores whether each stock qualified (Initial Buy + score >= 70)
   const BUY_SIGNAL_CODES = new Set([1.5, 2, 2.5]); // Initial / Fresh / Continuation / cautious variants
 
   function readStatusBaseline() {
@@ -457,7 +482,7 @@
     const body = document.getElementById('alertsPanelBody');
     if (!body) { console.warn('renderAlertsPanel: alertsPanelBody not found in DOM'); return; }
     if (!signals.length) {
-      body.innerHTML = '<div class="alerts-panel-empty">No stocks currently in an Initial Buy signal with a score above 70. Check back after the next data update.</div>';
+      body.innerHTML = '<div class="alerts-panel-empty">No stocks currently in an Initial Buy signal with a score of 70 or above. Check back after the next data update.</div>';
       return;
     }
     body.innerHTML = signals.map(d => `
@@ -501,14 +526,16 @@
     const fire = () => {
       const tickers = signals.slice(0, 4).map(d => d.Ticker).join(', ');
       new Notification('New Initial Buy signal' + (signals.length > 1 ? 's' : ''), {
-        body: `${signals.length} stock${signals.length > 1 ? 's' : ''} in Initial Buy with score above ${ALERT_MIN_SCORE}: ${tickers}`,
+        body: `${signals.length} stock${signals.length > 1 ? 's' : ''} in Initial Buy with score ${ALERT_MIN_SCORE} or above: ${tickers}`,
         icon: undefined
       });
     };
+    // Never ask for permission here. This runs automatically when data loads,
+    // with no tap from the user — a prompt like that is easy to dismiss or gets
+    // auto-blocked by Chrome, which left some users permanently "Blocked".
+    // Permission is only requested from the bell button in the account menu.
     if (Notification.permission === 'granted') {
-      fire();
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(perm => { if (perm === 'granted') fire(); });
+      try { fire(); } catch (e) { /* Android Chrome can't use new Notification() — push covers it */ }
     }
   }
 
