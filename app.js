@@ -808,9 +808,15 @@ function loadTicker(ticker) {
   setEl('ciPrice', price != null ? Number(price).toFixed(2) : '—');
 
   const score = dget(d,'total improvement');
-  setEl('ciScore', score != null ? score : '—');
+  // Same coloured pill the Screener uses for Fin. Score (rounded to whole number)
+  const scoreNum = toNum(score);
+  const scorePillCls = scoreNum == null ? '' : (scoreNum >= 80 ? 'pill-good' : scoreNum >= 50 ? 'pill-neutral' : 'pill-bad');
+  setHTML('ciScore', scoreNum == null ? '—' : `<span class="pill ${scorePillCls}" style="font-size:inherit;padding:2px 12px;">${scoreNum.toFixed(0)}</span>`);
   setClass('ciScore', 'score-value ' + scoreColor(score));
-  setEl('ciScoreHint', score >= 80 ? '🟢 Strong' : score >= 40 ? '🟡 Moderate' : '🔴 Weak');
+  setEl('ciScoreHint', scoreNum >= 80 ? '🟢 Strong' : scoreNum >= 40 ? '🟡 Moderate' : '🔴 Weak');
+  // Fair Value with the same ▲/▼ upside chip as the Screener / Portfolio
+  const fvNum = toNum(dget(d,'Fair Value'));
+  setHTML('ciFairValue', fvNum == null ? '—' : `${fvNum.toFixed(2)}${fairValueChip(d)}`);
   // Score-change chip beside the score. Added as a separate element (not inside
   // #ciScore) because share/screenshot code reads #ciScore's text as the score.
   const ciScoreEl = document.getElementById('ciScore');
