@@ -778,6 +778,42 @@ function quartersBefore(endDateStr, n) {
   return result;
 }
 
+// ===== COMPANY TAB: score + fair value strip under the search box =====
+// Builds #ciTopStrip directly below the ticker search box and moves the Financial
+// Score box into it. Creates the Fair Value box if the page doesn't have one, so
+// index.html and admin.html both work without markup changes. Element IDs stay the
+// same, so share/screenshot code that reads #ciScore keeps working.
+function ensureCompanyTopStrip() {
+  let strip = document.getElementById('ciTopStrip');
+  if (!strip) {
+    const controls = document.querySelector('#tab-company .controls');
+    const selector = controls && controls.querySelector('.ticker-selector');
+    if (!selector) return null;
+    strip = document.createElement('div');
+    strip.id = 'ciTopStrip';
+    strip.className = 'ci-top-strip';
+    selector.insertAdjacentElement('afterend', strip);
+  }
+  const scoreBox = document.getElementById('ciScore')?.closest('.score-box');
+  if (scoreBox && scoreBox.parentElement !== strip) strip.appendChild(scoreBox);
+  let fvEl = document.getElementById('ciFairValue');
+  if (!fvEl) {
+    const box = document.createElement('div');
+    box.className = 'score-box ci-fv-box';
+    box.innerHTML = '<div class="score-label">Fair Value (PKR)</div><div class="ci-fv-value" id="ciFairValue">—</div>';
+    strip.appendChild(box);
+  } else {
+    const fvBox = fvEl.closest('.info-item') || fvEl.closest('.score-box');
+    if (fvBox && fvBox.parentElement !== strip) {
+      fvBox.classList.add('score-box', 'ci-fv-box');
+      fvBox.classList.remove('info-item');
+      fvBox.removeAttribute('style');
+      strip.appendChild(fvBox);
+    }
+  }
+  return strip;
+}
+
 // ===== LOAD TICKER =====
 function loadTicker(ticker) {
   const d = SOURCE_DATA.find(r => String(r.Ticker) === String(ticker));
@@ -792,6 +828,8 @@ function loadTicker(ticker) {
   // ticker even though the rest of Company View was correct.
   const tickerLabelEl = document.getElementById('currentTickerLabel');
   if (tickerLabelEl) tickerLabelEl.innerHTML = 'Selected: <span>' + ticker + '</span>';
+
+  ensureCompanyTopStrip();
 
   // Same badges shown next to the ticker in the Stock Screener table
   setHTML('ciTickerBadges', tickerBadges(d));
@@ -815,8 +853,16 @@ function loadTicker(ticker) {
   setClass('ciScore', 'score-value ' + scoreColor(score));
   setEl('ciScoreHint', scoreNum >= 80 ? '🟢 Strong' : scoreNum >= 40 ? '🟡 Moderate' : '🔴 Weak');
   // Fair Value with the same ▲/▼ upside chip as the Screener / Portfolio
-  const fvNum = toNum(dget(d,'Fair Value'));
-  setHTML('ciFairValue', fvNum == null ? '—' : `${fvNum.toFixed(2)}${fairValueChip(d)}`);
+  const fvRaw = dget(d,'Fair Value');
+  const fvNum = toNum(fvRaw);
+  const fvEl2 = document.getElementById('ciFairValue');
+  if (fvNum == null) {
+    setHTML('ciFairValue', '—');
+    if (fvEl2) fvEl2.title = fvRaw == null || fvRaw === '' ? 'No Fair Value in the data for this stock' : `Fair Value in the data could not be read as a number: "${fvRaw}"`;
+  } else {
+    setHTML('ciFairValue', `${fvNum.toFixed(2)}${fairValueChip(d)}`);
+    if (fvEl2) fvEl2.title = `Fair value ${fvNum.toFixed(2)}`;
+  }
   // Score-change chip beside the score. Added as a separate element (not inside
   // #ciScore) because share/screenshot code reads #ciScore's text as the score.
   const ciScoreEl = document.getElementById('ciScore');
