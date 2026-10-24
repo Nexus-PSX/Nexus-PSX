@@ -2501,14 +2501,24 @@ document.addEventListener('keydown', function(e) {
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
 const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'sectorRotation', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid', 'rotation']);
-window.addEventListener('scroll', function() {
+// Saved Filters panel: on phones, typing in its name box opens the keyboard and
+// fires scroll/resize, scrolling its list fires scroll, and dismissing the keyboard
+// when tapping Save fires resize — each of those used to close the panel before
+// Save could register. Keep it open for those cases.
+function savedPanelKeepOpen(e) {
+  const input = document.getElementById('savedFilterNameInput');
+  if (input && document.activeElement === input) return true;
+  if (e && e.target && e.target.closest && e.target.closest('#savedFiltersMsel')) return true;
+  return false;
+}
+window.addEventListener('scroll', function(e) {
   if (Date.now() - mselOpenedAt < 400) return;
   Object.keys(mselRegistry).forEach(key => {
     if (NO_SCROLL_CLOSE.has(key)) return;
     document.getElementById(key + 'MselPanel')?.classList.remove('open');
     document.getElementById(key + 'MselBtn')?.classList.remove('open');
   });
-  closeSavedFiltersPanel();
+  if (!savedPanelKeepOpen(e)) closeSavedFiltersPanel();
 }, true);
 window.addEventListener('resize', function() {
   if (Date.now() - mselOpenedAt < 400) return;
@@ -2517,7 +2527,8 @@ window.addEventListener('resize', function() {
     document.getElementById(key + 'MselPanel')?.classList.remove('open');
     document.getElementById(key + 'MselBtn')?.classList.remove('open');
   });
-  closeSavedFiltersPanel();
+  // Resize is mostly the phone keyboard opening/closing: keep the panel open and re-align it.
+  if (document.getElementById('savedFiltersMselPanel')?.classList.contains('open')) positionSavedFiltersPanel();
 });
 
 // On mobile, tapping a checkbox inside an msel panel fires a touchstart →
@@ -2558,6 +2569,23 @@ function clearAllFilters() {
 // localStorage so it persists across sessions on this device.
 const SAVED_SCREENER_FILTERS_KEY = 'psx_saved_screener_filters';
 
+// Built-in set that's always listed (cannot be deleted). Sort: Sector A→Z (col 2, dir 1 = ascending).
+// Fair Value uses the column filter's upside scale, so 0.19 = 19% upside to Fair Value.
+const NEXUS_DEFAULT_FILTER_SET = {
+  id: 'builtin_nexus_default',
+  name: 'Nexus Default',
+  builtin: true,
+  filters: {
+    liquid: ['1'],
+    rotation: ['absoluteLeading', 'defensiveOutperforming', 'improving'],
+  },
+  colFilters: {
+    'total improvement': { op: 'gte', val: 44 },
+    'Fair Value': { op: 'gte', val: 0.19 },
+  },
+  sort: { col: 2, dir: 1, history: [] },
+};
+
 function getSavedScreenerFilterSets() {
   try { return JSON.parse(wlLocalGet(SAVED_SCREENER_FILTERS_KEY) || '[]'); } catch { return []; }
 }
@@ -2583,12 +2611,13 @@ function saveCurrentScreenerFilterSet() {
   const name = (input && input.value || '').trim();
   if (!name) { input && input.focus(); return; }
   const snap = snapshotCurrentScreenerFilters();
-  if (Object.keys(snap).length === 0) {
+  const colSnap = JSON.parse(JSON.stringify(screenerColFilters || {}));
+  if (Object.keys(snap).length === 0 && Object.keys(colSnap).length === 0) {
     showToast('No filters are currently selected — pick some filters above first, then save them.');
     return;
   }
   const list = getSavedScreenerFilterSets();
-  list.push({ id: 'sf_' + Date.now(), name, filters: snap });
+  list.push({ id: 'sf_' + Date.now(), name, filters: snap, colFilters: colSnap });
   setSavedScreenerFilterSets(list);
   if (input) input.value = '';
   renderSavedFiltersList();
@@ -2596,7 +2625,9 @@ function saveCurrentScreenerFilterSet() {
 }
 
 function applySavedScreenerFilterSet(id) {
-  const item = getSavedScreenerFilterSets().find(x => x.id === id);
+  const item = id === NEXUS_DEFAULT_FILTER_SET.id
+    ? NEXUS_DEFAULT_FILTER_SET
+    : getSavedScreenerFilterSets().find(x => x.id === id);
   if (!item) return;
   SCREENER_FILTER_KEYS.forEach(key => {
     if (!mselRegistry[key]) return;
@@ -2604,6 +2635,16 @@ function applySavedScreenerFilterSet(id) {
     (item.filters[key] || []).forEach(v => mselRegistry[key].selected.add(v));
     mselUpdateLabel(key);
   });
+  // Column numeric filters (Financial Score, Fair Value, …) — replace, not merge
+  Object.keys(screenerColFilters).forEach(k => delete screenerColFilters[k]);
+  Object.entries(item.colFilters || {}).forEach(([k, f]) => { screenerColFilters[k] = { op: f.op, val: f.val }; });
+  updateColFilterIcons();
+  if (item.sort) {
+    screenerSort.col = item.sort.col;
+    screenerSort.dir = item.sort.dir;
+    screenerSortHistory = Array.isArray(item.sort.history) ? item.sort.history : [];
+    try { sessionStorage.setItem('psx_screener_sort', JSON.stringify({ col: screenerSort.col, dir: screenerSort.dir, history: screenerSortHistory })); } catch (e) {}
+  }
   filterScreener();
   closeSavedFiltersPanel();
 }
@@ -2618,12 +2659,16 @@ function renderSavedFiltersList() {
   const container = document.getElementById('savedFiltersList');
   if (!container) return;
   const list = getSavedScreenerFilterSets();
+  const builtinHtml = `<div class="msel-item" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;" onclick="applySavedScreenerFilterSet('${NEXUS_DEFAULT_FILTER_SET.id}')">
+      <span class="msel-label" title="Financial Score ≥ 44, Fair Value upside ≥ 19%, Liquid only, Leading / Defensive / Improving, sorted by Sector A→Z" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:var(--accent);">⭐ ${NEXUS_DEFAULT_FILTER_SET.name}</span>
+      <span style="font-size:10px;color:var(--text3);flex-shrink:0;">built-in</span>
+    </div>`;
   if (!list.length) {
-    container.innerHTML = '<div class="msel-empty">No saved filters yet — choose your filters above, name them, and hit Save.</div>';
+    container.innerHTML = builtinHtml + '<div class="msel-empty">No saved filters yet — choose your filters above, name them, and hit Save.</div>';
     return;
   }
-  container.innerHTML = list.map(item => {
-    const count = Object.values(item.filters).reduce((s, arr) => s + arr.length, 0);
+  container.innerHTML = builtinHtml + list.map(item => {
+    const count = Object.values(item.filters).reduce((s, arr) => s + arr.length, 0) + Object.keys(item.colFilters || {}).length;
     const safeName = item.name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `<div class="msel-item" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;" onclick="applySavedScreenerFilterSet('${item.id}')">
       <span class="msel-label" title="${count} filter value(s)" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeName}</span>
