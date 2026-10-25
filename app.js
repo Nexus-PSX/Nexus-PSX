@@ -778,8 +778,8 @@ function quartersBefore(endDateStr, n) {
   return result;
 }
 
-// ===== COMPANY TAB: score + fair value strip under the search box =====
-// Builds #ciTopStrip directly below the ticker search box and moves the Financial
+// ===== COMPANY TAB: score + fair value strip below the company info card =====
+// Builds #ciTopStrip directly below the company info card and moves the Financial
 // Score box into it. Creates the Fair Value box if the page doesn't have one, so
 // index.html and admin.html both work without markup changes. Element IDs stay the
 // same, so share/screenshot code that reads #ciScore keeps working.
@@ -787,12 +787,15 @@ function ensureCompanyTopStrip() {
   let strip = document.getElementById('ciTopStrip');
   if (!strip) {
     const controls = document.querySelector('#tab-company .controls');
-    const selector = controls && controls.querySelector('.ticker-selector');
-    if (!selector) return null;
+    const info = controls && controls.querySelector('.company-info');
+    if (!info) return null;
     strip = document.createElement('div');
     strip.id = 'ciTopStrip';
     strip.className = 'ci-top-strip';
-    selector.insertAdjacentElement('afterend', strip);
+    // Directly BELOW the company info card. (It must come after it: .controls is a
+    // 2-column grid — search box | company info — and a strip placed between them
+    // pushes the company info card into the narrow search-box column.)
+    info.insertAdjacentElement('afterend', strip);
   }
   const scoreBox = document.getElementById('ciScore')?.closest('.score-box');
   if (scoreBox && scoreBox.parentElement !== strip) strip.appendChild(scoreBox);
