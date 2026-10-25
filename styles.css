@@ -2956,16 +2956,25 @@ html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table t
 #ciScoreChange .score-delta { font-size: 14px; margin-left: 10px; }
 #ciScoreChange .score-delta.new { font-size: 10px; }
 #ciFairValue .score-delta { font-size: 13px; margin-left: 8px; }
-/* Score + Fair Value strip: its own full-width row BELOW the company info card */
-.ci-top-strip { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; margin: 0; }
-.ci-top-strip .score-box { flex: 1 1 180px; max-width: 320px; min-width: 150px; }
+/* COMPANY TAB header: [ search box ] [ Financial Score ] [ Fair Value ]  on one row,
+   company info card full-width on the row below (stacked in that order on phones). */
+#tab-company .controls { align-items: stretch; }
+.ci-top-strip { display: flex; gap: 10px; flex-wrap: wrap; margin: 0; align-items: stretch; }
+.ci-top-strip .score-box { flex: 1 1 170px; max-width: 340px; min-width: 150px; display: flex; flex-direction: column; justify-content: center; }
 .ci-fv-box .ci-fv-value { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; margin-top: 2px; }
 .ci-fv-box .ci-fv-value .score-delta { font-size: 13px; margin-left: 8px; }
 .ci-top-strip #ciScore .pill { font-size: 16px !important; }
-/* Company info card: let every field shrink/wrap inside the card instead of overflowing it */
+#tab-company .company-info { grid-column: 1 / -1; }
+/* Company info card: roomy name column (so the ticker icons beside the name fit),
+   and every field may shrink/wrap inside the card instead of overflowing it. */
+@media (min-width: 769px) {
+  .company-info { grid-template-columns: minmax(240px, 1.8fr) minmax(90px, 1fr) minmax(150px, 1.6fr) minmax(90px, 1fr) minmax(70px, .8fr) minmax(90px, 1fr); }
+}
 #companyInfo { min-width: 0; }
 #companyInfo > * { min-width: 0; }
 #companyInfo .info-value { overflow-wrap: anywhere; }
+#ciName { min-width: 0; }
+#ciTickerBadges { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; flex-shrink: 0; white-space: nowrap; }
 
 
 /* Sector table: the name cell must stay a real table-cell (display:flex on a <td>
