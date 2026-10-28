@@ -4208,6 +4208,18 @@ async function pfConfirmRight() {
 
 
 // ----- Main render -----
+// ----- Hide / show amounts & shares -----
+// Default every page load: amounts (PKR values) and share counts are masked, and only
+// percentages show. The button in the Portfolio tab reveals them for the current
+// session; reloading hides them again. Per-share prices, scores, weights and % are
+// never masked.
+let pfHideAmounts = true;
+const PF_MASK = '<span class="pf-masked" title="Hidden — use the Show amounts button" style="letter-spacing:1px;color:var(--text2);user-select:none;">••••</span>';
+function pfM(html) { return pfHideAmounts ? PF_MASK : html; }
+// "Rs 1,200 (+3.1%)" when shown, just "+3.1%" when hidden
+function pfAmtPct(amountHtml, pctHtml) { return pfHideAmounts ? pctHtml : `${amountHtml} (${pctHtml})`; }
+function pfToggleAmounts() { pfHideAmounts = !pfHideAmounts; buildPortfolioTab(); }
+
 // ----- Portfolio table sorting -----
 // Click a column header to sort (click again to reverse). One independent sort
 // state per table; with no column chosen each table keeps its natural order.
@@ -4359,34 +4371,34 @@ function buildPortfolioTab() {
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Net Worth</div>
-        <div style="font-size:18px;font-weight:700;">${fmtPKR(netWorth)}</div>
+        <div style="font-size:18px;font-weight:700;">${pfM(fmtPKR(netWorth))}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;${pfCash<0?`border-left:4px solid var(--danger);`:''}">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">Cash <button onclick="pfToggleCashForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;padding:0;">Manage</button></div>
-        <div style="font-size:18px;font-weight:700;color:${pfCash<0?'var(--danger)':'var(--text)'};">${fmtPKR(pfCash)}</div>
+        <div style="font-size:18px;font-weight:700;color:${pfCash<0?'var(--danger)':'var(--text)'};">${pfM(fmtPKR(pfCash))}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${cashWeightPct != null ? fmtPct(cashWeightPct).replace('+','') + ' of portfolio' : '—'}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Stock Value</div>
-        <div style="font-size:18px;font-weight:700;">${fmtPKR(holdingsValue)}</div>
+        <div style="font-size:18px;font-weight:700;">${pfM(fmtPKR(holdingsValue))}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">${netWorth ? fmtPct((holdingsValue/netWorth)*100).replace('+','') + ' of portfolio' : '—'}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(realizedPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Realized P&amp;L</div>
-        <div style="font-size:18px;font-weight:700;color:${clr(realizedPnl)};">${fmtPKR(realizedPnl)}</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(realizedPnl)};">${pfM(fmtPKR(realizedPnl))}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${divTotal>0?'var(--success)':'var(--border)'};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Dividends Received</div>
-        <div style="font-size:18px;font-weight:700;color:${divTotal>0?'var(--success)':'var(--text)'};">${fmtPKR(divTotal)}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${divCount ? `${divCount} payment${divCount===1?'':'s'} · after ${fmtPKR(divTax)} tax` : 'none recorded yet'}</div>
+        <div style="font-size:18px;font-weight:700;color:${divTotal>0?'var(--success)':'var(--text)'};">${pfM(fmtPKR(divTotal))}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${divCount ? `${divCount} payment${divCount===1?'':'s'} · after ${pfM(fmtPKR(divTax))} tax` : 'none recorded yet'}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(unrealizedPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Unrealized P&amp;L</div>
-        <div style="font-size:18px;font-weight:700;color:${clr(unrealizedPnl)};">${fmtPKR(unrealizedPnl)} (${fmtPct(unrealizedPnlPct)})</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(unrealizedPnl)};">${pfAmtPct(fmtPKR(unrealizedPnl), fmtPct(unrealizedPnlPct))}</div>
       </div>
       <div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:4px solid ${clr(totalDayPnl)};">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Today's Change</div>
-        <div style="font-size:18px;font-weight:700;color:${clr(totalDayPnl)};">${fmtPKR(totalDayPnl)} (${fmtPct(totalDayPnlPct)})</div>
+        <div style="font-size:18px;font-weight:700;color:${clr(totalDayPnl)};">${pfAmtPct(fmtPKR(totalDayPnl), fmtPct(totalDayPnlPct))}</div>
       </div>
     </div>`;
 
@@ -4410,13 +4422,13 @@ function buildPortfolioTab() {
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${r.ticker}')">${r.ticker}${r.row ? tickerBadges(r.row) : ''}</td>
               <td>${r.sector || '—'}</td>
-              <td class="mono">${fmtQty(r.qty)}</td>
+              <td class="mono">${pfM(fmtQty(r.qty))}</td>
               <td class="mono">${fmtPrice(r.avgPrice)}</td>
               <td class="mono">${r.price != null ? fmtPrice(r.price) : '—'}</td>
-              <td class="mono">${r.marketValue != null ? fmtPKR(r.marketValue) : '—'}</td>
-              <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? fmtPKR(r.pnl) : '—'}</td>
+              <td class="mono">${r.marketValue != null ? pfM(fmtPKR(r.marketValue)) : '—'}</td>
+              <td class="mono" style="color:${clr(r.pnl)}">${r.pnl != null ? pfM(fmtPKR(r.pnl)) : '—'}</td>
               <td class="mono" style="color:${clr(r.pnl)}">${fmtPct(r.pnlPct)}</td>
-              <td class="mono" style="color:${clr(r.dayPnlPKR)}">${r.dayPnlPKR != null ? fmtPKR(r.dayPnlPKR) : '—'}</td>
+              <td class="mono" style="color:${clr(r.dayPnlPKR)}">${r.dayPnlPKR != null ? pfM(fmtPKR(r.dayPnlPKR)) : '—'}</td>
               <td class="mono" style="color:${clr(r.dayPnlPct)}">${fmtPct(r.dayPnlPct)}</td>
               <td class="mono">${netWorth ? ((r.marketValue/netWorth)*100).toFixed(1)+'%' : '—'}</td>
               <td class="mono"><span class="pill ${r.score>=80?'pill-good':r.score>=50?'pill-neutral':'pill-bad'}">${r.score != null ? r.score.toFixed(0) : '—'}</span>${r.row ? scoreDeltaChip(r.row) : ''}</td>
@@ -4448,12 +4460,12 @@ function buildPortfolioTab() {
           ${closedRowsSorted.map((c) => `
             <tr>
               <td class="ticker-link" onclick="switchTab('company');pickTicker('${c.ticker}')">${c.ticker}${pfTickerBadges(c.ticker)}</td>
-              <td class="mono">${fmtQty(c.qty)}</td>
+              <td class="mono">${pfM(fmtQty(c.qty))}</td>
               <td class="mono">${fmtPrice(c.avgPrice)}</td>
               <td class="mono">${fmtPrice(c.sellPrice)}</td>
               <td class="mono">${c.buyDate || '—'}</td>
               <td class="mono">${c.sellDate || '—'}</td>
-              <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPKR(c.realizedPnl)}</td>
+              <td class="mono" style="color:${clr(c.realizedPnl)}">${pfM(fmtPKR(c.realizedPnl))}</td>
               <td class="mono" style="color:${clr(c.realizedPnl)}">${fmtPct(c.realizedPnlPct)}</td>
             </tr>`).join('')}
         </tbody>
@@ -4492,11 +4504,11 @@ function buildPortfolioTab() {
             <tr>
               <td><span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${badge.color};color:#fff;">${badge.label}</span></td>
               <td>${t.ticker ? `<span class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}</span>${pfTickerBadges(t.ticker)}` : '—'}</td>
-              <td class="mono">${t.qty != null ? fmtQty(t.qty) : '—'}</td>
+              <td class="mono">${t.qty != null ? pfM(fmtQty(t.qty)) : '—'}</td>
               <td class="mono">${unitPx != null ? fmtPrice(unitPx) : '—'}</td>
-              <td class="mono" title="${amtTitle}">${fmtPKR(amount)}</td>
+              <td class="mono" title="${pfHideAmounts ? '' : amtTitle}">${pfM(fmtPKR(amount))}</td>
               <td class="mono">${t.date || '—'}</td>
-              <td class="mono" style="color:${pnl!=null?clr(pnl):'var(--text2)'}">${pnl != null ? fmtPKR(pnl) : '—'}</td>
+              <td class="mono" style="color:${pnl!=null?clr(pnl):'var(--text2)'}">${pnl != null ? pfM(fmtPKR(pnl)) : '—'}</td>
               <td style="white-space:nowrap;">
                 <button onclick="pfEditTransaction('${t.id}')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✎</button>
                 <button onclick="pfDeleteTransaction('${t.id}')" title="Delete" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button>
@@ -4528,9 +4540,9 @@ function buildPortfolioTab() {
     ? `<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">No dividends recorded yet — use <b>+ Dividend Received</b> to log one, and it will be listed here and credited to your cash.</div>`
     : `
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-        ${statCard('Net Received', pfFmt2(divTotal), 'var(--success)')}
-        ${statCard('Gross Dividends', pfFmt2(divGross))}
-        ${statCard('Tax Withheld', pfFmt2(divTax))}
+        ${statCard('Net Received', pfM(pfFmt2(divTotal)), 'var(--success)')}
+        ${statCard('Gross Dividends', pfM(pfFmt2(divGross)))}
+        ${statCard('Tax Withheld', pfM(pfFmt2(divTax)))}
         ${statCard('Payments', divCount)}
       </div>
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin:0 0 6px;">By ticker</div>
@@ -4542,9 +4554,9 @@ function buildPortfolioTab() {
               <tr>
                 <td class="ticker-link" onclick="switchTab('company');pickTicker('${tk}')">${tk}${pfTickerBadges(tk)}</td>
                 <td class="mono">${d.count}</td>
-                <td class="mono">${pfFmt2(d.gross)}</td>
-                <td class="mono">${pfFmt2(d.tax)}</td>
-                <td class="mono" style="color:var(--success);">${pfFmt2(d.net)}</td>
+                <td class="mono">${pfM(pfFmt2(d.gross))}</td>
+                <td class="mono">${pfM(pfFmt2(d.tax))}</td>
+                <td class="mono" style="color:var(--success);">${pfM(pfFmt2(d.net))}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -4560,11 +4572,11 @@ function buildPortfolioTab() {
               <tr>
                 <td class="mono">${t.date || '—'}</td>
                 <td class="ticker-link" onclick="switchTab('company');pickTicker('${t.ticker}')">${t.ticker}${pfTickerBadges(t.ticker)}</td>
-                <td class="mono">${fmtQty(t.qty)}</td>
+                <td class="mono">${pfM(fmtQty(t.qty))}</td>
                 <td class="mono">${fmtPrice(t.dps)}</td>
-                <td class="mono">${pfFmt2(gross)}</td>
-                <td class="mono">${pfFmt2(gross - net)} <span style="color:var(--text2);font-size:11px;">(${t.taxPct || 0}%)</span></td>
-                <td class="mono" style="color:var(--success);">${pfFmt2(net)}</td>
+                <td class="mono">${pfM(pfFmt2(gross))}</td>
+                <td class="mono">${pfM(pfFmt2(gross - net))} <span style="color:var(--text2);font-size:11px;">(${t.taxPct || 0}%)</span></td>
+                <td class="mono" style="color:var(--success);">${pfM(pfFmt2(net))}</td>
                 <td style="white-space:nowrap;">
                   <button onclick="pfEditTransaction('${t.id}')" title="Edit" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✎</button>
                   <button onclick="pfDeleteTransaction('${t.id}')" title="Delete" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;">✕</button>
@@ -4584,7 +4596,7 @@ function buildPortfolioTab() {
     </div>`;
 
   const closedRealized = closedSorted.reduce((sum, c) => sum + (c.realizedPnl || 0), 0);
-  const closedTotalsHtml = closedSorted.length === 0 ? '' : `<div style="font-size:12px;color:var(--text2);margin:0 0 10px;">${closedSorted.length} closed trade${closedSorted.length === 1 ? '' : 's'} · Total realized P&amp;L <b style="color:${clr(closedRealized)};">${fmtPKR(closedRealized)}</b></div>`;
+  const closedTotalsHtml = closedSorted.length === 0 ? '' : `<div style="font-size:12px;color:var(--text2);margin:0 0 10px;">${closedSorted.length} closed trade${closedSorted.length === 1 ? '' : 's'} · Total realized P&amp;L <b style="color:${clr(closedRealized)};">${pfM(fmtPKR(closedRealized))}</b></div>`;
 
   _pfPanels = {
     positions: `
@@ -4629,6 +4641,7 @@ function buildPortfolioTab() {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px;">
       <button onclick="pfOpenDividendForm()" style="padding:7px 14px;border:1px solid var(--success);border-radius:8px;background:var(--surface);color:var(--success);font-size:12px;font-weight:600;cursor:pointer;">+ Dividend Received</button>
       <button onclick="pfOpenRightForm()" style="padding:7px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">+ Right Shares</button>
+      <button onclick="pfToggleAmounts()" title="${pfHideAmounts ? 'Amounts and share counts are hidden — tap to show them' : 'Tap to hide amounts and share counts'}" style="margin-left:auto;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;">${pfHideAmounts ? '👁 Show amounts &amp; shares' : '🙈 Hide amounts &amp; shares'}</button>
     </div>
     <div id="pfPendingForm"></div>
     <div id="pfDivForm"></div>
@@ -4960,7 +4973,7 @@ function pfRenderAllocTooltip(context, info) {
     `color:${th.tooltip.body};font:11px ${CHART_FONT};box-shadow:0 4px 14px rgba(0,0,0,.18);transition:opacity .1s;`;
   el.innerHTML =
     `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${swatch};margin-right:6px;"></span>` +
-    `${label}: ${info.value[idx].toLocaleString('en-US',{maximumFractionDigits:0})} (${info.weight[idx].toFixed(1)}%)` + pnlHtml;
+    (pfHideAmounts ? `${label}: ${info.weight[idx].toFixed(1)}%` : `${label}: ${info.value[idx].toLocaleString('en-US',{maximumFractionDigits:0})} (${info.weight[idx].toFixed(1)}%)`) + pnlHtml;
 
   // Position above the touched slice, clamped inside the chart area.
   const w = el.offsetWidth, h = el.offsetHeight, pw = parent.clientWidth;
