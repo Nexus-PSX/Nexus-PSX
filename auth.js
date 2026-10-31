@@ -13,7 +13,8 @@
     getFirestore,
     doc,
     getDoc,
-    setDoc
+    setDoc,
+    runTransaction
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import {
     getMessaging,
@@ -195,6 +196,40 @@
 
   // Portfolio holdings — same bridge pattern as the watchlist above, stored at
   // users/{uid}/data/portfolio as { holdings: [{ticker, qty, avgPrice, buyDate}], updatedAt }.
+  // ---- Multi-device-safe portfolio sync (compare-and-set) ----
+  // The portfolio is ONE document that used to be overwritten by whichever device
+  // saved last, so a phone holding an older copy could wipe entries made on the PC.
+  // Now every save carries the revision it was based on; if another device saved in
+  // between, the write is refused and the app merges instead of overwriting.
+  window.fsLoadPortfolioMeta = async function (uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid, 'data', 'portfolio'));
+      if (!snap.exists()) return null;                                  // no doc yet
+      const d = snap.data();
+      return { holdings: d.holdings || [], rev: Number(d.rev) || 0 };
+    } catch (e) {
+      console.error('Firestore load portfolio failed:', e);
+      return undefined;                                                 // read failed
+    }
+  };
+  window.fsSavePortfolioCas = async function (uid, holdings, expectedRev) {
+    const ref = doc(db, 'users', uid, 'data', 'portfolio');
+    try {
+      return await runTransaction(db, async tx => {
+        const snap = await tx.get(ref);
+        const remoteRev = snap.exists() ? (Number(snap.data().rev) || 0) : 0;
+        if (remoteRev !== expectedRev) {
+          return { conflict: true, rev: remoteRev, remote: snap.exists() ? (snap.data().holdings || null) : null };
+        }
+        const rev = remoteRev + 1;
+        tx.set(ref, { holdings, updatedAt: Date.now(), rev });
+        return { ok: true, rev };
+      });
+    } catch (e) {
+      console.error('Firestore save portfolio failed:', e);
+      return { error: true };
+    }
+  };
   window.fsLoadPortfolio = async function (uid) {
     try {
       const snap = await getDoc(doc(db, 'users', uid, 'data', 'portfolio'));

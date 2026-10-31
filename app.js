@@ -3448,6 +3448,11 @@ let pfLegacyClosed = [];      // Frozen pre-log-model closed positions — read-
 let pfTransactions = [];      // SOURCE OF TRUTH — [{id, type:'buy'|'sell'|'deposit'|'withdraw'|'dividend'|'right', ticker?, qty?, price?, amount?, date, ts} — 'dividend' uses qty (shares eligible), dps (dividend per share) and taxPct; 'right' is a subscribed right-share purchase (qty, price = subscription price)]
 let pfMode = 'local';         // 'local' | 'firestore'
 let pfUID = null;
+let pfRev = 0;                // revision of the cloud portfolio this device last loaded/saved (compare-and-set)
+let pfBaseTx = new Map();     // id → JSON of each transaction as last known in the cloud (merge base)
+let pfSaving = false;
+let _pfLastCloudCheck = 0;
+let pfSaveToastShown = false;
 let pfReadyPromise = Promise.resolve();
 let pfAcFiltered = [];
 let pfAcIndex = -1;
@@ -3658,27 +3663,123 @@ function initPortfolio() {
   pfApplyState(pfReadLocal());
 }
 
+// ----- Multi-device-safe cloud save -----
+function pfTxMap(list) { const m = new Map(); (list || []).forEach(t => { if (t && t.id) m.set(t.id, JSON.stringify(t)); }); return m; }
+function pfSnapshot() { return { cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions, legacyClosed: pfLegacyClosed }; }
+
+// Three-way merge by transaction id.
+//   base   = what this device last saw in the cloud
+//   local  = this device now        remote = the cloud now (another device saved)
+// New entries from either side are kept; a delete on either side stays deleted;
+// if both sides edited the same entry, this device's edit wins.
+function pfMergeTransactions(localList, remoteList, baseMap) {
+  const localMap  = new Map(localList.map(t => [t.id, t]));
+  const remoteMap = new Map(remoteList.map(t => [t.id, t]));
+  const out = [];
+  remoteMap.forEach((r, id) => {
+    const l = localMap.get(id), b = baseMap.get(id);
+    if (!l) { if (b === undefined) out.push(r); return; }            // gone here + known before = we deleted it
+    if (b === undefined) { out.push(r); return; }
+    out.push(JSON.stringify(l) !== b ? l : r);                       // we edited it → ours, else theirs
+  });
+  localMap.forEach((l, id) => { if (!remoteMap.has(id) && !baseMap.has(id)) out.push(l); });   // new on this device
+  return out;
+}
+
 async function pfSaveFirestore() {
-  if (!pfUID || typeof window.fsSavePortfolio !== 'function') return false;
-  return await window.fsSavePortfolio(pfUID, { cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions, legacyClosed: pfLegacyClosed });
+  if (!pfUID) return false;
+  if (typeof window.fsSavePortfolioCas !== 'function') {            // older cached auth.js: plain overwrite
+    return typeof window.fsSavePortfolio === 'function' ? await window.fsSavePortfolio(pfUID, pfSnapshot()) : false;
+  }
+  pfSaving = true;
+  try {
+    let merged = false;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await window.fsSavePortfolioCas(pfUID, pfSnapshot(), pfRev);
+      if (res && res.ok) {
+        pfRev = res.rev; pfBaseTx = pfTxMap(pfTransactions);
+        if (merged) showToast('🔄 Your change was combined with changes made on another device.');
+        return true;
+      }
+      if (!res || !res.conflict) return false;                       // offline / rules / other error
+      // Another device saved since this one loaded — merge instead of overwriting.
+      const remote = pfNormalizeState(res.remote);
+      const idsOk = remote.transactions.every(t => t && t.id);
+      const mergedTx = idsOk ? pfMergeTransactions(pfTransactions, remote.transactions, pfBaseTx) : null;
+      const replay = mergedTx ? pfTryReplay(mergedTx) : null;
+      if (!replay || !replay.ok) {
+        // Can't combine safely → take the cloud version and say so (never silently overwrite).
+        pfApplyState(remote); pfRev = res.rev; pfBaseTx = pfTxMap(pfTransactions);
+        pfSaveToastShown = true;
+        showToast('⚠️ Your portfolio was changed on another device and your last change could not be combined. The latest saved version has been loaded — please re-enter your last change.');
+        return false;
+      }
+      pfTransactions = mergedTx;
+      if (remote.legacyClosed.length) pfLegacyClosed = remote.legacyClosed;
+      pfCommitReplay(replay);
+      pfRev = res.rev; pfBaseTx = pfTxMap(remote.transactions);
+      merged = true;
+    }
+    return false;
+  } finally { pfSaving = false; }
 }
 
 async function pfSave() {
-  if (pfMode === 'firestore') return await pfSaveFirestore();
-  pfWriteLocal({ cash: pfCash, open: pfOpen, closed: pfClosed, transactions: pfTransactions, legacyClosed: pfLegacyClosed });
+  if (pfMode === 'firestore') {
+    pfSaveToastShown = false;
+    const ok = await pfSaveFirestore();
+    if (!ok && !pfSaveToastShown) showToast('⚠️ Could not save to the cloud — this change is only on this screen and will be lost on reload. Check your connection and try again.');
+    return ok;
+  }
+  pfWriteLocal(pfSnapshot());
   return true;
+}
+
+// A tab left open for a while can hold an old copy. When the user comes back to it,
+// pick up newer saves from other devices so they are never built on top of.
+async function pfRefreshFromCloud(force) {
+  if (pfMode !== 'firestore' || !pfUID || pfSaving || typeof window.fsLoadPortfolioMeta !== 'function') return;
+  const now = Date.now();
+  if (!force && now - _pfLastCloudCheck < 15000) return;
+  _pfLastCloudCheck = now;
+  const meta = await window.fsLoadPortfolioMeta(pfUID);
+  if (!meta || meta.rev <= pfRev || pfSaving) return;
+  pfApplyState(pfNormalizeState(meta.holdings));
+  pfRev = meta.rev; pfBaseTx = pfTxMap(pfTransactions);
+  if (document.getElementById('tab-portfolio')?.classList.contains('active')) buildPortfolioTab();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pfRefreshFromCloud(); });
+window.addEventListener('focus', () => pfRefreshFromCloud());
+
+function pfExportBackup() {
+  const data = { app: 'Nexus PSX portfolio backup', exportedAt: new Date().toISOString(), rev: pfRev, ...pfSnapshot() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nexus-portfolio-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
 }
 
 window.pfOnSignIn = function (uid, email) {
   pfReadyPromise = (async () => {
     pfUID = uid;
     if (typeof window.fsLoadPortfolio !== 'function') return; // Firestore bridge not ready yet
-    const remote = await window.fsLoadPortfolio(uid);
+    let remote, rev = 0;
+    if (typeof window.fsLoadPortfolioMeta === 'function') {
+      const meta = await window.fsLoadPortfolioMeta(uid);
+      remote = meta === undefined ? undefined : meta === null ? null : meta.holdings;
+      rev = meta ? meta.rev : 0;
+    } else {
+      remote = await window.fsLoadPortfolio(uid);
+    }
+    pfRev = rev;
     if (remote === undefined) {
       // Firestore read failed (offline, rules misconfigured, etc.) — fall back
       // to local storage rather than silently showing an empty portfolio.
       pfMode = 'local';
       pfApplyState(pfReadLocal());
+      showToast('⚠️ Could not read your cloud portfolio. Changes made now are saved on this device only — reload when your connection is back.');
     } else if (remote === null) {
       // No Firestore portfolio yet for this account — migrate any existing
       // local/guest state up so testing before sign-in isn't lost.
@@ -3690,6 +3791,7 @@ window.pfOnSignIn = function (uid, email) {
       pfApplyState(pfNormalizeState(remote));
       pfMode = 'firestore';
     }
+    pfBaseTx = pfTxMap(pfTransactions);
     if (document.getElementById('tab-portfolio')?.classList.contains('active')) buildPortfolioTab();
   })();
   return pfReadyPromise;
@@ -4642,6 +4744,7 @@ function buildPortfolioTab() {
       <button onclick="pfOpenDividendForm()" style="padding:7px 14px;border:1px solid var(--success);border-radius:8px;background:var(--surface);color:var(--success);font-size:12px;font-weight:600;cursor:pointer;">+ Dividend Received</button>
       <button onclick="pfOpenRightForm()" style="padding:7px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">+ Right Shares</button>
       <button onclick="pfToggleAmounts()" title="${pfHideAmounts ? 'Amounts and share counts are hidden — tap to show them' : 'Tap to hide amounts and share counts'}" style="margin-left:auto;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;">${pfHideAmounts ? '👁 Show amounts &amp; shares' : '🙈 Hide amounts &amp; shares'}</button>
+      <button onclick="pfExportBackup()" title="Download a copy of your portfolio as a file" style="padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;">💾 Backup</button>
     </div>
     <div id="pfPendingForm"></div>
     <div id="pfDivForm"></div>
