@@ -91,7 +91,7 @@ function computeSectorRowsFromCompanies(companies) {
     roe:        avg(rows, 'ROE 2026-Q1'),
     de:         avg(rows, 'Debt/Equity 2026-Q1'),
     cfo:        avg(rows, 'CFO 2026-Q1'),
-    divYield:   avg(rows, 'Latest Div Y Q'),
+    divYield:   divYFrac(avg(rows, 'Latest Div Y Q')),
     totalScore: avg(rows, 'total improvement'),
     qtrScore:   null,
     ttmScore:   null,
@@ -232,7 +232,7 @@ function buildMarketAvgRowFromCompanies(companies, sectorRows) {
     roe:        avg('ROE 2026-Q1'),
     de:         avg('Debt/Equity 2026-Q1'),
     cfo:        avg('CFO 2026-Q1'),
-    divYield:   avg('Latest Div Y Q'),
+    divYield:   divYFrac(avg('Latest Div Y Q')),
     totalScore: avg('total improvement'),
     qtrScore:   null,
     ttmScore:   null,
@@ -752,7 +752,7 @@ function computeKpiRows(d, qKeys) {
     {key:'roe',    label:'ROE',        sectorKey:'roe',       vals:[null,dget(d,qKeys.roe[0]),dget(d,qKeys.roe[1]),dget(d,qKeys.roe[2])], pct:true},
     {key:'cfo',    label:'CFO',        sectorKey:'cfo',       vals:[null,dget(d,qKeys.cfo[0]),dget(d,qKeys.cfo[1]),dget(d,qKeys.cfo[2])], pct:false, big:true},
     {key:'de',     label:'D/E',        sectorKey:'de',        vals:[null,dget(d,qKeys.de[0]),dget(d,qKeys.de[1]),dget(d,qKeys.de[2])], pct:false},
-    {key:'divY',   label:'Div Yield',  sectorKey:'divYield',  vals:[null,dget(d,'Div Y Q-2'),dget(d,'Div Y Q-1'),dget(d,'Latest Div Y Q')], pct:true},
+    {key:'divY',   label:'Div Yield',  sectorKey:'divYield',  vals:[null,divYFrac(dget(d,'Div Y Q-2')),divYFrac(dget(d,'Div Y Q-1')),divYFrac(dget(d,'Latest Div Y Q'))], pct:true},
   ];
 }
 function kpiFmtFn(row) {
@@ -3011,6 +3011,7 @@ function filterScreener() {
       // (matches what the user types, same convention as Signal date's filter).
       const v = (fkey === 'Signal Price' || fkey === 'NEMI Signal Price') ? (() => { const r = signalReturnPct(d, fkey === 'NEMI Signal Price' ? 'NEMI ' : ''); return r == null ? null : r / 100; })()
               : fkey === 'Fair Value' ? fairValueUpsideFrac(d)
+              : fkey === 'Latest Div Y Q' ? divYFrac(rawVal)
               : fkey === 'Volume' ? relVolValue(d)
               : fkey === 'Last Period End Date' ? isoDateToYYYYMMDD(rawVal) : toNum(rawVal);
       if (v == null) return false;
@@ -5516,7 +5517,7 @@ function renderScreenerPage() {
       <td class="screener-fin-col mono ${valColor(dget(d,'ROE 2026-Q1'))}">${fmtPct(dget(d,'ROE 2026-Q1'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono">${fmt(dget(d,'Debt/Equity 2026-Q1'),2)}</td>
       <td class="screener-hide-mobile screener-fin-col mono ${valColor(dget(d,'CFO 2026-Q1'))}">${fmtBig(dget(d,'CFO 2026-Q1'))}</td>
-      <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(dget(d,'Latest Div Y Q'),2)}</td>
+      <td class="screener-fin-col mono ${valColor(dget(d,'Latest Div Y Q'))}">${fmtPct(divYFrac(dget(d,'Latest Div Y Q')),2)}</td>
       <td class="screener-fin-col mono">${fmtMarketCap(dget(d,'Market Cap'))}</td>
       <td class="mono"><span class="pill ${score>=80?'pill-good':score>=50?'pill-neutral':'pill-bad'}">${score!=null?score:'—'}</span>${scoreDeltaChip(d)}</td>
       <td class="mono">${(()=>{const n=toNum(dget(d,'Fair Value'));return n!=null?n.toFixed(2):'—';})()}${fairValueChip(d)}</td>
@@ -5615,7 +5616,7 @@ function updateScreenerAvgRow() {
     <td class="mono screener-fin-col ${valColor(avg('ROE 2026-Q1'))}">${fmtPct(avg('ROE 2026-Q1'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col">${fmt(avg('Debt/Equity 2026-Q1'),2)}</td>
     <td class="mono screener-hide-mobile screener-fin-col ${valColor(avg('CFO 2026-Q1'))}">${fmtBig(avg('CFO 2026-Q1'))}</td>
-    <td class="mono screener-fin-col ${valColor(avg('Latest Div Y Q'))}">${fmtPct(avg('Latest Div Y Q'),2)}</td>
+    <td class="mono screener-fin-col ${valColor(avg('Latest Div Y Q'))}">${fmtPct(divYFrac(avg('Latest Div Y Q')),2)}</td>
     <td class="mono screener-fin-col">${fmtMarketCap(avg('Market Cap'))}</td>
     <td class="mono">${scoreHtml}</td>
     <td class="mono">${fmt(avg('Fair Value'),2)}</td>
@@ -6196,6 +6197,25 @@ function fmtBig(v) {
   if (abs >= 1e3)  return (n/1e3).toFixed(1)  + 'K';
   return n.toFixed(0);
 }
+// ===== DIVIDEND YIELD SCALE =====
+// Every other % column in SourceData is a fraction (0.12 = 12%) and fmtPct multiplies
+// it by 100. The Div Y columns are stored as percent points (5.2 = 5.2%), so running
+// them through fmtPct showed 520%. divYFrac() converts to the fraction scale the rest
+// of the code expects, so the screen shows exactly what the sheet shows. The scale is
+// worked out from the data itself (once per load): if no yield in the Latest Div Y Q
+// column is above 1, the column is fractions (divide by 1); otherwise it is percent
+// points (divide by 100).
+let _divyScale = { ref: null, n: -1, div: 1 };
+function divYDivisor() {
+  const data = (typeof SOURCE_DATA !== 'undefined' && Array.isArray(SOURCE_DATA)) ? SOURCE_DATA : [];
+  if (_divyScale.ref === data && _divyScale.n === data.length) return _divyScale.div;
+  let max = 0;
+  data.forEach(d => { const n = toNum(dget(d, 'Latest Div Y Q')); if (n != null && isFinite(n)) max = Math.max(max, Math.abs(n)); });
+  _divyScale = { ref: data, n: data.length, div: max > 1 ? 100 : 1 };
+  return _divyScale.div;
+}
+function divYFrac(v) { const n = toNum(v); return n == null ? null : n / divYDivisor(); }
+
 function fmtPct(v, dec=1) {
   const n = toNum(v);
   if (n == null) return '—';
