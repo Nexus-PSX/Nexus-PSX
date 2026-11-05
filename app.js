@@ -119,7 +119,7 @@ const SECTOR_ROTATION_MAP = {};
 function sectorRotationDetailText(r) {
   if (!r) return '';
   const f = v => v == null ? 'n/a' : v.toFixed(2) + '%';
-  return ` — 1M Roll ${f(r.roll1m)} vs KSE ${f(r.bench1M)} · 3M Roll ${f(r.roll3m)} vs KSE ${f(r.bench3M)}`;
+  return ` — MTD ${f(r.mtd)} vs KSE ${f(r.benchMTD)} · 3M Roll ${f(r.roll3m)} vs KSE ${f(r.bench3M)}`;
 }
 // Ticker → rotation category (Leading / Improving / Defensive / Weakening /
 // Lagging) for the Screener's per-ticker badges and the Relative Performance
@@ -193,7 +193,7 @@ function computeStockRotationMap() {
   const bench = getRotationBenchmark();
   if (!bench) return;
   rows.forEach(d => {
-    const roll1m = parseFloat(dget(d, 'Rolling 1M%'));
+    const roll1m = parseFloat(dget(d, 'Current Month Return %'));   // MTD %
     const roll3m = parseFloat(dget(d, 'Rolling 3M%'));
     STOCK_ROTATION_MAP[d.Ticker] = classifySectorRotation(isNaN(roll1m) ? null : roll1m, isNaN(roll3m) ? null : roll3m, bench);
   });
@@ -1786,29 +1786,31 @@ function getRotationBenchmark() {
   const bench1D  = kse100 ? toN(kse100['Day Change %']) : null;
   const benchWTD = kse100 ? toN(kse100['Current Week Return %']) : null;
   const bench1M  = kse100 ? toN(kse100['Rolling 1M%']) : null;
+  const benchMTD = kse100 ? toN(kse100['Current Month Return %']) : null;   // MTD % — first leg of the relative-performance rule
   const bench3M  = kse100 ? toN(kse100['Rolling 3M%']) : null;
-  if (bench1D == null && benchWTD == null && bench1M == null && bench3M == null) return null;
-  return { bench1D, benchWTD, bench1M, bench3M };
+  if (bench1D == null && benchWTD == null && bench1M == null && benchMTD == null && bench3M == null) return null;
+  return { bench1D, benchWTD, bench1M, benchMTD, bench3M };
 }
 
 // RELATIVE PERFORMANCE — the same formula used in the SourceData sheet
-// (1M Roll% = BG, 3M Roll% = BH, benchmark = "KSE 100 Index" row):
-//   =IF(BG>KSE_BG,
-//        IF(BH>KSE_BH, IF(AND(BG>0,BH>0),"Leading","Defensive"), "Improving"),
-//        IF(BH>KSE_BH, "Weakening", "Lagging"))
-// i.e.  1M beats KSE?  3M beats KSE?   → result
+// (MTD % = 'Current Month Return %', 3M Roll% = 'Rolling 3M%', benchmark = "KSE 100 Index" row):
+//   =IF(MTD>KSE_MTD,
+//        IF(R3M>KSE_R3M, IF(AND(MTD>0,R3M>0),"Leading","Defensive"), "Improving"),
+//        IF(R3M>KSE_R3M, "Weakening", "Lagging"))
+// (The first leg used to be Rolling 1M%; it is now month-to-date.)
+// i.e.  MTD beats KSE?  3M beats KSE?   → result
 //         yes            yes (and both > 0) → Leading
 //         yes            yes (otherwise)    → Defensive
 //         yes            no                 → Improving
 //         no             yes                → Weakening
 //         no             no                 → Lagging
-// Used for every sector row (their own Roll 1M% / 3M% columns) and as the
+// Used for every sector row (their own MTD % / Roll 3M% columns) and as the
 // fallback for individual stocks if the sheet has no status column.
-function classifySectorRotation(roll1m, roll3m, bench) {
-  if (roll1m == null || roll3m == null || !bench || bench.bench1M == null || bench.bench3M == null) return null;
-  const k1 = bench.bench1M, k3 = bench.bench3M;
-  if (roll1m > k1) {
-    if (roll3m > k3) return (roll1m > 0 && roll3m > 0) ? 'absoluteLeading' : 'defensiveOutperforming';
+function classifySectorRotation(mtd, roll3m, bench) {
+  if (mtd == null || roll3m == null || !bench || bench.benchMTD == null || bench.bench3M == null) return null;
+  const k1 = bench.benchMTD, k3 = bench.bench3M;
+  if (mtd > k1) {
+    if (roll3m > k3) return (mtd > 0 && roll3m > 0) ? 'absoluteLeading' : 'defensiveOutperforming';
     return 'improving';
   }
   return (roll3m > k3) ? 'weakening' : 'lagging';
@@ -1827,10 +1829,10 @@ function computeSectorRotationData() {
   return sectorRows.map(s => {
     const rel1D  = (s.p1d     != null && bench.bench1D  != null) ? s.p1d     - bench.bench1D  : null;
     const relWTD = (s.p1w     != null && bench.benchWTD != null) ? s.p1w     - bench.benchWTD : null;
-    const rel1M  = (s.pRoll1m != null && bench.bench1M  != null) ? s.pRoll1m - bench.bench1M  : null;
+    const relMTD = (s.p1m     != null && bench.benchMTD != null) ? s.p1m     - bench.benchMTD : null;
     const rel3M  = (s.pRoll3m != null && bench.bench3M  != null) ? s.pRoll3m - bench.bench3M  : null;
-    const category = classifySectorRotation(s.pRoll1m, s.pRoll3m, bench);   // 1M Roll + 3M Roll vs KSE 100
-    return { sector: s.sector, companies: s.companies, rel1D, relWTD, rel1M, rel3M, roll1m: s.pRoll1m, roll3m: s.pRoll3m, wtd: s.p1w, bench1M: bench.bench1M, bench3M: bench.bench3M, category };
+    const category = classifySectorRotation(s.p1m, s.pRoll3m, bench);   // MTD + 3M Roll vs KSE 100
+    return { sector: s.sector, companies: s.companies, rel1D, relWTD, relMTD, rel3M, mtd: s.p1m, roll3m: s.pRoll3m, wtd: s.p1w, benchMTD: bench.benchMTD, bench3M: bench.bench3M, category };
   });
 }
 
@@ -1944,7 +1946,7 @@ const ROTATION_SORT_RANK = {
 // arrow, the arrow-sort and the Relative Performance filter always agree with
 // the figures on screen, whatever filters are applied to the table.
 function sectorRotCat(s) {
-  return classifySectorRotation(s.pRoll1m, s.pRoll3m, getRotationBenchmark());
+  return classifySectorRotation(s.p1m, s.pRoll3m, getRotationBenchmark());
 }
 function compareSectorsByRotation(a, b) {
   const ra = ROTATION_SORT_RANK[sectorRotCat(a)];
@@ -1986,8 +1988,8 @@ function renderSectorTable(data) {
       tr.style.cssText = 'border-top:2px solid var(--border);font-weight:600;background:var(--surface2);position:sticky;bottom:0;z-index:1;';
     }
     const rotBench = isPinned ? null : getRotationBenchmark();
-    const rotBadge = rotBench ? ROTATION_BADGE_META[classifySectorRotation(s.pRoll1m, s.pRoll3m, rotBench)] : null;
-    const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}${sectorRotationDetailText({ roll1m: s.pRoll1m, roll3m: s.pRoll3m, bench1M: rotBench.bench1M, bench3M: rotBench.bench3M })}">${rotBadge.glyph}</span>` : '';
+    const rotBadge = rotBench ? ROTATION_BADGE_META[classifySectorRotation(s.p1m, s.pRoll3m, rotBench)] : null;
+    const rotBadgeHtml = rotBadge ? `<span class="ticker-badge ${rotBadge.cls}" title="${rotBadge.title}${sectorRotationDetailText({ mtd: s.p1m, roll3m: s.pRoll3m, benchMTD: rotBench.benchMTD, bench3M: rotBench.bench3M })}">${rotBadge.glyph}</span>` : '';
     tr.innerHTML = `
       <td class="sector-name-cell" style="cursor:pointer;" title="Click to view companies in Screener" onclick="drillSectorToScreener('${s.sector.replace(/'/g, "\'")}')"><div class="sector-name-inner"><span class="sector-name-text">${s.sector}</span>${rotBadgeHtml}</div></td>
       <td class="sector-hide-mobile sector-fin-col mono" style="text-align:center">${s.companies != null ? (Number.isInteger(s.companies) ? s.companies : parseFloat(s.companies).toFixed(2)) : '—'}</td>
@@ -4323,6 +4325,307 @@ function pfM(html) { return pfHideAmounts ? PF_MASK : html; }
 function pfAmtPct(amountHtml, pctHtml) { return pfHideAmounts ? pctHtml : `${amountHtml} (${pctHtml})`; }
 function pfToggleAmounts() { pfHideAmounts = !pfHideAmounts; buildPortfolioTab(); }
 
+// ----- Import from a broker statement (CSV / Excel) -----
+// Reads a statement, matches its columns, shows every row for review, and writes
+// nothing until the user confirms. Two kinds of file:
+//   holdings     (Symbol, Quantity, Avg price [, Cash])  -> opening buys + an opening deposit
+//   transactions (Date, Buy/Sell/Dividend/Deposit, Symbol, Qty, Price, Amount) -> real history
+// PDF and screenshot statements are not supported (they need OCR / AI on a server).
+let pfImportState = null;
+
+function pfImpNorm(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function pfImpNum(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  let t = String(v).trim(); if (!t) return null;
+  let neg = false;
+  if (/^\(.*\)$/.test(t)) { neg = true; t = t.slice(1, -1); }
+  if (/-$/.test(t)) { neg = true; t = t.slice(0, -1); }
+  t = t.replace(/rs\.?|pkr|\s/gi, '');
+  if (/^\d{1,3}(\.\d{3})+,\d+$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');   // 1.234,56 (decimal comma)
+  else if (/^\d+,\d{1,2}$/.test(t)) t = t.replace(',', '.');                           // 200,50 — thousands groups always have 3 digits
+  else t = t.replace(/,/g, '');
+  if (!/^[-+]?\d*\.?\d+$/.test(t)) return null;
+  const n = parseFloat(t); return neg ? -n : n;
+}
+const PF_IMP_MON = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+function pfImpDate(v) {
+  if (v == null || v === '') return null;
+  const iso = (y, m, d) => {
+    if (!(y >= 2000 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+    const dt = new Date(Date.UTC(y, m - 1, d));                       // rejects 31/02 etc.
+    return (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) ? `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` : null;
+  };
+  if (v instanceof Date) { const x = new Date(v.getTime() + 12 * 3600 * 1000); return iso(x.getUTCFullYear(), x.getUTCMonth() + 1, x.getUTCDate()); }
+  if (typeof v === 'number') { if (v > 30000 && v < 80000) { const x = new Date(Math.round((v - 25569) * 86400 * 1000)); return iso(x.getUTCFullYear(), x.getUTCMonth() + 1, x.getUTCDate()); } return null; }
+  const t = String(v).trim(); let m;
+  if ((m = /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/.exec(t))) return iso(+m[1], +m[2], +m[3]);
+  if ((m = /^(\d{1,2})[-\/. ](\d{1,2})[-\/. ](\d{2,4})/.exec(t))) { let y = +m[3]; if (y < 100) y += 2000; return iso(y, +m[2], +m[1]); }          // day first (Pakistan)
+  if ((m = /^(\d{1,2})[-\/. ]([A-Za-z]{3})[a-z]*[-\/. ,]*(\d{2,4})/.exec(t))) { let y = +m[3]; if (y < 100) y += 2000; return iso(y, PF_IMP_MON[m[2].toLowerCase()], +m[1]); }
+  return null;
+}
+function pfImpParseCsv(text) {
+  text = String(text).replace(/^\uFEFF/, '');
+  const head = text.split(/\r?\n/).slice(0, 12).join('\n');
+  let best = ',', bc = -1;
+  [',', ';', '\t', '|'].forEach(d => { const c = head.split(d).length; if (c > bc) { bc = c; best = d; } });
+  const rows = []; let row = [], cur = '', q = false;
+  const push = () => { row.push(cur); cur = ''; };
+  const end = () => { push(); if (row.some(c => String(c).trim() !== '')) rows.push(row); row = []; };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === best) push();
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; end(); }
+    else cur += ch;
+  }
+  end();
+  return rows;
+}
+const PF_IMP_SYN = {
+  symbol: ['symbol','ticker','scrip','script','scripname','stocksymbol','securitysymbol','code','securitycode','scripcode'],
+  symbolWeak: ['security','stock','company','companyname','instrument','name','securityname','stockname'],
+  side:   ['side','type','transactiontype','txntype','buysell','tradetype','action','trade','transaction','particulars','narration','description','remarks'],
+  date:   ['date','tradedate','transactiondate','settlementdate','txndate','buydate','purchasedate','valuedate','postingdate'],
+  qty:    ['quantity','qty','shares','noofshares','units','holding','holdingqty','balanceqty','balance','totalqty','qtyheld','position','volume'],
+  price:  ['avgprice','averageprice','avgcost','averagecost','avgrate','averagerate','buyprice','purchaseprice','costprice','unitcost','price','rate','tradeprice'],
+  amount: ['amount','netamount','grossamount','value','totalvalue','totalcost','marketvalue','consideration','netvalue','debit','credit']
+};
+function pfImpFindHeader(grid) {
+  let best = 0, bi = 0;
+  grid.slice(0, 40).forEach((row, i) => {
+    const keys = row.map(pfImpNorm); let sc = 0;
+    Object.values(PF_IMP_SYN).forEach(list => { if (keys.some(k => k && list.includes(k))) sc++; });
+    if (sc > best) { best = sc; bi = i; }
+  });
+  return bi;
+}
+function pfImpGuess(headers) {
+  const keys = headers.map(pfImpNorm), used = new Set(), map = {};
+  const pick = (field, list) => { for (const syn of list) { const i = keys.findIndex((k, ix) => !used.has(ix) && k === syn); if (i >= 0) { used.add(i); map[field] = i; return; } } map[field] = -1; };
+  pick('symbol', PF_IMP_SYN.symbol); pick('date', PF_IMP_SYN.date); pick('qty', PF_IMP_SYN.qty);
+  pick('price', PF_IMP_SYN.price); pick('side', PF_IMP_SYN.side); pick('amount', PF_IMP_SYN.amount);
+  if (map.symbol < 0) pick('symbol', PF_IMP_SYN.symbolWeak);
+  pick('name', PF_IMP_SYN.symbolWeak);          // company-name column, used if the symbol cell is blank / unknown
+  return map;
+}
+function pfImpNormName(s) {
+  return String(s || '').toLowerCase().replace(/&/g, 'and').replace(/\b(limited|ltd|company|co|corporation|corp|pakistan|pak|pvt|private)\b/g, '').replace(/[^a-z0-9]/g, '');
+}
+function pfImpLookup() {
+  const set = new Set(allTickers.map(t => t.ticker)), byName = new Map();
+  (SOURCE_DATA || []).forEach(d => { const tk = dget(d, 'Ticker'), n = pfImpNormName(d.Name); if (tk && n && !byName.has(n)) byName.set(n, tk); });
+  return { set, byName };
+}
+function pfImpResolve(raw, L) {
+  let t = String(raw == null ? '' : raw).toUpperCase().trim().replace(/^PSX[:\-\s]+/, '').replace(/\.(KA|PK|KSE)$/, '').replace(/\s+/g, '');
+  if (L.set.has(t)) return t;
+  const head = t.split(/[\(\-\/,]/)[0];
+  if (head && L.set.has(head)) return head;
+  const n = pfImpNormName(raw);
+  return (n && L.byName.has(n)) ? L.byName.get(n) : null;
+}
+function pfImpSide(txt) {
+  const t = String(txt == null ? '' : txt).toLowerCase();
+  if (/bonus/.test(t)) return 'bonus';
+  if (/\bright/.test(t)) return 'right';
+  if (/div/.test(t)) return 'dividend';
+  if (/\b(buy|bought|purchase|bgt|b)\b/.test(t) || /^buy|purchase/.test(t)) return 'buy';
+  if (/\b(sell|sold|sale|sld|s)\b/.test(t) || /^sell|^sale/.test(t)) return 'sell';
+  if (/deposit|receipt|fund.?in|cash.?in|top.?up|credit/.test(t)) return 'deposit';
+  if (/withdraw|payment|cash.?out|fund.?out|debit/.test(t)) return 'withdraw';
+  return null;
+}
+function pfImpBuildRows(st) {
+  const L = pfImpLookup(), today = new Date().toISOString().slice(0, 10), out = [];
+  const { grid, headerRow, map } = st;
+  const existing = new Set(pfTransactions.map(t => [t.type, t.ticker || '', t.qty || '', t.price || t.dps || '', t.amount || '', t.date].join('|')));
+  for (let r = headerRow + 1; r < grid.length; r++) {
+    const g = grid[r]; if (!g || g.every(c => String(c == null ? '' : c).trim() === '')) continue;
+    const cell = k => (map[k] >= 0 && map[k] < g.length) ? g[map[k]] : '';
+    let symRaw = String(cell('symbol') == null ? '' : cell('symbol')).trim();
+    const nameRaw = String(cell('name') == null ? '' : cell('name')).trim();
+    if (/^(grand\s*)?(sub\s*)?total/i.test(symRaw || nameRaw)) continue;
+    const row = { src: r + 1, type: null, ticker: null, symRaw, qty: pfImpNum(cell('qty')), price: pfImpNum(cell('price')), amount: pfImpNum(cell('amount')), date: pfImpDate(cell('date')), msg: [], include: true };
+    if (st.mode === 'holdings') {
+      row.type = 'buy'; row.date = st.asOf;
+      if (!symRaw && !nameRaw) continue;
+    } else {
+      row.type = pfImpSide(cell('side'));
+      if (!row.type && row.qty != null && row.qty < 0) { row.type = 'sell'; row.qty = Math.abs(row.qty); }
+      if (!row.type) { if (!symRaw && !nameRaw && row.amount == null) continue; row.msg.push('Could not tell if this is a buy, sell, dividend or cash row'); }
+      if (row.type === 'bonus') row.msg.push('Bonus shares are not supported here — add them manually');
+      if (row.type === 'sell' && row.qty != null) row.qty = Math.abs(row.qty);
+      if (row.type === 'buy' && row.qty != null) row.qty = Math.abs(row.qty);
+      if (row.price == null && row.qty && row.amount && (row.type === 'buy' || row.type === 'sell' || row.type === 'right')) row.price = Math.abs(row.amount) / Math.abs(row.qty);
+    }
+    const isCash = row.type === 'deposit' || row.type === 'withdraw';
+    if (!isCash) {
+      row.ticker = pfImpResolve(symRaw, L) || (nameRaw ? pfImpResolve(nameRaw, L) : null);
+      if (!row.symRaw) row.symRaw = nameRaw;
+      if (!row.ticker) row.msg.push((symRaw || nameRaw) ? `Unknown ticker "${symRaw || nameRaw}" — type the right one` : 'Missing ticker');
+    } else if (row.amount == null || row.amount === 0) row.msg.push('Missing amount');
+    else row.amount = Math.abs(row.amount);
+    if (row.type === 'dividend') {
+      if (row.amount == null || row.amount <= 0) row.msg.push('Dividend needs an amount');
+      else row.amount = Math.abs(row.amount);
+      if (!row.qty || row.qty <= 0) row.qty = 1;
+    } else if (!isCash && row.type !== 'bonus') {
+      if (!row.qty || row.qty <= 0) row.msg.push('Quantity must be above 0');
+      if (!row.price || row.price <= 0) row.msg.push('Needs a price');
+    }
+    if (!row.date) row.msg.push('Missing or unreadable date'); else if (row.date > today) row.msg.push('Date is in the future');
+    if (row.type === 'bonus' || !row.type) row.include = false;
+    const dpsKey = row.type === 'dividend' && row.amount && row.qty ? +(row.amount / row.qty).toFixed(6) : (row.price || '');
+    const key = [row.type, row.ticker || '', row.qty || '', dpsKey, isCash ? row.amount : '', row.date].join('|');
+    row.dup = existing.has(key);
+    if (row.dup) { row.include = false; row.msg.push('Already in your portfolio'); }
+    row.ok = !row.msg.some(m => !/Already in your portfolio/.test(m));
+    if (!row.ok) row.include = false;
+    out.push(row);
+  }
+  return out;
+}
+function pfImpRevalidate(i) {   // after the user edits ticker / qty / price in the review table
+  const st = pfImportState, row = st.rows[i], L = pfImpLookup();
+  row.ticker = pfImpResolve(row.symRaw, L);
+  const isCash = row.type === 'deposit' || row.type === 'withdraw';
+  const bad = [];
+  if (!isCash && !row.ticker) bad.push('Unknown ticker');
+  if (row.type === 'dividend') { if (!row.amount || row.amount <= 0) bad.push('Dividend needs an amount'); if (!row.qty || row.qty <= 0) bad.push('Quantity must be above 0'); }
+  else if (!isCash) { if (!row.qty || row.qty <= 0) bad.push('Quantity must be above 0'); if (!row.price || row.price <= 0) bad.push('Needs a price'); }
+  if (!row.date) bad.push('Missing date');
+  row.msg = bad; row.ok = bad.length === 0; row.include = row.ok;
+}
+function pfImpRebuild() { const st = pfImportState; st.rows = pfImpBuildRows(st); }
+function pfImpOpen() { pfImportState = { stage: 'pick' }; renderPfImportForm(); document.getElementById('pfImportForm')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+function pfImpClose() { pfImportState = null; renderPfImportForm(); }
+function pfImpPicked() { const b = document.getElementById('pfImpReadBtn'); if (b) b.disabled = !(document.getElementById('pfImpFile')?.files?.length); }
+async function pfImpEnsureXlsx() {
+  if (typeof XLSX !== 'undefined') return true;
+  return await new Promise(res => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = () => res(true); sc.onerror = () => res(false); document.head.appendChild(sc); });
+}
+async function pfImpRead() {
+  const f = document.getElementById('pfImpFile')?.files?.[0]; if (!f) return;
+  const st = { stage: 'pick', error: '' };
+  try {
+    let grid;
+    if (/\.(xlsx|xls)$/i.test(f.name)) {
+      if (!(await pfImpEnsureXlsx())) throw new Error('Could not load the Excel reader (check your connection) — or save the file as CSV and try again.');
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+      let best = null;
+      wb.SheetNames.forEach(n => { const g = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '', blankrows: false }); if (!best || g.length > best.length) best = g; });
+      grid = best || [];
+    } else if (/\.(csv|txt|tsv)$/i.test(f.name)) {
+      grid = pfImpParseCsv(await f.text());
+    } else {
+      throw new Error('Only CSV and Excel (.xlsx / .xls) statements can be read. PDF and screenshot statements are not supported yet.');
+    }
+    if (grid.length < 2) throw new Error('No rows found in this file.');
+    const headerRow = pfImpFindHeader(grid), headers = grid[headerRow];
+    const map = pfImpGuess(headers);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    pfImportState = { stage: 'review', fileName: f.name, grid, headerRow, headers, map, mode: (map.side >= 0 && map.date >= 0) ? 'transactions' : 'holdings', asOf: yesterday, cash: '', addDeposit: true, error: '' };
+    pfImpRebuild();
+    const st2 = pfImportState; st2.addDeposit = st2.mode === 'holdings' ? true : !st2.rows.some(r => r.type === 'deposit');
+  } catch (e) { pfImportState = Object.assign(st, { error: String(e.message || e) }); }
+  renderPfImportForm();
+}
+function pfImpSetMode(v) { pfImportState.mode = v; pfImportState.addDeposit = v === 'holdings' ? true : !pfImportState.rows.some(r => r.type === 'deposit'); pfImpRebuild(); renderPfImportForm(); }
+function pfImpSetMap(field, v) { pfImportState.map[field] = parseInt(v, 10); pfImpRebuild(); renderPfImportForm(); }
+function pfImpSetOpt(k, v) { pfImportState[k] = v; if (k === 'asOf') pfImpRebuild(); renderPfImportForm(); }
+function pfImpEdit(i, field, v) {
+  const row = pfImportState.rows[i];
+  if (field === 'ticker') row.symRaw = String(v).trim();
+  else if (field === 'qty' || field === 'price') row[field] = pfImpNum(v);
+  pfImpRevalidate(i); renderPfImportForm();
+}
+function pfImpToggle(i, on) { pfImportState.rows[i].include = !!on; renderPfImportForm(); }
+
+function renderPfImportForm() {
+  const wrap = document.getElementById('pfImportForm'); if (!wrap) return;
+  const st = pfImportState;
+  if (!st) { wrap.innerHTML = ''; return; }
+  const box = 'border:1px solid var(--border);border-radius:12px;background:var(--surface2);padding:14px;margin:10px 0 14px;';
+  const btn = (c) => `padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;${c}`;
+  const head = (sub) => `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px;"><div><div style="font-size:14px;font-weight:700;">Import from a broker statement</div><div style="font-size:12px;color:var(--text2);">${sub}</div></div><button onclick="pfImpClose()" style="${btn('border:1px solid var(--border);background:var(--surface);color:var(--text2);')}">Close</button></div>`;
+  if (st.stage === 'pick') {
+    wrap.innerHTML = `<div style="${box}">${head('Read a CSV or Excel statement, review it, then add it. Nothing is saved until you confirm.')}
+      <div style="border:1.5px dashed var(--border);border-radius:10px;padding:16px;text-align:center;background:var(--surface);">
+        <input type="file" id="pfImpFile" accept=".csv,.txt,.tsv,.xlsx,.xls" onchange="pfImpPicked()" style="max-width:100%;">
+        <div style="font-size:11px;color:var(--text2);margin-top:8px;">Spreadsheet: CSV, XLSX, XLS</div></div>
+      <div style="margin-top:10px;"><button id="pfImpReadBtn" onclick="pfImpRead()" disabled style="${btn('border:none;background:var(--accent);color:#fff;')}">Read rows</button></div>
+      ${st.error ? `<div style="color:var(--danger);font-size:12px;margin-top:8px;">${String(st.error).replace(/</g, '&lt;')}</div>` : ''}
+      <div style="font-size:11px;color:var(--text2);margin-top:10px;">Works with a list of holdings (symbol, quantity, average price) or a transaction history (date, buy/sell/dividend/deposit, symbol, quantity, price). PDF statements and screenshots can't be read yet — export CSV or Excel from your broker's portal if you can.</div></div>`;
+    return;
+  }
+  const rows = st.rows, sel = rows.filter(r => r.include && r.ok);
+  const fields = [['symbol', 'Symbol'], ['qty', 'Quantity'], ['price', st.mode === 'holdings' ? 'Avg price' : 'Price'], ['date', 'Date'], ['side', 'Buy/Sell type'], ['amount', 'Amount']].filter(([k]) => !(st.mode === 'holdings' && (k === 'date' || k === 'side' || k === 'amount')));
+  const opts = k => `<option value="-1">— none —</option>` + st.headers.map((h, i) => `<option value="${i}" ${st.map[k] === i ? 'selected' : ''}>${String(h || ('Column ' + (i + 1))).replace(/</g, '&lt;')}</option>`).join('');
+  const sel1 = 'padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;max-width:150px;';
+  const cost = sel.filter(r => r.type === 'buy' || r.type === 'right').reduce((s, r) => s + r.qty * r.price, 0);
+  const numIn = (i, f, v) => `<input type="number" value="${v == null ? '' : v}" step="any" onchange="pfImpEdit(${i},'${f}',this.value)" style="width:90px;${sel1}">`;
+  const body = rows.map((r, i) => `<tr style="${r.ok ? '' : 'opacity:.9;'}">
+      <td><input type="checkbox" ${r.include ? 'checked' : ''} ${r.ok ? '' : 'disabled'} onchange="pfImpToggle(${i},this.checked)"></td>
+      <td>${r.type === 'buy' && st.mode === 'holdings' ? 'holding' : (r.type || '?')}</td>
+      <td>${(r.type === 'deposit' || r.type === 'withdraw') ? '—' : `<input type="text" value="${String(r.ticker || r.symRaw || '').replace(/"/g, '&quot;')}" list="pfImpTickers" onchange="pfImpEdit(${i},'ticker',this.value)" style="width:90px;text-transform:uppercase;${sel1}">`}</td>
+      <td>${(r.type === 'deposit' || r.type === 'withdraw') ? '—' : numIn(i, 'qty', r.qty)}</td>
+      <td>${(r.type === 'deposit' || r.type === 'withdraw') ? '—' : (r.type === 'dividend' ? (r.amount != null ? +(r.amount / (r.qty || 1)).toFixed(4) + '/sh' : '—') : numIn(i, 'price', r.price))}</td>
+      <td class="mono">${(r.type === 'deposit' || r.type === 'withdraw' || r.type === 'dividend') ? (r.amount != null ? Math.round(r.amount).toLocaleString('en-US') : '—') : (r.qty && r.price ? Math.round(r.qty * r.price).toLocaleString('en-US') : '—')}</td>
+      <td class="mono">${r.date || '—'}</td>
+      <td style="white-space:normal;min-width:150px;font-size:11px;color:${r.ok ? (r.dup ? 'var(--text2)' : 'var(--success)') : 'var(--danger)'};">${r.ok ? (r.dup ? 'Already in your portfolio' : 'Ready') : r.msg.join('; ')}</td></tr>`).join('');
+  wrap.innerHTML = `<div style="${box}">${head(`${String(st.fileName).replace(/</g, '&lt;')} — review, then add. Nothing is saved until you press the green button.`)}
+    <datalist id="pfImpTickers">${allTickers.map(t => `<option value="${t.ticker}">`).join('')}</datalist>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px;">
+      <div><label style="${PF_LABEL_STYLE}">This file is</label><select onchange="pfImpSetMode(this.value)" style="${sel1}max-width:230px;"><option value="holdings" ${st.mode === 'holdings' ? 'selected' : ''}>A list of current holdings</option><option value="transactions" ${st.mode === 'transactions' ? 'selected' : ''}>A transaction history</option></select></div>
+      ${st.mode === 'holdings' ? `<div><label style="${PF_LABEL_STYLE}">Holdings as of</label><input type="date" value="${st.asOf}" onchange="pfImpSetOpt('asOf',this.value)" style="${sel1}"></div>
+      <div><label style="${PF_LABEL_STYLE}">Cash balance (optional)</label><input type="number" value="${st.cash}" step="any" onchange="pfImpSetOpt('cash',this.value)" style="width:120px;${sel1}"></div>` : ''}
+      <label style="font-size:12px;display:flex;gap:6px;align-items:center;color:var(--text);"><input type="checkbox" ${st.addDeposit ? 'checked' : ''} onchange="pfImpSetOpt('addDeposit',this.checked)"> Add an opening deposit that covers these purchases</label>
+    </div>
+    <details style="margin-bottom:10px;"><summary style="font-size:12px;cursor:pointer;color:var(--accent);">Columns matched (tap to change)</summary>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">${fields.map(([k, label]) => `<div><label style="${PF_LABEL_STYLE}">${label}</label><select onchange="pfImpSetMap('${k}',this.value)" style="${sel1}">${opts(k)}</select></div>`).join('')}</div></details>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px;"><b style="color:var(--text);">${sel.length}</b> of ${rows.length} rows will be added · cost of purchases ${Math.round(cost).toLocaleString('en-US')}${st.mode === 'holdings' && st.asOf >= new Date().toISOString().slice(0, 10) ? ' · <span style="color:var(--danger);">pick a date before today, or today\'s change will be measured from your average price</span>' : ''}</div>
+    <div class="scroll-table" style="max-height:340px;overflow:auto;"><table class="data-table"><thead><tr><th></th><th>Type</th><th>Ticker</th><th>Qty</th><th>Price</th><th>Value</th><th>Date</th><th>Check</th></tr></thead><tbody>${body}</tbody></table></div>
+    ${st.error ? `<div style="color:var(--danger);font-size:12px;margin-top:8px;">${String(st.error).replace(/</g, '&lt;')}</div>` : ''}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"><button onclick="pfImpConfirm()" ${sel.length ? '' : 'disabled'} style="${btn('border:none;background:var(--success);color:#fff;' + (sel.length ? '' : 'opacity:.45;'))}">Add ${sel.length} row${sel.length === 1 ? '' : 's'} to my portfolio</button><button onclick="pfImpOpen()" style="${btn('border:1px solid var(--border);background:var(--surface);color:var(--text);')}">Choose another file</button></div></div>`;
+}
+
+// Builds the transactions for the selected rows, checks they replay cleanly together with
+// the existing history, and only then writes.
+function pfImpBuildTx(st) {
+  const sel = st.rows.filter(r => r.include && r.ok), out = [];
+  const tsOf = (d, k) => Date.parse(d + 'T12:00:00Z') + k;
+  let k = 1;
+  sel.forEach(r => {
+    const base = { id: pfNewTxId(), type: r.type, date: r.date, ts: tsOf(r.date, k++) };
+    if (r.type === 'deposit' || r.type === 'withdraw') out.push({ ...base, amount: r.amount });
+    else if (r.type === 'dividend') out.push({ ...base, ticker: r.ticker, qty: r.qty, dps: +(r.amount / r.qty).toFixed(6), taxPct: 0 });
+    else out.push({ ...base, ticker: r.ticker, qty: r.qty, price: r.price });
+  });
+  const cost = out.filter(t => t.type === 'buy' || t.type === 'right').reduce((s, t) => s + t.qty * t.price, 0);
+  const cash = st.mode === 'holdings' ? (pfImpNum(st.cash) || 0) : 0;
+  const opening = (st.addDeposit ? cost : 0) + cash;
+  if (opening > 0 && out.length) {
+    const first = out.reduce((m, t) => Math.min(m, t.ts), Infinity), d = new Date(first).toISOString().slice(0, 10);
+    out.unshift({ id: pfNewTxId(), type: 'deposit', amount: Math.round(opening * 100) / 100, date: d, ts: first - 1000 });
+  }
+  return out;
+}
+async function pfImpConfirm() {
+  const st = pfImportState; if (!st || st.stage !== 'review') return;
+  const newTx = pfImpBuildTx(st);
+  if (!newTx.length) return;
+  const check = pfTryReplay([...pfTransactions, ...newTx]);
+  if (!check.ok) { st.error = 'Not added — ' + check.error; renderPfImportForm(); return; }
+  pfTransactions = [...pfTransactions, ...newTx];
+  pfRecomputeFromTransactions();
+  pfImportState = null;
+  const ok = await pfSave();
+  buildPortfolioTab();
+  if (ok !== false) showToast(`✅ Added ${newTx.length} transaction${newTx.length === 1 ? '' : 's'} from the statement.`);
+}
+
 // ----- Portfolio table sorting -----
 // Click a column header to sort (click again to reverse). One independent sort
 // state per table; with no column chosen each table keeps its natural order.
@@ -4745,11 +5048,13 @@ function buildPortfolioTab() {
       <button onclick="pfOpenDividendForm()" style="padding:7px 14px;border:1px solid var(--success);border-radius:8px;background:var(--surface);color:var(--success);font-size:12px;font-weight:600;cursor:pointer;">+ Dividend Received</button>
       <button onclick="pfOpenRightForm()" style="padding:7px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">+ Right Shares</button>
       <button onclick="pfToggleAmounts()" title="${pfHideAmounts ? 'Amounts and share counts are hidden — tap to show them' : 'Tap to hide amounts and share counts'}" style="margin-left:auto;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;">${pfHideAmounts ? '👁 Show amounts &amp; shares' : '🙈 Hide amounts &amp; shares'}</button>
+      <button onclick="pfImpOpen()" title="Import holdings or transactions from a broker statement (CSV or Excel)" style="padding:7px 14px;border:1px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;">⬆ Import statement</button>
       <button onclick="pfExportBackup()" title="Download a copy of your portfolio as a file" style="padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;">💾 Backup</button>
     </div>
     <div id="pfPendingForm"></div>
     <div id="pfDivForm"></div>
     <div id="pfRightForm"></div>
+    <div id="pfImportForm"></div>
     <div id="pfSellForm"></div>
     <div id="pfCashForm"></div>
     ${modeNote}
@@ -4764,6 +5069,7 @@ function buildPortfolioTab() {
   renderPfCashForm();
   renderPfDividendForm();
   renderPfRightForm();
+  renderPfImportForm();
   renderPfTxEditForm();
   _pfLastRows = rows;
   _pfLastHoldingsValue = holdingsValue;
