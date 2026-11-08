@@ -1733,6 +1733,34 @@
               <div class="msel-list" id="rotationMselList"></div>
             </div>
           </div>
+                <div class="msel" id="divergenceMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="divergenceMselBtn" aria-label="Filter by divergence" aria-haspopup="listbox" onclick="mselTogglePanel('divergence', event)" title="Divergence: D marks bullish (green) or bearish (red) divergence">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="3 7 9 12 13 9 21 17" opacity=".5"></polyline></svg>
+              <span id="divergenceMselLabel">Divergence</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="divergenceMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('divergence')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('divergence')">Clear</button>
+              </div>
+              <div class="msel-list" id="divergenceMselList"></div>
+            </div>
+          </div>
+                <div class="msel" id="fvgMsel">
+            <button type="button" class="msel-btn" style="position:relative;" id="fvgMselBtn" aria-label="Filter by fair value gap" aria-haspopup="listbox" onclick="mselTogglePanel('fvg', event)" title="Fair Value Gap: F = FVG, I = IFVG (green bullish, red bearish)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:5px;"><rect x="4" y="3" width="6" height="8"></rect><rect x="14" y="13" width="6" height="8"></rect><line x1="10" y1="9" x2="14" y2="15"></line></svg>
+              <span id="fvgMselLabel">Fair Value Gap</span>
+              <span class="msel-caret">▼</span>
+            </button>
+            <div class="msel-panel" id="fvgMselPanel">
+              <div class="msel-actions">
+                <button type="button" class="msel-action-btn" onclick="mselSelectAll('fvg')">Select All</button>
+                <button type="button" class="msel-action-btn" onclick="mselClear('fvg')">Clear</button>
+              </div>
+              <div class="msel-list" id="fvgMselList"></div>
+            </div>
+          </div>
                 <div class="msel" id="othersMsel">
             <button type="button" class="msel-btn" style="position:relative;" id="othersMselBtn" style="position:relative;" aria-label="Filter by other criteria" aria-haspopup="listbox" onclick="mselTogglePanel('others', event)" title="Other Filters: Circuit Breakers, Turnaround Candidates, NI > OI, Shariah-compliant stocks.">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;flex-shrink:0;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>

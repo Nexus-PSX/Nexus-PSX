@@ -2224,6 +2224,18 @@ const VOLPHASE_OPTIONS = [
 // Same 5 categories/order as SECTOR_ROTATION_CATEGORIES (Sectors tab) and
 // the glyphs used in tickerBadges() — kept as one static list here since a
 // stock's rotation category is derived from its sector, not stored per-row.
+// Divergence (sheet column CD) and fair value gap (column CE) filter options.
+// The option values are the numbers in the sheet; the labels deliberately don't show them.
+const DIVERGENCE_OPTIONS = [
+  {value:'1',  label:'🟢 D · Bullish divergence'},
+  {value:'-1', label:'🔴 D · Bearish divergence'}
+];
+const FVG_OPTIONS = [
+  {value:'1',  label:'🟢 F · Bullish FVG'},
+  {value:'-1', label:'🔴 F · Bearish FVG'},
+  {value:'3',  label:'🟢 I · Bullish IFVG'},
+  {value:'4',  label:'🔴 I · Bearish IFVG'}
+];
 const ROTATION_OPTIONS = [
   {value:'absoluteLeading',        label:'↑ Absolute Leading'},
   {value:'defensiveOutperforming', label:'⬢ Defensive Outperforming'},
@@ -2238,7 +2250,7 @@ const ROTATION_OPTIONS = [
 // share the same registry but are a separate concern). Used both to clear
 // just the Screener's filters without touching the Sector tab's, and by the
 // Saved Filters feature to know exactly what to snapshot/restore.
-const SCREENER_FILTER_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'rotation', 'period'];
+const SCREENER_FILTER_KEYS = ['sector', 'index', 'ticker', 'status', 'nemi', 'others', 'liquid', 'volPhase', 'rotation', 'divergence', 'fvg', 'period'];
 
 const mselRegistry = {
   sector: {
@@ -2313,6 +2325,22 @@ const mselRegistry = {
     allLabel: 'Relative Performance',
     oneLabel: v => (ROTATION_OPTIONS.find(o=>o.value===v)||{}).label || v,
     manyLabel: n => `Rel. Performance`,
+  },
+  divergence: {
+    options: () => DIVERGENCE_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'Divergence',
+    oneLabel: v => (DIVERGENCE_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `Divergence`,
+  },
+  fvg: {
+    options: () => FVG_OPTIONS,
+    selected: new Set(),
+    searchable: false,
+    allLabel: 'Fair Value Gap',
+    oneLabel: v => (FVG_OPTIONS.find(o=>o.value===v)||{}).label || v,
+    manyLabel: n => `FVG`,
   },
   period: {
     // Distinct reporting period-end dates across all companies, newest first.
@@ -2557,7 +2585,7 @@ document.addEventListener('keydown', function(e) {
 // checkbox lists for multi-selecting several items (common on mobile), so
 // scrolling inside them must NOT close them. They still close via outside
 // click, the toggle button, or Escape — just not from scroll/resize.
-const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'sectorRotation', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid', 'rotation']);
+const NO_SCROLL_CLOSE = new Set(['index', 'sector', 'ticker', 'sectorFilter', 'sectorIndex', 'sectorPeriod', 'sectorRotation', 'period', 'status', 'nemi', 'others', 'volPhase', 'liquid', 'rotation', 'divergence', 'fvg']);
 // Saved Filters panel: on phones, typing in its name box opens the keyboard and
 // fires scroll/resize, scrolling its list fires scroll, and dismissing the keyboard
 // when tapping Save fires resize — each of those used to close the panel before
@@ -2939,6 +2967,8 @@ function filterScreener() {
   const selLiquid = mselRegistry.liquid.selected;
   const selVolPhase = mselRegistry.volPhase.selected;
   const selRotation = mselRegistry.rotation.selected;
+  const selDivergence = mselRegistry.divergence.selected;
+  const selFvg = mselRegistry.fvg.selected;
   const selPeriod = mselRegistry.period.selected;
   const selSectors = mselRegistry.sector.selected;
   const selIndices = mselRegistry.index.selected;
@@ -2997,6 +3027,8 @@ function filterScreener() {
       if (!matched) return false;
     }
     if (selRotation.size > 0 && !selRotation.has(STOCK_ROTATION_MAP[d.Ticker])) return false;
+    if (selDivergence.size > 0) { const k = signalColumnKeys().div; if (!k || !selDivergence.has(String(Number(d[k])))) return false; }   // sheet column CD
+    if (selFvg.size > 0)        { const k = signalColumnKeys().fvg; if (!k || !selFvg.has(String(Number(d[k])))) return false; }              // sheet column CE
     if (selPeriod.size > 0 && !selPeriod.has(String(dget(d,'Last Period End Date')))) return false;
     if (selStatuses.size > 0 && !selStatuses.has(String(sigStatusCode(d['Signal Status'])))) return false;
     const selNemi = mselRegistry.nemi.selected;
@@ -5772,6 +5804,33 @@ function showToast(msg) {
   clearTimeout(t._timeout);
   t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 2800);
 }
+// ===== DIVERGENCE (sheet column CD) and FVG (sheet column CE) =====
+// CD: 1 = bullish divergence (green D), -1 = bearish divergence (red D).
+// CE: 1 = green F, -1 = red F, 3 = green I (bullish IFVG), 4 = red I (bearish IFVG).
+// All three markers (D, F, I) are round filled badges, the same shape as V and N.
+// The columns are found by header name (anything containing "diverg" / "FVG" / "fair value gap");
+// if the headers are blank or named differently the app falls back to the sheet POSITION —
+// CD / CE are the 82nd / 83rd columns — and only accepts a column whose values fit
+// (CD: -1/0/1, CE: -1/0/1/3/4). To pin a column explicitly, put its exact header below.
+const DIVERGENCE_COLUMN_NAME = '';
+const FVG_COLUMN_NAME = '';
+let _sigColsCache = { ref: null, n: -1, div: null, fvg: null };
+function signalColumnKeys() {
+  const data = (typeof SOURCE_DATA !== 'undefined' && Array.isArray(SOURCE_DATA)) ? SOURCE_DATA : [];
+  if (_sigColsCache.ref === data && _sigColsCache.n === data.length) return _sigColsCache;
+  const first = data.find(r => r && typeof r === 'object') || {};
+  const keys = Object.keys(first);
+  const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const byName = (explicit, re) => explicit ? (keys.find(k => norm(k) === norm(explicit)) || null) : (keys.find(k => re.test(norm(k))) || null);
+  const fits = (k, allowed) => data.every(r => { const v = r[k]; if (v == null || v === '') return true; const n = Number(v); return Number.isFinite(n) && allowed.has(n); });
+  let div = byName(DIVERGENCE_COLUMN_NAME, /diverg/);
+  let fvg = byName(FVG_COLUMN_NAME, /fvg|fairvaluegap/);
+  if (!div && keys[81] && fits(keys[81], new Set([-1, 0, 1]))) div = keys[81];                 // column CD
+  if (!fvg && keys[82] && fits(keys[82], new Set([-1, 0, 1, 3, 4]))) fvg = keys[82];           // column CE
+  _sigColsCache = { ref: data, n: data.length, div, fvg };
+  return _sigColsCache;
+}
+
 function tickerBadges(d) {
   let badges = '';
   if (String(d.Index||'').includes('KMI')) {
@@ -5793,6 +5852,20 @@ function tickerBadges(d) {
   const ROT_BADGE = ROTATION_BADGE_META[rot];
   if (ROT_BADGE) {
     badges += `<span class="ticker-badge ${ROT_BADGE.cls}" title="${ROT_BADGE.title}">${ROT_BADGE.glyph}</span>`;
+  }
+  // Divergence (D) and fair value gap (F) markers from the sheet
+  const sc = signalColumnKeys();
+  if (sc.div) {
+    const v = Number(d[sc.div]);
+    if (v === 1)  badges += '<span class="ticker-badge ticker-badge-mk-bull" title="Bullish divergence">D</span>';
+    else if (v === -1) badges += '<span class="ticker-badge ticker-badge-mk-bear" title="Bearish divergence">D</span>';
+  }
+  if (sc.fvg) {
+    const v = Number(d[sc.fvg]);
+    if (v === 1)  badges += '<span class="ticker-badge ticker-badge-mk-bull" title="Bullish fair value gap (FVG)">F</span>';
+    else if (v === -1) badges += '<span class="ticker-badge ticker-badge-mk-bear" title="Bearish fair value gap (FVG)">F</span>';
+    else if (v === 3)  badges += '<span class="ticker-badge ticker-badge-mk-bull" title="Bullish IFVG">I</span>';
+    else if (v === 4)  badges += '<span class="ticker-badge ticker-badge-mk-bear" title="Bearish IFVG">I</span>';
   }
   return badges;
 }

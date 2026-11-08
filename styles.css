@@ -2997,3 +2997,7 @@ html:not([data-theme="bloomberg"]):not([data-theme="tradingview"]) .data-table t
   #screenerTable td.sig-status-cell { white-space: nowrap; padding-left: 6px; padding-right: 6px; }
   #screenerTable td.sig-status-cell .pill { font-size: 9px !important; padding: 2px 5px !important; white-space: nowrap; }
 }
+
+/* Divergence (D), fair value gap (F) and IFVG (I) markers: round filled badges, same shape and size as V and N */
+.ticker-badge-mk-bull { background: var(--success); }
+.ticker-badge-mk-bear { background: var(--danger); }
