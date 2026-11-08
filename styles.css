@@ -1541,15 +1541,18 @@
        exceeds the cell's fixed width above, clip it with an ellipsis
        instead of letting it visually spill into the next scrolling column
        (which is what was reported as the ticker "overlapping the data").
-       With the wider column and smaller badges above, this should now
-       only kick in for genuinely unusual cases. */
+       UPDATE: with the D / F / I markers added there can be 8-9 badges, and the
+       ones at the end were the ones being clipped. Instead of clipping, the
+       badges now WRAP onto a second line under the ticker, so every badge is
+       always visible and the column keeps its width (only rows with many
+       badges get a little taller). */
     #screenerTable td:nth-child(1) > span {
       display: inline-flex;
+      flex-wrap: wrap;
       align-items: center;
+      row-gap: 2px;
       max-width: calc(100% - 21px);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      white-space: normal;
       vertical-align: middle;
     }
 
