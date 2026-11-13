@@ -483,7 +483,33 @@ function scrollAC() {
   if (sel) sel.scrollIntoView({block:'nearest'});
 }
 
+// ===== COMPANY VIEW: note shown after opening a stock from the Home signals table =====
+// Home shows only TODAY's signals, so when a row is opened we point to the Screener for
+// earlier calls. The note is shown only for that route: any tab change or a fresh ticker
+// search hides it again.
+function renderCompanyHomeNote(show) {
+  let n = document.getElementById('ciHomeNote');
+  if (!n) {
+    if (!show) return;
+    const controls = document.querySelector('#tab-company .controls');
+    if (!controls) return;
+    n = document.createElement('div');
+    n.id = 'ciHomeNote';
+    n.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--text);margin:0 0 12px;';
+    n.innerHTML = '<span>ℹ️ To view previous calls, check the <a href="#" onclick="switchTab(\'screener\');return false;" style="color:var(--accent);font-weight:700;text-decoration:underline;">Screener</a> section.</span>'
+      + '<button type="button" onclick="renderCompanyHomeNote(false)" aria-label="Dismiss" style="background:none;border:none;color:var(--text2);font-size:15px;cursor:pointer;padding:0 2px;">✕</button>';
+    controls.insertAdjacentElement('beforebegin', n);
+  }
+  n.style.display = show ? 'flex' : 'none';
+}
+function openCompanyFromHome(ticker) {
+  switchTab('company');
+  pickTicker(ticker);
+  renderCompanyHomeNote(true);       // after switchTab/pickTicker, which both hide it
+}
+
 function pickTicker(ticker) {
+  renderCompanyHomeNote(false);
   currentTicker = ticker;
   document.getElementById('tickerSearch').value = ticker;
   document.getElementById('currentTickerLabel').innerHTML = 'Selected: <span>' + ticker + '</span>';
@@ -6103,6 +6129,7 @@ function renderScreener() { filteredScreener = [...screenerData]; filterScreener
 
 // ===== TABS =====
 function switchTab(name) {
+  renderCompanyHomeNote(false);
   const tabNames = ['home','company','sector','screener','compare','watchlist','portfolio','top','faq'];
   document.querySelectorAll('.tab').forEach(t => {
     const match = tabNames.find(n => t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + n + "'"));
@@ -7699,7 +7726,7 @@ function buildHomeTab() {
 
   const signalsSection = `
     <div class="home-section">
-      <div class="home-section-label">Active Buy Signals<span class="home-section-sub">— ${sortedSignals.length} stocks · Initial Buy, Continuation Buy, Extended (Cautious) · click row to open Company View</span></div>
+      <div class="home-section-label">Today's Signals<span class="home-section-sub">— ${sortedSignals.length} stocks · Initial Buy, Continuation Buy, Extended (Cautious) · click row to open Company View</span></div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
         <div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
           <table id="homeSignalsTable" style="width:100%;border-collapse:separate;border-spacing:0;min-width:800px;">
@@ -7720,7 +7747,7 @@ function buildHomeTab() {
               ${sortedSignals.map((d,i) => {
                 const ret = toN(d['Signal Return %']);
                 const bg  = i%2===0 ? 'transparent' : 'var(--surface2)';
-                return `<tr onclick="switchTab('company');pickTicker('${String(d.Ticker||'').replace(/'/g,"\\'")}');"
+                return `<tr onclick="openCompanyFromHome('${String(d.Ticker||'').replace(/'/g,"\\'")}');"
                   style="cursor:pointer;background:${bg};"
                   onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background='${bg}'">
                   <td style="padding:8px 12px;font-size:13px;font-weight:700;color:var(--accent3);border-bottom:1px solid var(--border);white-space:nowrap;">${d.Ticker||'—'}${tickerBadges(d)}</td>
