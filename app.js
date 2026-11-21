@@ -2231,6 +2231,10 @@ const STATUS_OPTIONS = [
   {value:'3', label:'Take Some Profit'},
   {value:'4', label:'Be Cautious'},
   {value:'9', label:'Buy Call Closed'},
+  {value:'-1.7', label:'Continuation Sell Signal'},
+  {value:'-2.5', label:'Extended Sell Signal (Cautious)'},
+  {value:'-1.5', label:'Initial Sell Signal'},
+  {value:'-9', label:'Sell Call Closed'},
   {value:'0', label:'No Trade'}
 ];
 const OTHERS_OPTIONS = [
@@ -3056,9 +3060,9 @@ function filterScreener() {
     if (selDivergence.size > 0) { const k = signalColumnKeys().div; if (!k || !selDivergence.has(String(Number(d[k])))) return false; }   // sheet column CD
     if (selFvg.size > 0)        { const k = signalColumnKeys().fvg; if (!k || !selFvg.has(String(Number(d[k])))) return false; }              // sheet column CE
     if (selPeriod.size > 0 && !selPeriod.has(String(dget(d,'Last Period End Date')))) return false;
-    if (selStatuses.size > 0 && !selStatuses.has(String(sigStatusCode(d['Signal Status'])))) return false;
+    if (selStatuses.size > 0 && !selStatuses.has(sigStatusFilterKey(d['Signal Status']))) return false;
     const selNemi = mselRegistry.nemi.selected;
-    if (selNemi.size > 0 && !selNemi.has(String(sigStatusCode(d['NEMI Signal Status'])))) return false;
+    if (selNemi.size > 0 && !selNemi.has(sigStatusFilterKey(d['NEMI Signal Status']))) return false;
     // Per-column numeric filters (EPS (Q) through Market Cap, and beyond) — set
     // via the funnel icon in each header. AND'd together with each other and
     // with every other active filter above.
@@ -5831,13 +5835,14 @@ function showToast(msg) {
   t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 2800);
 }
 // ===== DIVERGENCE (sheet column CD) and FVG (sheet column CE) =====
-// CD: 1 = bullish divergence (green D), -1 = bearish divergence (red D).
-// CE: 1 = green F, -1 = red F, 3 = green I (bullish IFVG), 4 = red I (bearish IFVG).
+// DIV: 1 = bullish divergence (green D), -1 = bearish divergence (red D).
+// FVG: 1 = green F, -1 = red F, 3 = green I (bullish IFVG), 4 = red I (bearish IFVG).
 // All three markers (D, F, I) are round filled badges, the same shape as V and N.
-// The columns are found by header name (anything containing "diverg" / "FVG" / "fair value gap");
-// if the headers are blank or named differently the app falls back to the sheet POSITION —
-// CD / CE are the 82nd / 83rd columns — and only accepts a column whose values fit
-// (CD: -1/0/1, CE: -1/0/1/3/4). To pin a column explicitly, put its exact header below.
+// The columns are found by HEADER NAME — "DIV" or anything containing "divergence" for the first,
+// "FVG" or "fair value gap" for the second — so they can sit anywhere in the sheet. If a header
+// has been renamed, the app next looks at the two columns right after "NEMI Signal Status", then
+// at the old positions (CD / CE). A column found by position is only accepted if its values fit
+// (divergence: -1/0/1, FVG: -1/0/1/3/4). To pin a column explicitly, put its exact header below.
 const DIVERGENCE_COLUMN_NAME = '';
 const FVG_COLUMN_NAME = '';
 let _sigColsCache = { ref: null, n: -1, div: null, fvg: null };
@@ -5849,10 +5854,14 @@ function signalColumnKeys() {
   const norm = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, '');
   const byName = (explicit, re) => explicit ? (keys.find(k => norm(k) === norm(explicit)) || null) : (keys.find(k => re.test(norm(k))) || null);
   const fits = (k, allowed) => data.every(r => { const v = r[k]; if (v == null || v === '') return true; const n = Number(v); return Number.isFinite(n) && allowed.has(n); });
-  let div = byName(DIVERGENCE_COLUMN_NAME, /diverg/);
+  let div = byName(DIVERGENCE_COLUMN_NAME, /^div$|diverg/);        // exact "DIV" only — NOT dividend columns like "Latest Div Y Q"
   let fvg = byName(FVG_COLUMN_NAME, /fvg|fairvaluegap/);
-  if (!div && keys[81] && fits(keys[81], new Set([-1, 0, 1]))) div = keys[81];                 // column CD
-  if (!fvg && keys[82] && fits(keys[82], new Set([-1, 0, 1, 3, 4]))) fvg = keys[82];           // column CE
+  const anchor = keys.findIndex(k => norm(k) === 'nemisignalstatus');                          // columns placed right after it
+  const tryPos = (i, allowed) => (i >= 0 && keys[i] && fits(keys[i], allowed)) ? keys[i] : null;
+  if (!div && anchor >= 0) div = tryPos(anchor + 1, new Set([-1, 0, 1]));
+  if (!fvg && anchor >= 0) fvg = tryPos(anchor + 2, new Set([-1, 0, 1, 3, 4]));
+  if (!div) div = tryPos(81, new Set([-1, 0, 1]));                                             // old position: column CD
+  if (!fvg) fvg = tryPos(82, new Set([-1, 0, 1, 3, 4]));                                       // old position: column CE
   _sigColsCache = { ref: data, n: data.length, div, fvg };
   return _sigColsCache;
 }
@@ -6541,7 +6550,18 @@ const SIGNAL_STATUS_MAP = {
   1.7: 'Continuation buy signal',
   1.5: 'Initial buy signal',
   1: 'Hold trade',
-  0: 'No trade'
+  0: 'No trade',
+  // ---- sell side (negative codes) ----
+  '-1': 'Hold trade',                  // same wording as code 1
+  '-1.5': 'Initial sell signal',
+  '-1.7': 'Continuation sell signal',
+  // NOTE: the mapping table you gave lists -2.5 as "Extended buy signal (cautious)" — that looks like a
+  // copy of the +2.5 row, so it is shown as the sell-side wording. To show it exactly as listed,
+  // change this one line to 'Extended buy signal (cautious)'.
+  '-2.5': 'Extended sell signal (cautious)',
+  '-3': 'Take some profit',            // same wording as code 3
+  '-4': 'Be cautious',                 // same wording as code 4
+  '-9': 'Sell call closed'
 };
 const LEGACY_SIGNAL_STATUS_TO_CODE = {
   'Buy call closed': 9,
@@ -6558,7 +6578,11 @@ const LEGACY_SIGNAL_STATUS_TO_CODE = {
   // code 2.5 — cautious variant of the above
   'Fresh buy signal (cautious)': 2.5,
   'Fresh signal in an initial buy call (cautious)': 2.5,
-  'Extended buy signal (cautious)': 2.5
+  'Extended buy signal (cautious)': 2.5,
+  'Initial sell signal': -1.5,
+  'Continuation sell signal': -1.7,
+  'Extended sell signal (cautious)': -2.5,
+  'Sell call closed': -9
 };
 function sigStatusCode(raw) {
   if (raw == null || raw === '') return null;
@@ -6574,16 +6598,26 @@ function sigStatusLabel(code) {
   return SIGNAL_STATUS_MAP.hasOwnProperty(v) ? SIGNAL_STATUS_MAP[v] : String(code);
 }
 // Short status text for narrow screens (the full label is still used on desktop and in the tooltip).
-const SIGNAL_STATUS_SHORT = { 9: 'Closed', 4: 'Cautious', 3: 'Take profit', 2.5: 'Extended Buy', 1.7: 'Continue Buy', 1.5: 'Initial Buy', 1: 'Hold Trade', 0: 'No trade' };
+const SIGNAL_STATUS_SHORT = { 9: 'Closed', 4: 'Cautious', 3: 'Take profit', 2.5: 'Extended Buy', 1.7: 'Continue Buy', 1.5: 'Initial Buy', 1: 'Hold Trade', 0: 'No trade',
+  '-1': 'Hold Trade', '-1.5': 'Initial Sell', '-1.7': 'Continue Sell', '-2.5': 'Extended Sell', '-3': 'Take profit', '-4': 'Cautious', '-9': 'Sell closed' };
 function sigStatusShortLabel(raw) {
   const v = sigStatusCode(raw);
   return (v != null && SIGNAL_STATUS_SHORT.hasOwnProperty(v)) ? SIGNAL_STATUS_SHORT[v] : sigStatusLabel(raw);
 }
 function sigStatusPillClass(code) {
-  const v = sigStatusCode(code);
+  let v = sigStatusCode(code);
+  if (v === -1 || v === -3 || v === -4) v = Math.abs(v);           // same wording as the positive code → same colour
   if (v === 1.5 || v === 1.7 || v === 1) return 'pill-good';   // Initial buy, Continuation buy, Hold trade
   if (v === 2.5 || v === 4 || v === 9) return 'pill-bad';     // Extended buy (cautious), Be cautious, Buy call closed
-  return 'pill-neutral'; // 0 (No trade), 3 (Take some profit), and unrecognized values — orange
+  if (v === -1.5 || v === -1.7) return 'pill-bad';            // Initial / Continuation sell signal — bearish, red
+  return 'pill-neutral'; // 0 (No trade), 3 (Take some profit), -2.5 (Extended sell), -9 (Sell call closed), unrecognized — orange
+}
+// Codes with the same wording share ONE filter option (e.g. -1 and 1 are both "Hold trade").
+const SIGNAL_STATUS_TWIN = { '-1': 1, '-3': 3, '-4': 4 };
+function sigStatusFilterKey(raw) {
+  const v = sigStatusCode(raw);
+  if (v == null) return 'null';
+  return String(SIGNAL_STATUS_TWIN.hasOwnProperty(String(v)) ? SIGNAL_STATUS_TWIN[String(v)] : v);
 }
 function fmtMarketCap(v) {
   const n = toNum(v);
